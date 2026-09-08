@@ -2,7 +2,7 @@ id: m7_human_acceptance
 type: gate
 label: 用户审核 v1 实施结果
 level: 7
-status: pending
+status: ready
 plan:
   description: 在 Web UI 中审核实现结果、验收证据、模块投影和协议冻结清单，记录用户最终批准或修改意见。
 expected_outcome:
@@ -12,7 +12,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:11.188Z'
-updated_at: '2026-09-08T14:18:11.188Z'
+updated_at: '2026-09-08T15:04:53.709Z'
 checkpoints:
   - id: review
     label: 用户完成 Web UI 成果审核

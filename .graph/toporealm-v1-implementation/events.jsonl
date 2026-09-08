@@ -89,3 +89,4 @@
 {"ts":"2026-09-08T15:03:42.308Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m6_protocol_freeze","from":"pending","to":"passed","detail":"checkpoint=freeze"}
 {"ts":"2026-09-08T15:03:42.345Z","actor":"codex-mcp-client","kind":"verdict","node":"m6_protocol_freeze","detail":"verdict=passed"}
 {"ts":"2026-09-08T15:03:42.417Z","actor":"codex-mcp-client","kind":"node_status","node":"m6_protocol_freeze","from":"running","to":"passed"}
+{"ts":"2026-09-08T15:04:53.713Z","actor":"codex-mcp-client","kind":"node_status","node":"m7_human_acceptance","from":"pending","to":"ready"}
