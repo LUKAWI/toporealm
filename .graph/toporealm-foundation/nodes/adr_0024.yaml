@@ -1,0 +1,16 @@
+id: adr_0024
+type: adr
+label: 模块默认只提供一个主 Skill
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T11:56:41.135Z'
+updated_at: '2026-09-08T11:56:49.813Z'
+decision: >-
+  每个模块默认提供一个以模块命名空间为边界的主 Skill。只有某项能力具有独立触发条件、独立工作阶段或必须隔离的纪律时，才允许增加附加 Skill。模块的普通操作通过固定 MCP 工具和动作引用发现，不为每个操作生成
+  Skill。Skills 说明 agent 如何使用模块，不复制 Schema、操作参数或模块清单内容。
+background: TopoRealm 可同时安装多个模块；若按每个操作拆 Skill，宿主上下文和选择成本会随模块功能数快速增长，并造成说明与机器契约重复。
+considered_options: 单模块只允许一个 Skill 最简但无法容纳执行、复核、TDD 等真正不同的触发边界；每个操作一个 Skill 发现直接但数量失控；默认一个、按独立阶段例外拆分能控制规模。
+why: 主 Skill 提供稳定领域入口，动作引用承担细粒度操作发现；附加 Skill 的例外条件足以保留 workflow 等复杂模块的必要纪律。
+consequences: 模块清单需要索引主 Skill 和少量附加 Skill；评审模块时要检查拆分理由；workflow 执行、独立复核和 TDD 可保留为独立 Skill，而普通 CRUD 不拆分。

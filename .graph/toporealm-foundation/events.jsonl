@@ -352,3 +352,13 @@
 {"ts":"2026-09-08T11:54:46.943Z","actor":"unknown","kind":"execution_report","node":"l2_web_contract"}
 {"ts":"2026-09-08T11:54:47.095Z","actor":"cli","kind":"verdict","node":"l2_web_contract","detail":"verdict=passed"}
 {"ts":"2026-09-08T11:54:47.293Z","actor":"cli","kind":"node_status","node":"l2_web_contract","from":"running","to":"passed"}
+{"ts":"2026-09-08T11:55:04.584Z","actor":"cli","kind":"node_status","node":"l2_skill_contract","from":"pending","to":"ready"}
+{"ts":"2026-09-08T11:55:04.831Z","actor":"cli","kind":"node_status","node":"l2_skill_contract","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T11:56:41.336Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-56-41-139z-546qo2 message=\"auto: structural amend (add-node adr_0024) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:56:41.365Z","actor":"cli","kind":"adr_created","node":"adr_0024","to":"proposed","detail":"模块默认只提供一个主 Skill"}
+{"ts":"2026-09-08T11:56:41.369Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0024; auto_snapshot=2026-09-08t11-56-41-139z-546qo2"}
+{"ts":"2026-09-08T11:56:49.611Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-56-49-406z-r4uv1k message=\"auto: structural amend (add-edge decides-module-skill-granularity) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:56:49.640Z","actor":"cli","kind":"edge_created","edge":"decides-module-skill-granularity","detail":"adr_0024 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T11:56:49.644Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-skill-granularity; auto_snapshot=2026-09-08t11-56-49-406z-r4uv1k"}
+{"ts":"2026-09-08T11:56:49.820Z","actor":"cli","kind":"adr_accepted","node":"adr_0024","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:57:33.082Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_skill_contract","from":"pending","to":"passed","detail":"checkpoint=base-skills"}

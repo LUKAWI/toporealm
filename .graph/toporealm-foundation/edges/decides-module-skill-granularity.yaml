@@ -1,0 +1,4 @@
+id: decides-module-skill-granularity
+source: adr_0024
+target: ctx-surfaces
+type: decides
