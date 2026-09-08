@@ -227,3 +227,10 @@
 {"ts":"2026-09-08T06:50:09.856Z","actor":"cli","kind":"edge_created","edge":"decides-object-shape","detail":"adr_0008 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T06:50:09.862Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-object-shape; auto_snapshot=2026-09-08t06-50-09-694z-2n33qu"}
 {"ts":"2026-09-08T06:50:10.736Z","actor":"cli","kind":"adr_accepted","node":"adr_0008","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:53:19.790Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-53-19-651z-jn69qr message=\"auto: structural amend (add-node adr_0009) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:53:19.810Z","actor":"cli","kind":"adr_created","node":"adr_0009","to":"proposed","detail":"关系采用一等实体结构"}
+{"ts":"2026-09-08T06:53:19.831Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0009; auto_snapshot=2026-09-08t06-53-19-651z-jn69qr"}
+{"ts":"2026-09-08T06:53:31.229Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-53-31-098z-3koznx message=\"auto: structural amend (add-edge decides-relation-shape) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:53:31.273Z","actor":"cli","kind":"edge_created","edge":"decides-relation-shape","detail":"adr_0009 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:53:31.278Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-relation-shape; auto_snapshot=2026-09-08t06-53-31-098z-3koznx"}
+{"ts":"2026-09-08T06:53:32.168Z","actor":"cli","kind":"adr_accepted","node":"adr_0009","from":"proposed","to":"accepted"}

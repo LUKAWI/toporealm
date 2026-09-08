@@ -61,9 +61,37 @@ meta:
 
 当主类型模块或能力模块缺失时，基座可以修改 `label` 等已知基座字段，但必须原样保留未知的 `kind`、`data` 和 `capabilities` 内容。模块恢复后，这些数据应重新获得原有语义。
 
+## 已确认：关系的最小结构
+
+关系是一等实体，由基座连接信息、关系类型数据和可选能力状态组成：
+
+```yaml
+id: supports-001
+kind: research.supports
+source: evidence-001
+target: claim-001
+direction: directed
+
+label: 支持
+
+data:
+  strength: strong
+
+capabilities:
+  temporal.validity:
+    valid_until: 2027-01-01
+
+meta:
+  created_at: 2026-09-08T10:00:00+08:00
+  updated_at: 2026-09-08T10:00:00+08:00
+```
+
+`id`、`kind`、`source`、`target` 和 `direction` 是必填字段。`direction` 只能是 `directed` 或 `undirected`，使基座在关系类型模块缺失时仍能正确遍历。对于无向关系，`source` 与 `target` 只提供稳定的存储顺序，不表达语义方向。
+
+`label`、`data`、`capabilities` 和 `meta` 的所有权规则与对象相同，且没有内容时可以省略。关系拥有独立 `id`，因此可以被引用、单独编辑、附加能力并在 Web UI 中作为一等实体检查。
+
 ## 尚待确定
 
 - `graph.yaml` 的最小字段和模块版本声明；
-- relation 的方向、主类型和模块扩展区结构；
 - 未知模块数据允许进行哪些基础编辑；
 - 标识符在单图、工作区和跨图引用中的作用域。

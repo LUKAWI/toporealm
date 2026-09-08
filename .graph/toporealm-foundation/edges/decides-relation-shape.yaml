@@ -1,0 +1,4 @@
+id: decides-relation-shape
+source: adr_0009
+target: ctx-kernel
+type: decides
