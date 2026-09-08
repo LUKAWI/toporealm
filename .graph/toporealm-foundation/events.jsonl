@@ -347,3 +347,8 @@
 {"ts":"2026-09-08T11:51:56.555Z","actor":"cli","kind":"adr_accepted","node":"adr_0023","from":"proposed","to":"accepted"}
 {"ts":"2026-09-08T11:53:17.652Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_web_contract","from":"pending","to":"running","detail":"checkpoint=shell"}
 {"ts":"2026-09-08T11:53:17.755Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_web_contract","from":"pending","to":"running","detail":"checkpoint=contributions"}
+{"ts":"2026-09-08T11:54:46.729Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_web_contract","from":"running","to":"passed","detail":"checkpoint=shell"}
+{"ts":"2026-09-08T11:54:46.843Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_web_contract","from":"running","to":"passed","detail":"checkpoint=contributions"}
+{"ts":"2026-09-08T11:54:46.943Z","actor":"unknown","kind":"execution_report","node":"l2_web_contract"}
+{"ts":"2026-09-08T11:54:47.095Z","actor":"cli","kind":"verdict","node":"l2_web_contract","detail":"verdict=passed"}
+{"ts":"2026-09-08T11:54:47.293Z","actor":"cli","kind":"node_status","node":"l2_web_contract","from":"running","to":"passed"}
