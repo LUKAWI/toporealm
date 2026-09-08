@@ -268,3 +268,10 @@
 {"ts":"2026-09-08T07:53:13.799Z","actor":"cli","kind":"node_status","node":"l1_data_model","from":"running","to":"passed"}
 {"ts":"2026-09-08T07:53:27.903Z","actor":"cli","kind":"node_status","node":"l1_module_contract","from":"pending","to":"ready"}
 {"ts":"2026-09-08T07:53:28.886Z","actor":"cli","kind":"node_status","node":"l1_module_contract","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T08:01:53.295Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-01-53-118z-7qkvxl message=\"auto: structural amend (add-node adr_0014) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:01:53.337Z","actor":"cli","kind":"adr_created","node":"adr_0014","to":"proposed","detail":"模块采用全局可用、工作区绑定、图级启用三级结构"}
+{"ts":"2026-09-08T08:01:53.344Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0014; auto_snapshot=2026-09-08t08-01-53-118z-7qkvxl"}
+{"ts":"2026-09-08T08:02:09.543Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-02-09-378z-bcgfet message=\"auto: structural amend (add-edge decides-module-resolution) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:02:09.566Z","actor":"cli","kind":"edge_created","edge":"decides-module-resolution","detail":"adr_0014 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T08:02:09.592Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-resolution; auto_snapshot=2026-09-08t08-02-09-378z-bcgfet"}
+{"ts":"2026-09-08T08:02:10.311Z","actor":"cli","kind":"adr_accepted","node":"adr_0014","from":"proposed","to":"accepted"}

@@ -1,0 +1,4 @@
+id: decides-module-resolution
+source: adr_0014
+target: ctx-kernel
+type: decides

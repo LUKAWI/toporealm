@@ -1,0 +1,16 @@
+id: adr_0014
+type: adr
+label: 模块采用全局可用、工作区绑定、图级启用三级结构
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T08:01:53.114Z'
+updated_at: '2026-09-08T08:02:10.302Z'
+decision: >-
+  模块以含 module.yaml 的自包含目录为完整装载单元；全局目录提供本机可用版本，.toporealm/modules/ 保存工作区模块，.toporealm/modules.yaml 显式绑定 global、workspace
+  或 path 来源，graph.yaml 只负责图级启用。
+background: TopoRealm 既要支持可复用的全局模块，也要支持项目内自建和外部开发中的模块，并保证不同环境的解析结果可说明。
+considered_options: 只允许全局安装：不利于项目定制；工作区自动覆盖全局：简单但解析结果隐式；三级结构加显式绑定：采用。
+why: 将可用性、来源选择和图内激活分开，可以让多图复用绑定、避免静默覆盖，并保持模块作为完整单元加载。
+consequences: 工作区增加 modules.yaml；同一模块不能跨来源拼装；缺失或不兼容绑定进入降级模式；首版不引入远程市场和复杂依赖解析。
