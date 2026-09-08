@@ -56,6 +56,60 @@ export interface GraphSnapshot {
   revision: number;
 }
 
+export type ObjectMutation =
+  | { op: "upsert_object"; object: ObjectRecord }
+  | { op: "delete_object"; id: EntityId };
+
+export type RelationMutation =
+  | { op: "upsert_relation"; relation: RelationRecord }
+  | { op: "delete_relation"; id: EntityId };
+
+export type ManifestMutation = {
+  op: "patch_manifest";
+  patch: Partial<Pick<GraphManifest, "label" | "modules" | "meta">>;
+};
+
+/** A single user/agent command. It is the atomic unit for undo and redo. */
+export type Mutation = ObjectMutation | RelationMutation | ManifestMutation;
+
+export interface MutationPlan {
+  mutations: readonly Mutation[];
+  expectedRevision?: number;
+  label?: string;
+}
+
+export interface GraphPatch {
+  fromRevision: number;
+  toRevision: number;
+  objects: {
+    added: readonly ObjectRecord[];
+    updated: readonly ObjectRecord[];
+    deleted: readonly EntityId[];
+  };
+  relations: {
+    added: readonly RelationRecord[];
+    updated: readonly RelationRecord[];
+    deleted: readonly EntityId[];
+  };
+  manifestChanged: boolean;
+  manifest?: GraphManifest;
+}
+
+export interface MutationResult {
+  snapshot: GraphSnapshot;
+  patch: GraphPatch;
+  history: {
+    canUndo: boolean;
+    canRedo: boolean;
+  };
+}
+
+export interface CoreErrorShape {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export interface CoreSurface {
   readonly name: "core";
   readonly graphFormat: GraphFormat;

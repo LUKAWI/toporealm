@@ -53,3 +53,9 @@
 {"ts":"2026-09-08T14:28:14.742Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m0_scaffold","from":"pending","to":"passed","detail":"checkpoint=baseline"}
 {"ts":"2026-09-08T14:28:14.822Z","actor":"codex-mcp-client","kind":"verdict","node":"m0_scaffold","detail":"verdict=passed"}
 {"ts":"2026-09-08T14:28:14.858Z","actor":"codex-mcp-client","kind":"node_status","node":"m0_scaffold","from":"running","to":"passed"}
+{"ts":"2026-09-08T14:28:31.565Z","actor":"codex-mcp-client","kind":"node_status","node":"m1_thin_vertical","from":"pending","to":"ready"}
+{"ts":"2026-09-08T14:28:31.637Z","actor":"codex-root","kind":"node_status","node":"m1_thin_vertical","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T14:36:03.382Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m1_thin_vertical","from":"pending","to":"passed","detail":"checkpoint=core-edit"}
+{"ts":"2026-09-08T14:36:03.440Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m1_thin_vertical","from":"pending","to":"passed","detail":"checkpoint=surfaces"}
+{"ts":"2026-09-08T14:36:03.483Z","actor":"codex-mcp-client","kind":"verdict","node":"m1_thin_vertical","detail":"verdict=passed"}
+{"ts":"2026-09-08T14:36:03.517Z","actor":"codex-mcp-client","kind":"node_status","node":"m1_thin_vertical","from":"running","to":"passed"}

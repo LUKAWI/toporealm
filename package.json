@@ -10,6 +10,9 @@
     "test": "vitest run",
     "verify": "npm run build && npm test"
   },
+  "dependencies": {
+    "yaml": "^2.7.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",

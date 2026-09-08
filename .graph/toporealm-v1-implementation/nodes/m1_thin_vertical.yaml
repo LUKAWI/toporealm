@@ -2,7 +2,7 @@ id: m1_thin_vertical
 type: task
 label: M1 最薄基座全链路
 level: 2
-status: pending
+status: passed
 plan:
   description: 贯通最小 Core、CLI、MCP、Server 与 Web UI：图读写、对象/关系编辑、revision、增量 patch 和持久化撤销/重做。
 expected_outcome:
@@ -12,13 +12,40 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:10.708Z'
-updated_at: '2026-09-08T14:18:10.708Z'
+updated_at: '2026-09-08T14:36:03.513Z'
 checkpoints:
   - id: core-edit
     label: 完成 Core 原子编辑、revision 与历史
-    status: pending
+    status: passed
     verifier: auto
   - id: surfaces
     label: CLI/MCP/Web UI 全链路与 patch 验证通过
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    完成最薄基座全链路：GraphStore 负责 YAML 图事实、图级锁、单命令 MutationPlan、revision patch、持久化线性 undo/redo 与 stale revision
+    拒绝；CLI、MCP、HTTP Server 和 WebGraphModel 均复用同一 Core。
+  started_at: '2026-09-08T14:28:31.631Z'
+  artifacts:
+    - src/core/types.ts
+    - src/core/errors.ts
+    - src/core/store.ts
+    - src/core/index.ts
+    - src/cli/index.ts
+    - src/mcp/index.ts
+    - src/server/index.ts
+    - src/web/index.ts
+    - src/index.ts
+    - tests/core-store.test.ts
+    - package.json
+    - package-lock.json
+  notes: >-
+    npm run verify 已通过：tsc build 成功，Vitest 2 files / 6 tests passed；git diff --check 无错误。删除对象会在同一 MutationPlan
+    中清理关联关系，缺失模块数据仍按原始 YAML 读取。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T14:36:03.473Z'
+    note: Core 编辑、历史恢复、revision 冲突、CLI/MCP/Server/Web 适配和 Web patch gap 均有测试覆盖。
+  completed_at: '2026-09-08T14:36:03.513Z'
