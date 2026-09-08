@@ -1,0 +1,4 @@
+id: decides-v1-freeze-gate
+source: adr_0037
+target: ctx-adoption
+type: decides

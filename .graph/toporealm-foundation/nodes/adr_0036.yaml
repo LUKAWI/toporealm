@@ -1,0 +1,14 @@
+id: adr_0036
+type: adr
+label: 首个实现里程碑贯通最薄全链路
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:58:51.754Z'
+updated_at: '2026-09-08T13:58:53.190Z'
+decision: TopoRealm 开工后的第一里程碑先贯通最薄的 Core、CLI/MCP、Server 与 Web UI 链路，覆盖最小图读写、revision、增量 patch 和撤销/重做；不先横向做完某一层。
+background: 架构包含多个正式表面，若先孤立完成 Core 或 Web，关键接口风险会推迟暴露。
+considered_options: 先完整 Core：下游接口风险晚发现；先复刻 Web：容易保留旧领域假设；最薄全链路：采用。
+why: 以最小实现成本尽早验证四个正式表面共享同一 Core 契约。
+consequences: 第一阶段功能面很窄，但必须能真实运行；后续阶段再扩展模块装载与领域切片。

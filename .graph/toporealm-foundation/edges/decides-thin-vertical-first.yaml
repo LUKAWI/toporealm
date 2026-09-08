@@ -1,0 +1,4 @@
+id: decides-thin-vertical-first
+source: adr_0036
+target: ctx-adoption
+type: decides

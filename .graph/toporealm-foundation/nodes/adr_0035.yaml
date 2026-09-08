@@ -1,0 +1,16 @@
+id: adr_0035
+type: adr
+label: 跨模块编辑由 Core 分域校验后原子提交
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:58:51.436Z'
+updated_at: '2026-09-08T13:58:52.801Z'
+decision: >-
+  人或 agent 可以在一次编辑中修改多个已装载模块的数据。Core 按命名空间把变更交给各所属模块的 Schema 与规则校验，全部通过后作为一个 MutationPlan 原子提交并形成一个撤销单位。模块运行时代码不能绕过 Core
+  直接写图。
+background: 模块是语义和校验提供者，不是自主编辑主体；同时需要支持用户或 agent 表达跨领域的一次完整编辑意图。
+considered_options: 禁止跨模块编辑：组合能力受限；允许任意模块直接写其他命名空间：形成隐式耦合；由 Core 分域校验并统一提交：采用。
+why: 既保持模块所有权，又不限制人和 agent 的组合编辑能力。
+consequences: Core 需要把 MutationPlan 按所有者分发校验；任一分域失败则整次编辑不写入。

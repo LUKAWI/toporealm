@@ -450,3 +450,29 @@
 {"ts":"2026-09-08T13:46:59.403Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_research_slice","from":"pending","to":"passed","detail":"checkpoint=proof"}
 {"ts":"2026-09-08T13:47:12.178Z","actor":"codex-mcp-client","kind":"verdict","node":"l3_research_slice","detail":"verdict=passed"}
 {"ts":"2026-09-08T13:47:12.201Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_research_slice","from":"running","to":"passed"}
+{"ts":"2026-09-08T13:58:17.160Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_delivery_plan","from":"pending","to":"ready"}
+{"ts":"2026-09-08T13:58:17.211Z","actor":"codex-root","kind":"node_status","node":"l4_delivery_plan","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T13:58:51.688Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-58-51-438z-lfeawk message=\"auto: structural amend (add-node adr_0035) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:58:51.714Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0035","to":"proposed","detail":"跨模块编辑由 Core 分域校验后原子提交"}
+{"ts":"2026-09-08T13:58:51.719Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0035; auto_snapshot=2026-09-08t13-58-51-438z-lfeawk"}
+{"ts":"2026-09-08T13:58:51.999Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-58-51-756z-qw41wq message=\"auto: structural amend (add-node adr_0036) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:58:52.048Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0036","to":"proposed","detail":"首个实现里程碑贯通最薄全链路"}
+{"ts":"2026-09-08T13:58:52.053Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0036; auto_snapshot=2026-09-08t13-58-51-756z-qw41wq"}
+{"ts":"2026-09-08T13:58:52.331Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-58-52-090z-mt6xem message=\"auto: structural amend (add-node adr_0037) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:58:52.373Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0037","to":"proposed","detail":"两个模块切片通过后冻结 v1 协议"}
+{"ts":"2026-09-08T13:58:52.379Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0037; auto_snapshot=2026-09-08t13-58-52-090z-mt6xem"}
+{"ts":"2026-09-08T13:58:52.683Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-58-52-420z-4f758m message=\"auto: structural amend (add-edge decides-cross-module-edit-validation) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:58:52.726Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-cross-module-edit-validation","detail":"adr_0035 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T13:58:52.731Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-cross-module-edit-validation; auto_snapshot=2026-09-08t13-58-52-420z-4f758m"}
+{"ts":"2026-09-08T13:58:52.807Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0035","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:58:53.101Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-58-52-848z-tvuo1h message=\"auto: structural amend (add-edge decides-thin-vertical-first) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:58:53.142Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-thin-vertical-first","detail":"adr_0036 -[decides]-> ctx-adoption"}
+{"ts":"2026-09-08T13:58:53.147Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-thin-vertical-first; auto_snapshot=2026-09-08t13-58-52-848z-tvuo1h"}
+{"ts":"2026-09-08T13:58:53.194Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0036","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:58:53.479Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-58-53-221z-oln450 message=\"auto: structural amend (add-edge decides-v1-freeze-gate) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:58:53.530Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-v1-freeze-gate","detail":"adr_0037 -[decides]-> ctx-adoption"}
+{"ts":"2026-09-08T13:58:53.535Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-v1-freeze-gate; auto_snapshot=2026-09-08t13-58-53-221z-oln450"}
+{"ts":"2026-09-08T13:58:53.583Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0037","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T14:00:45.446Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_delivery_plan","from":"pending","to":"passed","detail":"checkpoint=phases"}
+{"ts":"2026-09-08T14:02:12.045Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_delivery_plan","from":"pending","to":"running","detail":"checkpoint=credibility"}
+{"ts":"2026-09-08T14:02:12.094Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_delivery_plan","detail":"verdict=pending"}

@@ -59,6 +59,9 @@ nodes:
   - file: nodes/adr_0032.yaml
   - file: nodes/adr_0033.yaml
   - file: nodes/adr_0034.yaml
+  - file: nodes/adr_0035.yaml
+  - file: nodes/adr_0036.yaml
+  - file: nodes/adr_0037.yaml
 edges:
   - file: edges/rel-kernel-surfaces.yaml
   - file: edges/rel-surfaces-adoption.yaml
@@ -107,6 +110,9 @@ edges:
   - file: edges/decides-persistent-undo-redo.yaml
   - file: edges/decides-graph-revision-concurrency.yaml
   - file: edges/decides-module-failure-isolation.yaml
+  - file: edges/decides-cross-module-edit-validation.yaml
+  - file: edges/decides-thin-vertical-first.yaml
+  - file: edges/decides-v1-freeze-gate.yaml
 version: 1.0.0
 class: program
 root_context:
@@ -127,4 +133,4 @@ fog:
 review:
   status: unreviewed
   by: codex-mcp-client
-  at: '2026-09-08T13:46:15.644Z'
+  at: '2026-09-08T13:58:53.539Z'

@@ -1,0 +1,4 @@
+id: decides-cross-module-edit-validation
+source: adr_0035
+target: ctx-kernel
+type: decides

@@ -1,0 +1,16 @@
+id: adr_0037
+type: adr
+label: 两个模块切片通过后冻结 v1 协议
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:58:52.088Z'
+updated_at: '2026-09-08T13:58:53.578Z'
+decision: >-
+  验证阶段使用可调整的 v1alpha1 图格式和模块 API。在 research/exploration 与 workflow 两条纵向切片通过前允许直接修正协议，不为试验数据维护迁移器；两条切片通过后冻结
+  v1，此后破坏性变更必须升级格式版本并提供明确迁移方案。
+background: 当前协议尚未经过真实实现验证，从第一天承诺长期兼容会固化推测性设计；但正式使用前需要明确稳定门槛。
+considered_options: 立即冻结 v1：过早；长期 alpha：无法形成可靠生态；两条代表性切片后冻结：采用。
+why: 在迭代速度与稳定承诺之间设置可验证的分界线。
+consequences: alpha 阶段仓库内样例可能随协议改写；npm 包版本与图数据格式版本保持独立。
