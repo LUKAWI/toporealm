@@ -1,0 +1,4 @@
+id: dep-module-skill
+source: l1_module_contract
+target: l2_skill_contract
+type: depends_on

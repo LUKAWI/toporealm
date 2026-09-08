@@ -3,3 +3,9 @@ dist/
 .DS_Store
 *.log
 
+# Super Plumber 派生与运行时数据；图定义、节点、边和审计事件保留入库
+.graph/.locks/
+.graph/*/.locks/
+.graph/*/index/
+.graph/*/snapshots/
+.graph/*/.design-corrections/

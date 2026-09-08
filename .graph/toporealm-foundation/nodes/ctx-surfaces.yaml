@@ -1,0 +1,17 @@
+id: ctx-surfaces
+type: context
+label: 交互与宿主集成
+level: 2
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:20:28.298Z'
+updated_at: '2026-09-08T06:20:32.799Z'
+boundary: 负责 Web UI、CLI、MCP、skills 和宿主插件适配；不拥有模块领域规则。
+glossary:
+  - term: 基座 Skill
+    definition: 不依赖具体领域模块的路由、通用建图或只读入场方法。
+contracts:
+  - to: ctx-adoption
+    contract:
+      produces: Web UI 与宿主集成契约

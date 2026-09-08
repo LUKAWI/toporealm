@@ -1,0 +1,14 @@
+id: adr_0001
+type: adr
+label: 独立建设 TopoRealm 产品
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T06:23:04.725Z'
+updated_at: '2026-09-08T06:23:35.756Z'
+decision: 在独立工作区建设包含 Core、CLI、MCP 和 Web UI 的 TopoRealm；Super Plumber 作为面向开发交付的发行组合延续。
+background: 现有 Super Plumber 已稳定但其核心模型绑定开发工作流，直接原地通用化会让兼容要求限制新基座。
+considered_options: 在原仓库重构：迁移直接但耦合高；新建纯 SDK：无法覆盖 Web UI 产品定位；独立完整产品：采用。
+why: 隔离新模型探索与旧产品维护，同时保留成熟实现作为迁移参考。
+consequences: 需要兼容读取和迁移器；两个仓库在一段时间内并存。

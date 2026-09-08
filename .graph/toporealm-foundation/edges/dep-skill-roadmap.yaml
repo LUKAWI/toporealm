@@ -1,0 +1,4 @@
+id: dep-skill-roadmap
+source: l2_skill_contract
+target: l4_delivery_plan
+type: depends_on

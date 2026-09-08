@@ -1,0 +1,25 @@
+id: l3_research_slice
+type: decision
+label: 设计最小 research 纵向切片
+level: 3
+context: ctx-adoption
+status: pending
+plan:
+  description: 选择一个问题、来源、论点、证据与未知区域贯通场景，用于验证模块组合、MCP 和 Web UI 扩展契约。
+expected_outcome:
+  definition_of_done:
+    - docs/architecture/research-vertical-slice.md 给出可运行场景、样例图和验收观察。
+    - 切片能在不修改基座类型枚举的情况下注册 research 与 exploration 内容。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:25:41.452Z'
+updated_at: '2026-09-08T06:25:41.452Z'
+checkpoints:
+  - id: scenario
+    label: 确定最小研究场景
+    status: pending
+    verifier: auto
+  - id: proof
+    label: 定义协议验证读数
+    status: pending
+    verifier: auto

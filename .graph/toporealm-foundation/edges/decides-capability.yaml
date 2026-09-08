@@ -1,0 +1,4 @@
+id: decides-capability
+source: adr_0002
+target: ctx-kernel
+type: decides

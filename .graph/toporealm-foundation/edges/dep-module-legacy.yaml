@@ -1,0 +1,4 @@
+id: dep-module-legacy
+source: l1_module_contract
+target: l3_legacy_migration
+type: depends_on

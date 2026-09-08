@@ -1,0 +1,4 @@
+id: dep-data-legacy
+source: l1_data_model
+target: l3_legacy_migration
+type: depends_on

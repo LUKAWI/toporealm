@@ -1,0 +1,5 @@
+id: rel-surfaces-adoption
+source: ctx-surfaces
+target: ctx-adoption
+type: relates
+rel_kind: 支撑迁移验证

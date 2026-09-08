@@ -1,0 +1,4 @@
+id: decides-exploration
+source: adr_0004
+target: ctx-kernel
+type: decides

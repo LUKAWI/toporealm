@@ -1,0 +1,211 @@
+{"ts":"2026-09-08T06:20:26.457Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-20-26-447z-7hnq5u message=\"auto: structural amend (add-node ctx-kernel) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:20:26.474Z","actor":"cli","kind":"node_created","node":"ctx-kernel","to":"pending"}
+{"ts":"2026-09-08T06:20:26.478Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=ctx-kernel; auto_snapshot=2026-09-08t06-20-26-447z-7hnq5u"}
+{"ts":"2026-09-08T06:20:27.394Z","actor":"cli","kind":"node_content_updated","node":"ctx-kernel","detail":"fields: boundary, glossary"}
+{"ts":"2026-09-08T06:20:28.293Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-20-28-278z-09hs78 message=\"auto: structural amend (add-node ctx-surfaces) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:20:28.305Z","actor":"cli","kind":"node_created","node":"ctx-surfaces","to":"pending"}
+{"ts":"2026-09-08T06:20:28.310Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=ctx-surfaces; auto_snapshot=2026-09-08t06-20-28-278z-09hs78"}
+{"ts":"2026-09-08T06:20:29.243Z","actor":"cli","kind":"node_content_updated","node":"ctx-surfaces","detail":"fields: boundary, glossary"}
+{"ts":"2026-09-08T06:20:30.177Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-20-30-156z-fw2bw7 message=\"auto: structural amend (add-node ctx-adoption) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:20:30.189Z","actor":"cli","kind":"node_created","node":"ctx-adoption","to":"pending"}
+{"ts":"2026-09-08T06:20:30.193Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=ctx-adoption; auto_snapshot=2026-09-08t06-20-30-156z-fw2bw7"}
+{"ts":"2026-09-08T06:20:31.066Z","actor":"cli","kind":"node_content_updated","node":"ctx-adoption","detail":"fields: boundary, glossary"}
+{"ts":"2026-09-08T06:20:31.941Z","actor":"cli","kind":"node_content_updated","node":"ctx-kernel","detail":"fields: contracts"}
+{"ts":"2026-09-08T06:20:32.805Z","actor":"cli","kind":"node_content_updated","node":"ctx-surfaces","detail":"fields: contracts"}
+{"ts":"2026-09-08T06:20:33.696Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-20-33-676z-0es29s message=\"auto: structural amend (add-edge rel-kernel-surfaces) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:20:33.709Z","actor":"cli","kind":"edge_created","edge":"rel-kernel-surfaces","detail":"ctx-kernel -[relates]-> ctx-surfaces"}
+{"ts":"2026-09-08T06:20:33.714Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=rel-kernel-surfaces; auto_snapshot=2026-09-08t06-20-33-676z-0es29s"}
+{"ts":"2026-09-08T06:20:34.628Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-20-34-607z-2zi4re message=\"auto: structural amend (add-edge rel-surfaces-adoption) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:20:34.640Z","actor":"cli","kind":"edge_created","edge":"rel-surfaces-adoption","detail":"ctx-surfaces -[relates]-> ctx-adoption"}
+{"ts":"2026-09-08T06:20:34.644Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=rel-surfaces-adoption; auto_snapshot=2026-09-08t06-20-34-607z-2zi4re"}
+{"ts":"2026-09-08T06:21:36.358Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-36-333z-q9f6gw message=\"auto: structural amend (add-node l1-data-model) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:36.372Z","actor":"cli","kind":"node_created","node":"l1-data-model","to":"pending"}
+{"ts":"2026-09-08T06:21:36.376Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l1-data-model; auto_snapshot=2026-09-08t06-21-36-333z-q9f6gw"}
+{"ts":"2026-09-08T06:21:37.308Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-37-281z-fkk6gj message=\"auto: structural amend (add-node l1-module-contract) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:37.323Z","actor":"cli","kind":"node_created","node":"l1-module-contract","to":"pending"}
+{"ts":"2026-09-08T06:21:37.328Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l1-module-contract; auto_snapshot=2026-09-08t06-21-37-281z-fkk6gj"}
+{"ts":"2026-09-08T06:21:38.270Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-38-239z-7roxzf message=\"auto: structural amend (add-node l2-web-contract) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:38.285Z","actor":"cli","kind":"node_created","node":"l2-web-contract","to":"pending"}
+{"ts":"2026-09-08T06:21:38.289Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l2-web-contract; auto_snapshot=2026-09-08t06-21-38-239z-7roxzf"}
+{"ts":"2026-09-08T06:21:39.195Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-39-162z-gh0f30 message=\"auto: structural amend (add-node l2-skill-contract) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:39.210Z","actor":"cli","kind":"node_created","node":"l2-skill-contract","to":"pending"}
+{"ts":"2026-09-08T06:21:39.214Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l2-skill-contract; auto_snapshot=2026-09-08t06-21-39-162z-gh0f30"}
+{"ts":"2026-09-08T06:21:40.150Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-40-110z-x0j3m0 message=\"auto: structural amend (add-node l3-legacy-migration) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:40.166Z","actor":"cli","kind":"node_created","node":"l3-legacy-migration","to":"pending"}
+{"ts":"2026-09-08T06:21:40.171Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3-legacy-migration; auto_snapshot=2026-09-08t06-21-40-110z-x0j3m0"}
+{"ts":"2026-09-08T06:21:41.107Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-41-056z-yx5cnc message=\"auto: structural amend (add-node l3-research-slice) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:41.124Z","actor":"cli","kind":"node_created","node":"l3-research-slice","to":"pending"}
+{"ts":"2026-09-08T06:21:41.130Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3-research-slice; auto_snapshot=2026-09-08t06-21-41-056z-yx5cnc"}
+{"ts":"2026-09-08T06:21:42.126Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-42-044z-zxjtlb message=\"auto: structural amend (add-node l4-delivery-plan) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:42.149Z","actor":"cli","kind":"node_created","node":"l4-delivery-plan","to":"pending"}
+{"ts":"2026-09-08T06:21:42.155Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l4-delivery-plan; auto_snapshot=2026-09-08t06-21-42-044z-zxjtlb"}
+{"ts":"2026-09-08T06:21:43.120Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-21-43-073z-hfasrx message=\"auto: structural amend (add-node l4-human-review) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:21:43.137Z","actor":"cli","kind":"node_created","node":"l4-human-review","to":"pending"}
+{"ts":"2026-09-08T06:21:43.142Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l4-human-review; auto_snapshot=2026-09-08t06-21-43-073z-hfasrx"}
+{"ts":"2026-09-08T06:22:08.770Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-08-725z-pqsnv4 message=\"auto: structural amend (add-edge dep-data-module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:08.786Z","actor":"cli","kind":"edge_created","edge":"dep-data-module","detail":"l1-data-model -[depends_on]-> l1-module-contract"}
+{"ts":"2026-09-08T06:22:08.790Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-data-module; auto_snapshot=2026-09-08t06-22-08-725z-pqsnv4"}
+{"ts":"2026-09-08T06:22:09.789Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-09-737z-1tc1wj message=\"auto: structural amend (add-edge dep-module-web) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:09.807Z","actor":"cli","kind":"edge_created","edge":"dep-module-web","detail":"l1-module-contract -[depends_on]-> l2-web-contract"}
+{"ts":"2026-09-08T06:22:09.811Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-web; auto_snapshot=2026-09-08t06-22-09-737z-1tc1wj"}
+{"ts":"2026-09-08T06:22:10.773Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-10-721z-czxldv message=\"auto: structural amend (add-edge dep-module-skill) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:10.790Z","actor":"cli","kind":"edge_created","edge":"dep-module-skill","detail":"l1-module-contract -[depends_on]-> l2-skill-contract"}
+{"ts":"2026-09-08T06:22:10.795Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-skill; auto_snapshot=2026-09-08t06-22-10-721z-czxldv"}
+{"ts":"2026-09-08T06:22:11.739Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-11-689z-k7t6ec message=\"auto: structural amend (add-edge dep-data-legacy) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:11.756Z","actor":"cli","kind":"edge_created","edge":"dep-data-legacy","detail":"l1-data-model -[depends_on]-> l3-legacy-migration"}
+{"ts":"2026-09-08T06:22:11.761Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-data-legacy; auto_snapshot=2026-09-08t06-22-11-689z-k7t6ec"}
+{"ts":"2026-09-08T06:22:12.703Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-12-649z-06wgno message=\"auto: structural amend (add-edge dep-module-legacy) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:12.720Z","actor":"cli","kind":"edge_created","edge":"dep-module-legacy","detail":"l1-module-contract -[depends_on]-> l3-legacy-migration"}
+{"ts":"2026-09-08T06:22:12.724Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-legacy; auto_snapshot=2026-09-08t06-22-12-649z-06wgno"}
+{"ts":"2026-09-08T06:22:13.657Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-13-601z-6j6poh message=\"auto: structural amend (add-edge dep-module-research) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:13.675Z","actor":"cli","kind":"edge_created","edge":"dep-module-research","detail":"l1-module-contract -[depends_on]-> l3-research-slice"}
+{"ts":"2026-09-08T06:22:13.679Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-research; auto_snapshot=2026-09-08t06-22-13-601z-6j6poh"}
+{"ts":"2026-09-08T06:22:14.631Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-14-568z-fk4kf2 message=\"auto: structural amend (add-edge dep-web-research) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:14.650Z","actor":"cli","kind":"edge_created","edge":"dep-web-research","detail":"l2-web-contract -[depends_on]-> l3-research-slice"}
+{"ts":"2026-09-08T06:22:14.654Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-web-research; auto_snapshot=2026-09-08t06-22-14-568z-fk4kf2"}
+{"ts":"2026-09-08T06:22:15.617Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-15-548z-nt0kvm message=\"auto: structural amend (add-edge dep-skill-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:15.639Z","actor":"cli","kind":"edge_created","edge":"dep-skill-roadmap","detail":"l2-skill-contract -[depends_on]-> l4-delivery-plan"}
+{"ts":"2026-09-08T06:22:15.644Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-skill-roadmap; auto_snapshot=2026-09-08t06-22-15-548z-nt0kvm"}
+{"ts":"2026-09-08T06:22:16.595Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-16-528z-7jandz message=\"auto: structural amend (add-edge dep-legacy-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:16.616Z","actor":"cli","kind":"edge_created","edge":"dep-legacy-roadmap","detail":"l3-legacy-migration -[depends_on]-> l4-delivery-plan"}
+{"ts":"2026-09-08T06:22:16.620Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-legacy-roadmap; auto_snapshot=2026-09-08t06-22-16-528z-7jandz"}
+{"ts":"2026-09-08T06:22:17.625Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-17-554z-egzlll message=\"auto: structural amend (add-edge dep-research-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:17.673Z","actor":"cli","kind":"edge_created","edge":"dep-research-roadmap","detail":"l3-research-slice -[depends_on]-> l4-delivery-plan"}
+{"ts":"2026-09-08T06:22:17.677Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-research-roadmap; auto_snapshot=2026-09-08t06-22-17-554z-egzlll"}
+{"ts":"2026-09-08T06:22:18.619Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-22-18-549z-d0ak4e message=\"auto: structural amend (add-edge dep-roadmap-review) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:22:18.638Z","actor":"cli","kind":"edge_created","edge":"dep-roadmap-review","detail":"l4-delivery-plan -[depends_on]-> l4-human-review"}
+{"ts":"2026-09-08T06:22:18.642Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-roadmap-review; auto_snapshot=2026-09-08t06-22-18-549z-d0ak4e"}
+{"ts":"2026-09-08T06:23:04.820Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-04-729z-peu3a3 message=\"auto: structural amend (add-node adr_0001) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:04.841Z","actor":"cli","kind":"adr_created","node":"adr_0001","to":"proposed","detail":"独立建设 TopoRealm 产品"}
+{"ts":"2026-09-08T06:23:04.846Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0001; auto_snapshot=2026-09-08t06-23-04-729z-peu3a3"}
+{"ts":"2026-09-08T06:23:05.822Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-05-736z-s76nj5 message=\"auto: structural amend (add-node adr_0002) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:05.846Z","actor":"cli","kind":"adr_created","node":"adr_0002","to":"proposed","detail":"采用主类型与可组合能力"}
+{"ts":"2026-09-08T06:23:05.850Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0002; auto_snapshot=2026-09-08t06-23-05-736z-s76nj5"}
+{"ts":"2026-09-08T06:23:06.824Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-06-742z-kdls53 message=\"auto: structural amend (add-node adr_0003) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:06.845Z","actor":"cli","kind":"adr_created","node":"adr_0003","to":"proposed","detail":"缺失模块时无损降级"}
+{"ts":"2026-09-08T06:23:06.850Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0003; auto_snapshot=2026-09-08t06-23-06-742z-kdls53"}
+{"ts":"2026-09-08T06:23:07.810Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-07-723z-un1iww message=\"auto: structural amend (add-node adr_0004) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:07.831Z","actor":"cli","kind":"adr_created","node":"adr_0004","to":"proposed","detail":"雾区归 exploration 模块"}
+{"ts":"2026-09-08T06:23:07.836Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0004; auto_snapshot=2026-09-08t06-23-07-723z-un1iww"}
+{"ts":"2026-09-08T06:23:08.803Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-08-712z-d3hjw4 message=\"auto: structural amend (add-node adr_0005) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:08.827Z","actor":"cli","kind":"adr_created","node":"adr_0005","to":"proposed","detail":"模块采用声明优先与可信代码钩子"}
+{"ts":"2026-09-08T06:23:08.831Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0005; auto_snapshot=2026-09-08t06-23-08-712z-d3hjw4"}
+{"ts":"2026-09-08T06:23:09.769Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-09-675z-fa3lc2 message=\"auto: structural amend (add-node adr_0006) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:09.791Z","actor":"cli","kind":"adr_created","node":"adr_0006","to":"proposed","detail":"基座 Skills 与模块 Skills 分层"}
+{"ts":"2026-09-08T06:23:09.796Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0006; auto_snapshot=2026-09-08t06-23-09-675z-fa3lc2"}
+{"ts":"2026-09-08T06:23:29.709Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-29-613z-8sgrj5 message=\"auto: structural amend (add-edge decides-platform) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:29.736Z","actor":"cli","kind":"edge_created","edge":"decides-platform","detail":"adr_0001 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:23:29.741Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-platform; auto_snapshot=2026-09-08t06-23-29-613z-8sgrj5"}
+{"ts":"2026-09-08T06:23:30.713Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-30-613z-apieuh message=\"auto: structural amend (add-edge decides-capability) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:30.744Z","actor":"cli","kind":"edge_created","edge":"decides-capability","detail":"adr_0002 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:23:30.748Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-capability; auto_snapshot=2026-09-08t06-23-30-613z-apieuh"}
+{"ts":"2026-09-08T06:23:31.726Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-31-628z-p3bjyd message=\"auto: structural amend (add-edge decides-degrade) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:31.755Z","actor":"cli","kind":"edge_created","edge":"decides-degrade","detail":"adr_0003 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:23:31.760Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-degrade; auto_snapshot=2026-09-08t06-23-31-628z-p3bjyd"}
+{"ts":"2026-09-08T06:23:32.754Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-32-644z-h6ya2t message=\"auto: structural amend (add-edge decides-exploration) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:32.779Z","actor":"cli","kind":"edge_created","edge":"decides-exploration","detail":"adr_0004 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:23:32.784Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-exploration; auto_snapshot=2026-09-08t06-23-32-644z-h6ya2t"}
+{"ts":"2026-09-08T06:23:33.785Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-33-671z-ftyqtf message=\"auto: structural amend (add-edge decides-module-hooks) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:33.813Z","actor":"cli","kind":"edge_created","edge":"decides-module-hooks","detail":"adr_0005 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:23:33.817Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-hooks; auto_snapshot=2026-09-08t06-23-33-671z-ftyqtf"}
+{"ts":"2026-09-08T06:23:34.822Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-23-34-709z-qq1ptk message=\"auto: structural amend (add-edge decides-skills) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:23:34.850Z","actor":"cli","kind":"edge_created","edge":"decides-skills","detail":"adr_0006 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T06:23:34.854Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-skills; auto_snapshot=2026-09-08t06-23-34-709z-qq1ptk"}
+{"ts":"2026-09-08T06:23:35.763Z","actor":"cli","kind":"adr_accepted","node":"adr_0001","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:23:36.646Z","actor":"cli","kind":"adr_accepted","node":"adr_0002","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:23:37.538Z","actor":"cli","kind":"adr_accepted","node":"adr_0003","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:23:38.405Z","actor":"cli","kind":"adr_accepted","node":"adr_0004","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:23:39.301Z","actor":"cli","kind":"adr_accepted","node":"adr_0005","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:23:40.212Z","actor":"cli","kind":"adr_accepted","node":"adr_0006","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T06:24:20.691Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-20-585z-a7jzs8 message=\"auto: structural amend (remove-node l1-data-model; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-data-legacy, dep-data-module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:20.718Z","actor":"cli","kind":"edge_deleted","edge":"dep-data-legacy"}
+{"ts":"2026-09-08T06:24:20.744Z","actor":"cli","kind":"edge_deleted","edge":"dep-data-module"}
+{"ts":"2026-09-08T06:24:20.765Z","actor":"cli","kind":"node_deleted","node":"l1-data-model","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-data-legacy, dep-data-module"}
+{"ts":"2026-09-08T06:24:20.768Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l1-data-model; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-data-legacy, dep-data-module; auto_snapshot=2026-09-08t06-24-20-585z-a7jzs8"}
+{"ts":"2026-09-08T06:24:21.760Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-21-660z-53mjmb message=\"auto: structural amend (remove-node l1-module-contract; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-module-legacy, dep-module-research, dep-module-skill, dep-module-web) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:21.785Z","actor":"cli","kind":"edge_deleted","edge":"dep-module-legacy"}
+{"ts":"2026-09-08T06:24:21.809Z","actor":"cli","kind":"edge_deleted","edge":"dep-module-research"}
+{"ts":"2026-09-08T06:24:21.832Z","actor":"cli","kind":"edge_deleted","edge":"dep-module-skill"}
+{"ts":"2026-09-08T06:24:21.853Z","actor":"cli","kind":"edge_deleted","edge":"dep-module-web"}
+{"ts":"2026-09-08T06:24:21.875Z","actor":"cli","kind":"node_deleted","node":"l1-module-contract","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-module-legacy, dep-module-research, dep-module-skill, dep-module-web"}
+{"ts":"2026-09-08T06:24:21.877Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l1-module-contract; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-module-legacy, dep-module-research, dep-module-skill, dep-module-web; auto_snapshot=2026-09-08t06-24-21-660z-53mjmb"}
+{"ts":"2026-09-08T06:24:22.853Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-22-760z-3d0dn0 message=\"auto: structural amend (remove-node l2-web-contract; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-web-research) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:22.876Z","actor":"cli","kind":"edge_deleted","edge":"dep-web-research"}
+{"ts":"2026-09-08T06:24:22.894Z","actor":"cli","kind":"node_deleted","node":"l2-web-contract","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-web-research"}
+{"ts":"2026-09-08T06:24:22.897Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l2-web-contract; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-web-research; auto_snapshot=2026-09-08t06-24-22-760z-3d0dn0"}
+{"ts":"2026-09-08T06:24:23.861Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-23-776z-bm4dzg message=\"auto: structural amend (remove-node l2-skill-contract; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-skill-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:23.885Z","actor":"cli","kind":"edge_deleted","edge":"dep-skill-roadmap"}
+{"ts":"2026-09-08T06:24:23.904Z","actor":"cli","kind":"node_deleted","node":"l2-skill-contract","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-skill-roadmap"}
+{"ts":"2026-09-08T06:24:23.906Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l2-skill-contract; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-skill-roadmap; auto_snapshot=2026-09-08t06-24-23-776z-bm4dzg"}
+{"ts":"2026-09-08T06:24:24.871Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-24-791z-78u4o9 message=\"auto: structural amend (remove-node l3-legacy-migration; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-legacy-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:24.892Z","actor":"cli","kind":"edge_deleted","edge":"dep-legacy-roadmap"}
+{"ts":"2026-09-08T06:24:24.908Z","actor":"cli","kind":"node_deleted","node":"l3-legacy-migration","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-legacy-roadmap"}
+{"ts":"2026-09-08T06:24:24.911Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l3-legacy-migration; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-legacy-roadmap; auto_snapshot=2026-09-08t06-24-24-791z-78u4o9"}
+{"ts":"2026-09-08T06:24:25.886Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-25-817z-ej1mub message=\"auto: structural amend (remove-node l3-research-slice; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-research-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:25.932Z","actor":"cli","kind":"edge_deleted","edge":"dep-research-roadmap"}
+{"ts":"2026-09-08T06:24:25.948Z","actor":"cli","kind":"node_deleted","node":"l3-research-slice","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-research-roadmap"}
+{"ts":"2026-09-08T06:24:25.951Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l3-research-slice; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-research-roadmap; auto_snapshot=2026-09-08t06-24-25-817z-ej1mub"}
+{"ts":"2026-09-08T06:24:26.876Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-26-812z-35phv4 message=\"auto: structural amend (remove-node l4-delivery-plan; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-roadmap-review) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:26.896Z","actor":"cli","kind":"edge_deleted","edge":"dep-roadmap-review"}
+{"ts":"2026-09-08T06:24:26.912Z","actor":"cli","kind":"node_deleted","node":"l4-delivery-plan","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: dep-roadmap-review"}
+{"ts":"2026-09-08T06:24:26.914Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l4-delivery-plan; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; cascade edges: dep-roadmap-review; auto_snapshot=2026-09-08t06-24-26-812z-35phv4"}
+{"ts":"2026-09-08T06:24:27.850Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-24-27-793z-n3toib message=\"auto: structural amend (remove-node l4-human-review; reason=\"重建为下划线层级前缀以消除 W1 命名警告\") by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:24:27.894Z","actor":"cli","kind":"node_deleted","node":"l4-human-review","detail":"reason=\"重建为下划线层级前缀以消除 W1 命名警告\"；cascade 删除边: "}
+{"ts":"2026-09-08T06:24:27.897Z","actor":"cli","kind":"graph_amended","detail":"action=remove-node target=l4-human-review; reason=\"重建为下划线层级前缀以消除 W1 命名警告\"; auto_snapshot=2026-09-08t06-24-27-793z-n3toib"}
+{"ts":"2026-09-08T06:25:36.512Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-36-452z-qvsa2w message=\"auto: structural amend (add-node l1_data_model) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:36.532Z","actor":"cli","kind":"node_created","node":"l1_data_model","to":"pending"}
+{"ts":"2026-09-08T06:25:36.536Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l1_data_model; auto_snapshot=2026-09-08t06-25-36-452z-qvsa2w"}
+{"ts":"2026-09-08T06:25:37.467Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-37-404z-v9mwda message=\"auto: structural amend (add-node l1_module_contract) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:37.502Z","actor":"cli","kind":"node_created","node":"l1_module_contract","to":"pending"}
+{"ts":"2026-09-08T06:25:37.506Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l1_module_contract; auto_snapshot=2026-09-08t06-25-37-404z-v9mwda"}
+{"ts":"2026-09-08T06:25:38.474Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-38-404z-bc1eke message=\"auto: structural amend (add-node l2_web_contract) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:38.494Z","actor":"cli","kind":"node_created","node":"l2_web_contract","to":"pending"}
+{"ts":"2026-09-08T06:25:38.498Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l2_web_contract; auto_snapshot=2026-09-08t06-25-38-404z-bc1eke"}
+{"ts":"2026-09-08T06:25:39.439Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-39-368z-ewu91s message=\"auto: structural amend (add-node l2_skill_contract) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:39.460Z","actor":"cli","kind":"node_created","node":"l2_skill_contract","to":"pending"}
+{"ts":"2026-09-08T06:25:39.465Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l2_skill_contract; auto_snapshot=2026-09-08t06-25-39-368z-ewu91s"}
+{"ts":"2026-09-08T06:25:40.438Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-40-366z-28rynw message=\"auto: structural amend (add-node l3_legacy_migration) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:40.459Z","actor":"cli","kind":"node_created","node":"l3_legacy_migration","to":"pending"}
+{"ts":"2026-09-08T06:25:40.463Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3_legacy_migration; auto_snapshot=2026-09-08t06-25-40-366z-28rynw"}
+{"ts":"2026-09-08T06:25:41.447Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-41-371z-1hm3ow message=\"auto: structural amend (add-node l3_research_slice) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:41.467Z","actor":"cli","kind":"node_created","node":"l3_research_slice","to":"pending"}
+{"ts":"2026-09-08T06:25:41.471Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3_research_slice; auto_snapshot=2026-09-08t06-25-41-371z-1hm3ow"}
+{"ts":"2026-09-08T06:25:42.437Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-42-364z-am0p16 message=\"auto: structural amend (add-node l4_delivery_plan) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:42.458Z","actor":"cli","kind":"node_created","node":"l4_delivery_plan","to":"pending"}
+{"ts":"2026-09-08T06:25:42.462Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l4_delivery_plan; auto_snapshot=2026-09-08t06-25-42-364z-am0p16"}
+{"ts":"2026-09-08T06:25:43.459Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-25-43-375z-qqizwm message=\"auto: structural amend (add-node l4_human_review) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:25:43.480Z","actor":"cli","kind":"node_created","node":"l4_human_review","to":"pending"}
+{"ts":"2026-09-08T06:25:43.484Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l4_human_review; auto_snapshot=2026-09-08t06-25-43-375z-qqizwm"}
+{"ts":"2026-09-08T06:26:06.988Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-06-908z-1w8lts message=\"auto: structural amend (add-edge dep-data-module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:07.009Z","actor":"cli","kind":"edge_created","edge":"dep-data-module","detail":"l1_data_model -[depends_on]-> l1_module_contract"}
+{"ts":"2026-09-08T06:26:07.014Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-data-module; auto_snapshot=2026-09-08t06-26-06-908z-1w8lts"}
+{"ts":"2026-09-08T06:26:08.012Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-07-924z-o1uz0d message=\"auto: structural amend (add-edge dep-module-web) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:08.034Z","actor":"cli","kind":"edge_created","edge":"dep-module-web","detail":"l1_module_contract -[depends_on]-> l2_web_contract"}
+{"ts":"2026-09-08T06:26:08.038Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-web; auto_snapshot=2026-09-08t06-26-07-924z-o1uz0d"}
+{"ts":"2026-09-08T06:26:09.017Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-08-933z-x12s77 message=\"auto: structural amend (add-edge dep-module-skill) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:09.041Z","actor":"cli","kind":"edge_created","edge":"dep-module-skill","detail":"l1_module_contract -[depends_on]-> l2_skill_contract"}
+{"ts":"2026-09-08T06:26:09.045Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-skill; auto_snapshot=2026-09-08t06-26-08-933z-x12s77"}
+{"ts":"2026-09-08T06:26:10.015Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-09-928z-ladlgi message=\"auto: structural amend (add-edge dep-data-legacy) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:10.037Z","actor":"cli","kind":"edge_created","edge":"dep-data-legacy","detail":"l1_data_model -[depends_on]-> l3_legacy_migration"}
+{"ts":"2026-09-08T06:26:10.041Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-data-legacy; auto_snapshot=2026-09-08t06-26-09-928z-ladlgi"}
+{"ts":"2026-09-08T06:26:11.014Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-10-930z-s8h9at message=\"auto: structural amend (add-edge dep-module-legacy) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:11.036Z","actor":"cli","kind":"edge_created","edge":"dep-module-legacy","detail":"l1_module_contract -[depends_on]-> l3_legacy_migration"}
+{"ts":"2026-09-08T06:26:11.041Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-legacy; auto_snapshot=2026-09-08t06-26-10-930z-s8h9at"}
+{"ts":"2026-09-08T06:26:12.043Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-11-954z-w64pmm message=\"auto: structural amend (add-edge dep-module-research) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:12.068Z","actor":"cli","kind":"edge_created","edge":"dep-module-research","detail":"l1_module_contract -[depends_on]-> l3_research_slice"}
+{"ts":"2026-09-08T06:26:12.073Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-module-research; auto_snapshot=2026-09-08t06-26-11-954z-w64pmm"}
+{"ts":"2026-09-08T06:26:13.117Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-13-020z-n2b2ic message=\"auto: structural amend (add-edge dep-web-research) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:13.144Z","actor":"cli","kind":"edge_created","edge":"dep-web-research","detail":"l2_web_contract -[depends_on]-> l3_research_slice"}
+{"ts":"2026-09-08T06:26:13.148Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-web-research; auto_snapshot=2026-09-08t06-26-13-020z-n2b2ic"}
+{"ts":"2026-09-08T06:26:14.137Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-14-038z-1fqo8o message=\"auto: structural amend (add-edge dep-skill-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:14.160Z","actor":"cli","kind":"edge_created","edge":"dep-skill-roadmap","detail":"l2_skill_contract -[depends_on]-> l4_delivery_plan"}
+{"ts":"2026-09-08T06:26:14.165Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-skill-roadmap; auto_snapshot=2026-09-08t06-26-14-038z-1fqo8o"}
+{"ts":"2026-09-08T06:26:15.165Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-15-069z-69grzm message=\"auto: structural amend (add-edge dep-legacy-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:15.190Z","actor":"cli","kind":"edge_created","edge":"dep-legacy-roadmap","detail":"l3_legacy_migration -[depends_on]-> l4_delivery_plan"}
+{"ts":"2026-09-08T06:26:15.195Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-legacy-roadmap; auto_snapshot=2026-09-08t06-26-15-069z-69grzm"}
+{"ts":"2026-09-08T06:26:16.214Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-16-117z-pkt2c5 message=\"auto: structural amend (add-edge dep-research-roadmap) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:16.239Z","actor":"cli","kind":"edge_created","edge":"dep-research-roadmap","detail":"l3_research_slice -[depends_on]-> l4_delivery_plan"}
+{"ts":"2026-09-08T06:26:16.266Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-research-roadmap; auto_snapshot=2026-09-08t06-26-16-117z-pkt2c5"}
+{"ts":"2026-09-08T06:26:17.273Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-17-171z-14h7ef message=\"auto: structural amend (add-edge dep-roadmap-review) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:26:17.297Z","actor":"cli","kind":"edge_created","edge":"dep-roadmap-review","detail":"l4_delivery_plan -[depends_on]-> l4_human_review"}
+{"ts":"2026-09-08T06:26:17.302Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-roadmap-review; auto_snapshot=2026-09-08t06-26-17-171z-14h7ef"}

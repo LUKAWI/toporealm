@@ -1,0 +1,4 @@
+id: decides-platform
+source: adr_0001
+target: ctx-kernel
+type: decides

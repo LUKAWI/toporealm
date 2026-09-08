@@ -1,0 +1,50 @@
+# Super Plumber — 节点/边/图 schema 说明（v1.0.0）
+# 本文件是文档性说明，运行时校验由 core/schema.ts 强制执行（graph validate 可查）。
+
+# ── 节点（nodes/*.yaml）──
+# 必填: id (string), label (string), type, status, level, attempts, max_attempts,
+#       created_at, updated_at（graph 工具创建时自动补全；手写文件必须齐全——
+#       缺字段会被 schema 校验拒绝，不会静默通过）
+#       注意：时间戳必须带引号（"2026-08-24T00:00:00.000Z"）——js-yaml 会把
+#       裸 ISO 时间戳解析成 Date 对象而非字符串，同样过不了 schema 校验
+# 可选: type: task|checkpoint|decision|gate          （工作流顶点，默认 task）
+#       type: context|adr                             （v0.5 知识顶点：豁免调度与工作流状态机）
+#       level: number ≥ 0                             （默认 1）
+#       status: 工作流七态 pending|ready|running|passed|failed|blocked|cancelled
+#               adr 三态 proposed|accepted|superseded （label 即标题，decision 必填）
+#               context 仅 pending                     （无状态）
+#       assigned_to: string
+#       attempts: number ≥ 0 | max_attempts: number ≥ 0（0 = 不限重试）
+#       context: string                               （v0.5 归属的 context 顶点 id，外键）
+#       boundary: string                              （v0.5 context 顶点：边界描述）
+#       glossary: [{ term, definition }]              （v0.5 context 顶点：术语表，节点即文档）
+#       decision / background / considered_options / why / consequences
+#                                                    （v0.5 adr 顶点：决策内容）
+#       superseded_by: string                         （v0.5 adr 顶点：status=superseded 时必填）
+#       plan: { description, input_from[], required_context[], output_to[] }
+#       expected_outcome: { definition_of_done[], quality_gates[] }
+#       checkpoints: [{ id, label, status: pending|running|passed|failed|skipped,
+#                       verifier: auto|cross_review|human }]
+#       execution_report: { summary, artifacts[], blockers[], notes,
+#                           started_at, completed_at,
+#                           verification: { verdict: pending|passed|failed, note } }
+#       created_at / updated_at: string
+
+# ── 边（edges/*.yaml）──
+# 必填: id, source, target
+# 可选: type: depends_on|validates|shares_context|fan_out|fan_in|fallback|iterates
+#       type: decides|relates                         （v0.5 知识边：不参与拓扑排序与门禁）
+#       decides: ADR → 任意顶点（决策管辖，superseded 时沿此传播 adr_flags）
+#       relates: context ↔ context（rel_kind 自由标注领域关系）
+#       rel_kind: string                              （v0.5 relates 边的领域关系标注）
+#       contract: { produces, consumed_by[], validation }
+#                  （跨 context 的工作流边为契约边，未填会被 validate 警告）
+
+# ── 图（graph.yaml）──
+# 必填: id, label
+# entry/exit: { description, defined_by: human|llm, level }
+# exit.acceptance_criteria: string[]
+# nodes/edges: [{ file }] | root_context: object
+# class: quick|standard|program                （F03/F13 可选工作类标注，DEC-2；缺省不标注）
+# fog: { id, description, graduation, ignited?[] }
+#            （F04 adr_0007 可选雾区：单雾起步；毕业=graph graduate-fog 清除 + fog_graduated 事件）

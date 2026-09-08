@@ -1,0 +1,14 @@
+id: adr_0002
+type: adr
+label: 采用主类型与可组合能力
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T06:23:05.732Z'
+updated_at: '2026-09-08T06:23:36.640Z'
+decision: 对象以单一主类型表达领域身份，以可组合能力提供状态、行为和规则；模块数据使用命名空间。
+background: 现有 NodeSchema 把状态、重试和执行报告强加给所有节点，知识和未知对象只能通过特殊分支绕开。
+considered_options: 全局大枚举：简单但持续膨胀；每模块独立节点：跨模块复用困难；主类型加能力：采用。
+why: 避免万物皆任务，并允许同一对象组合执行、复习、探索等能力。
+consequences: 基座需要能力组合与冲突检查；模块协议成为关键稳定接口。

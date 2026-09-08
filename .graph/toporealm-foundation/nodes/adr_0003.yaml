@@ -1,0 +1,14 @@
+id: adr_0003
+type: adr
+label: 缺失模块时无损降级
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T06:23:06.739Z'
+updated_at: '2026-09-08T06:23:37.531Z'
+decision: 缺失模块时允许基座读取、展示和保存原始数据并执行基础校验，但暂停模块行为且不得声称完整校验通过。
+background: 图可能在不同机器和 agent 宿主之间流转，环境不一定安装相同模块。
+considered_options: 拒绝打开：严格但脆弱；猜测语义：有数据损坏风险；无损降级：采用。
+why: 保持本地文件可读和数据可迁移，同时不伪造未知领域行为。
+consequences: 界面和命令需要明确标记缺失模块与校验降级。

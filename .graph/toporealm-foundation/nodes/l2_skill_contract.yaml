@@ -1,0 +1,25 @@
+id: l2_skill_contract
+type: decision
+label: 确定 skills 与宿主插件协议
+level: 2
+context: ctx-surfaces
+status: pending
+plan:
+  description: 定义基座 skills、模块 skills、安装生命周期、图级适用检查和 Codex、Claude、Pi 等宿主投影方式。
+expected_outcome:
+  definition_of_done:
+    - docs/architecture/skill-plugin-contract.md 明确 toporealm、toporealm-design、toporealm-join 的职责。
+    - 规格明确模块安装与图级启用对 skills 和插件资产的不同影响。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:25:39.444Z'
+updated_at: '2026-09-08T06:25:39.444Z'
+checkpoints:
+  - id: base-skills
+    label: 界定三个基座 skills
+    status: pending
+    verifier: auto
+  - id: host-projection
+    label: 定义宿主插件投影方式
+    status: pending
+    verifier: auto

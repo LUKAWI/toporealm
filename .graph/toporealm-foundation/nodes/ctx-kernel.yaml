@@ -1,0 +1,20 @@
+id: ctx-kernel
+type: context
+label: 基座内核
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:20:26.466Z'
+updated_at: '2026-09-08T06:20:31.935Z'
+boundary: 负责通用图数据、模块装载、结构规则与稳定公共接口；不负责具体领域的生命周期和判断。
+glossary:
+  - term: 基座
+    definition: 提供图、模块和通用接入面的稳定平台；不解释具体领域内容。
+contracts:
+  - to: ctx-surfaces
+    contract:
+      produces: 模块注册表、公共数据模型与操作契约
+  - to: ctx-adoption
+    contract:
+      produces: 稳定的基座与模块契约

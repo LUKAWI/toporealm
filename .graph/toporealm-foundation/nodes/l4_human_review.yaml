@@ -1,0 +1,25 @@
+id: l4_human_review
+type: gate
+label: 用户审核基座架构
+level: 4
+context: ctx-adoption
+status: pending
+plan:
+  description: 在 Web UI 中审核数据、模块、界面、skills、迁移、验证切片和路线图，记录用户提出的修改与最终决定。
+expected_outcome:
+  definition_of_done:
+    - 用户明确批准当前阶段架构与实施路线图。
+    - graph review 留有用户审核凭据，未解决意见均已回写对应节点。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:25:43.464Z'
+updated_at: '2026-09-08T06:25:43.464Z'
+checkpoints:
+  - id: review
+    label: 用户完成 Web UI 图级审核
+    status: pending
+    verifier: human
+  - id: record
+    label: 审核结论已写入图和文档
+    status: pending
+    verifier: human

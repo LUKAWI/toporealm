@@ -1,0 +1,70 @@
+id: graph_1788848424673_tel08e
+label: TopoRealm 基座架构
+entry:
+  description: 从已确认的 TopoRealm 产品共识出发，确定最小数据模型、模块契约、Web UI 与 skills 边界、迁移方式和首个跨模块验证切片。
+  defined_by: human
+  level: 0
+exit:
+  description: 形成经用户审核的 TopoRealm 基座架构和可执行实施路线图。
+  acceptance_criteria:
+    - 最小数据格式、模块清单和运行时契约均有独立可核对的规格。
+    - Core、CLI、MCP、Web UI 和模块 skills 的所有权边界明确。
+    - Super Plumber 兼容迁移与最小 research 切片能够验证模块协议。
+    - 用户在 Web UI 中审核并批准当前阶段架构图。
+  defined_by: human
+  level: 0
+nodes:
+  - file: nodes/ctx-kernel.yaml
+  - file: nodes/ctx-surfaces.yaml
+  - file: nodes/ctx-adoption.yaml
+  - file: nodes/adr_0001.yaml
+  - file: nodes/adr_0002.yaml
+  - file: nodes/adr_0003.yaml
+  - file: nodes/adr_0004.yaml
+  - file: nodes/adr_0005.yaml
+  - file: nodes/adr_0006.yaml
+  - file: nodes/l1_data_model.yaml
+  - file: nodes/l1_module_contract.yaml
+  - file: nodes/l2_web_contract.yaml
+  - file: nodes/l2_skill_contract.yaml
+  - file: nodes/l3_legacy_migration.yaml
+  - file: nodes/l3_research_slice.yaml
+  - file: nodes/l4_delivery_plan.yaml
+  - file: nodes/l4_human_review.yaml
+edges:
+  - file: edges/rel-kernel-surfaces.yaml
+  - file: edges/rel-surfaces-adoption.yaml
+  - file: edges/decides-platform.yaml
+  - file: edges/decides-capability.yaml
+  - file: edges/decides-degrade.yaml
+  - file: edges/decides-exploration.yaml
+  - file: edges/decides-module-hooks.yaml
+  - file: edges/decides-skills.yaml
+  - file: edges/dep-data-module.yaml
+  - file: edges/dep-module-web.yaml
+  - file: edges/dep-module-skill.yaml
+  - file: edges/dep-data-legacy.yaml
+  - file: edges/dep-module-legacy.yaml
+  - file: edges/dep-module-research.yaml
+  - file: edges/dep-web-research.yaml
+  - file: edges/dep-skill-roadmap.yaml
+  - file: edges/dep-legacy-roadmap.yaml
+  - file: edges/dep-research-roadmap.yaml
+  - file: edges/dep-roadmap-review.yaml
+version: 1.0.0
+class: program
+root_context:
+  source: docs/architecture/FOUNDATION.md
+  legacy_reference: ../topological-tool
+  implementation: not-started
+fog:
+  id: architecture-contracts
+  description: TopoRealm 的产品边界已确认，但最小数据格式、模块运行时、Web UI 贡献协议和兼容迁移仍会决定实施结构。
+  graduation: 上述契约均形成可核对规格，research 纵向切片可验证组合能力，并据此形成经用户审核的可信实施路线图。
+  ignited:
+    - l1_data_model
+    - l1_module_contract
+    - l2_web_contract
+    - l2_skill_contract
+    - l3_legacy_migration
+    - l3_research_slice

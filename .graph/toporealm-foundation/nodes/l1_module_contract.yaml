@@ -1,0 +1,25 @@
+id: l1_module_contract
+type: decision
+label: 确定模块清单与运行时契约
+level: 1
+context: ctx-kernel
+status: pending
+plan:
+  description: 定义声明式清单、可选可信代码钩子、能力组合、依赖、版本和注册接口；只形成模块协议规格。
+expected_outcome:
+  definition_of_done:
+    - docs/architecture/module-contract.md 明确模块清单和注册接口。
+    - 规格定义主类型、能力、关系、校验、操作和缺失模块降级行为。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:25:37.487Z'
+updated_at: '2026-09-08T06:25:37.487Z'
+checkpoints:
+  - id: manifest
+    label: 定义声明式清单边界
+    status: pending
+    verifier: auto
+  - id: hooks
+    label: 定义可信代码钩子边界
+    status: pending
+    verifier: auto

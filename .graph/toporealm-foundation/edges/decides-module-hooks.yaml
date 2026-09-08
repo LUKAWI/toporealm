@@ -1,0 +1,4 @@
+id: decides-module-hooks
+source: adr_0005
+target: ctx-kernel
+type: decides

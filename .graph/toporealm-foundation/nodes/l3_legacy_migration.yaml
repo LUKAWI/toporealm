@@ -1,0 +1,25 @@
+id: l3_legacy_migration
+type: decision
+label: 设计 Super Plumber 兼容迁移
+level: 3
+context: ctx-adoption
+status: pending
+plan:
+  description: 盘点旧项目可复用核心、workflow 与 domain-modeling 模块归属、旧图读取及迁移期限；只读取旧工作区。
+expected_outcome:
+  definition_of_done:
+    - docs/architecture/super-plumber-migration.md 列出复用、适配、淘汰和兼容读取范围。
+    - 方案不要求在 topological-tool 工作区内实施 TopoRealm 重构。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:25:40.443Z'
+updated_at: '2026-09-08T06:25:40.443Z'
+checkpoints:
+  - id: inventory
+    label: 完成旧能力归属清单
+    status: pending
+    verifier: auto
+  - id: compatibility
+    label: 定义旧图兼容策略
+    status: pending
+    verifier: auto

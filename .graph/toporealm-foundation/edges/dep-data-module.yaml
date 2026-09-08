@@ -1,0 +1,4 @@
+id: dep-data-module
+source: l1_data_model
+target: l1_module_contract
+type: depends_on

@@ -1,0 +1,5 @@
+id: rel-kernel-surfaces
+source: ctx-kernel
+target: ctx-surfaces
+type: relates
+rel_kind: 提供公共契约

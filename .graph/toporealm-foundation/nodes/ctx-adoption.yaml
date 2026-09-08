@@ -1,0 +1,13 @@
+id: ctx-adoption
+type: context
+label: 迁移与验证
+level: 3
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:20:30.182Z'
+updated_at: '2026-09-08T06:20:31.059Z'
+boundary: 负责旧项目兼容迁移、纵向验证切片和实施路线；不反向修改 Super Plumber 独立工作区。
+glossary:
+  - term: 发行组合
+    definition: 基座、模块、默认配置和使用方法组成的面向特定场景产品。

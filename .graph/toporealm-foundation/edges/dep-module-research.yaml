@@ -1,0 +1,4 @@
+id: dep-module-research
+source: l1_module_contract
+target: l3_research_slice
+type: depends_on

@@ -1,0 +1,25 @@
+id: l2_web_contract
+type: decision
+label: 确定 Web UI 模块贡献协议
+level: 2
+context: ctx-surfaces
+status: pending
+plan:
+  description: 以现有 Super Plumber Web UI 为参考，划分基座画布与模块贡献的渲染、面板、图层、表单和操作接口；不复制实现。
+expected_outcome:
+  definition_of_done:
+    - docs/architecture/web-contributions.md 明确基座 Web UI 固定能力。
+    - 规格给出模块贡献注册、缺失模块降级和 research 示例。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T06:25:38.479Z'
+updated_at: '2026-09-08T06:25:38.479Z'
+checkpoints:
+  - id: shell
+    label: 界定基座画布与外壳
+    status: pending
+    verifier: auto
+  - id: contributions
+    label: 定义模块 UI 贡献点
+    status: pending
+    verifier: auto
