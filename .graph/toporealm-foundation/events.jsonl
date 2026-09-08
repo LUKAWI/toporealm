@@ -318,3 +318,14 @@
 {"ts":"2026-09-08T11:27:59.875Z","actor":"cli","kind":"edge_created","edge":"decides-runtime-mutation-plan","detail":"adr_0020 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T11:27:59.878Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-runtime-mutation-plan; auto_snapshot=2026-09-08t11-27-59-678z-9kmsag"}
 {"ts":"2026-09-08T11:28:00.063Z","actor":"cli","kind":"adr_accepted","node":"adr_0020","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:39:47.726Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-39-47-542z-947y4d message=\"auto: structural amend (add-node adr_0021) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:39:47.754Z","actor":"cli","kind":"adr_created","node":"adr_0021","to":"proposed","detail":"操作使用单字段声明外部副作用"}
+{"ts":"2026-09-08T11:39:47.758Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0021; auto_snapshot=2026-09-08t11-39-47-542z-947y4d"}
+{"ts":"2026-09-08T11:39:55.527Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-39-55-343z-6c8wvs message=\"auto: structural amend (add-edge decides-minimal-operation-effects) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:39:55.553Z","actor":"cli","kind":"edge_created","edge":"decides-minimal-operation-effects","detail":"adr_0021 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T11:39:55.557Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-minimal-operation-effects; auto_snapshot=2026-09-08t11-39-55-343z-6c8wvs"}
+{"ts":"2026-09-08T11:39:55.765Z","actor":"cli","kind":"adr_accepted","node":"adr_0021","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:40:22.596Z","actor":"unknown","kind":"checkpoint_updated","node":"l1_module_contract","from":"pending","to":"passed","detail":"checkpoint=hooks"}
+{"ts":"2026-09-08T11:40:33.560Z","actor":"unknown","kind":"execution_report","node":"l1_module_contract"}
+{"ts":"2026-09-08T11:40:47.781Z","actor":"cli","kind":"verdict","node":"l1_module_contract","detail":"verdict=passed"}
+{"ts":"2026-09-08T11:40:47.993Z","actor":"cli","kind":"node_status","node":"l1_module_contract","from":"running","to":"passed"}

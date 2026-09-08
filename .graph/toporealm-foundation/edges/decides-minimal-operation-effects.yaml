@@ -1,0 +1,4 @@
+id: decides-minimal-operation-effects
+source: adr_0021
+target: ctx-kernel
+type: decides

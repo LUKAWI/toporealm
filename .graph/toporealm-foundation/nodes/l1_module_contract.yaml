@@ -3,7 +3,7 @@ type: decision
 label: 确定模块清单与运行时契约
 level: 1
 context: ctx-kernel
-status: running
+status: passed
 plan:
   description: 定义声明式清单、可选可信代码钩子、能力组合、依赖、版本和注册接口；只形成模块协议规格。
 expected_outcome:
@@ -13,7 +13,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:37.487Z'
-updated_at: '2026-09-08T08:20:51.011Z'
+updated_at: '2026-09-08T11:40:47.986Z'
 checkpoints:
   - id: manifest
     label: 定义声明式清单边界
@@ -21,9 +21,18 @@ checkpoints:
     verifier: auto
   - id: hooks
     label: 定义可信代码钩子边界
-    status: pending
+    status: passed
     verifier: auto
 assigned_to: codex-root
 execution_report:
-  summary: ''
+  summary: 已完成模块清单、三级装载、依赖、npm 分发、分类注册快照、固定 MCP 动作接口、可信运行时变更计划与最小副作用声明规格。
   started_at: '2026-09-08T07:53:28.878Z'
+  artifacts:
+    - docs/architecture/module-contract.md
+    - CONTEXT.md
+  notes: 用户逐项接受全部决策；首版保持最小参数面。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T11:40:47.770Z'
+    note: 用户逐项审核并接受模块契约；确认副作用只使用单一三值字段，并要求避免参数膨胀。
+  completed_at: '2026-09-08T11:40:47.987Z'

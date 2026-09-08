@@ -1,0 +1,17 @@
+id: adr_0021
+type: adr
+label: 操作使用单字段声明外部副作用
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T11:39:47.539Z'
+updated_at: '2026-09-08T11:39:55.757Z'
+decision: >-
+  模块操作只用一个可选 effects 字段声明图外写入，取值为 none、artifact 或 external，省略时默认为 none。外部读取不计为副作用；artifact 表示在 TopoRealm
+  管理的产物位置写出文件；external 表示调用外部系统并产生不可由 Core 原子回滚的变化。首版不增加权限矩阵、逐资源授权、回滚策略或多层副作用参数。动作发现、预览和执行结果显示非 none 标识，Core
+  为产物或外部执行结果记录事件。
+background: 研究、导出和工作流模块可能需要生成文件或调用外部服务，但过细的副作用模型会迅速扩大模块清单和 agent 调用参数。
+considered_options: 完全禁止图外副作用会限制实用模块；建立细粒度权限与资源模型治理更强但首版复杂度过高；单枚举字段提供必要可见性并保留后续演进空间。
+why: 三个取值覆盖首版需要区分的持久化后果，同时不把运行时契约变成参数堆积。外部读取仍由运行时正常完成，不要求每次读取携带冗余标记。
+consequences: Core 只能原子治理 MutationPlan 和受管产物，不能回滚 external 操作；模块作者必须自行保证外部操作的幂等性或报告结果；若实际模块证明需要更细权限，再通过新协议版本扩展。
