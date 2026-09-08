@@ -39,6 +39,7 @@ nodes:
   - file: nodes/adr_0012.yaml
   - file: nodes/adr_0013.yaml
   - file: nodes/adr_0014.yaml
+  - file: nodes/adr_0015.yaml
 edges:
   - file: edges/rel-kernel-surfaces.yaml
   - file: edges/rel-surfaces-adoption.yaml
@@ -67,6 +68,7 @@ edges:
   - file: edges/decides-entity-id-scope.yaml
   - file: edges/decides-degraded-editing.yaml
   - file: edges/decides-module-resolution.yaml
+  - file: edges/decides-module-manifest-index.yaml
 version: 1.0.0
 class: program
 root_context:
@@ -87,4 +89,4 @@ fog:
 review:
   status: unreviewed
   by: cli
-  at: '2026-09-08T08:02:09.596Z'
+  at: '2026-09-08T08:20:42.380Z'

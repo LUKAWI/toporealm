@@ -13,11 +13,11 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:37.487Z'
-updated_at: '2026-09-08T07:53:28.877Z'
+updated_at: '2026-09-08T08:20:51.011Z'
 checkpoints:
   - id: manifest
     label: 定义声明式清单边界
-    status: pending
+    status: passed
     verifier: auto
   - id: hooks
     label: 定义可信代码钩子边界

@@ -1,0 +1,4 @@
+id: decides-module-manifest-index
+source: adr_0015
+target: ctx-kernel
+type: decides

@@ -275,3 +275,11 @@
 {"ts":"2026-09-08T08:02:09.566Z","actor":"cli","kind":"edge_created","edge":"decides-module-resolution","detail":"adr_0014 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T08:02:09.592Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-resolution; auto_snapshot=2026-09-08t08-02-09-378z-bcgfet"}
 {"ts":"2026-09-08T08:02:10.311Z","actor":"cli","kind":"adr_accepted","node":"adr_0014","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T08:20:32.620Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-20-32-444z-g60t47 message=\"auto: structural amend (add-node adr_0015) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:20:32.646Z","actor":"cli","kind":"adr_created","node":"adr_0015","to":"proposed","detail":"模块清单只保存贡献索引"}
+{"ts":"2026-09-08T08:20:32.652Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0015; auto_snapshot=2026-09-08t08-20-32-444z-g60t47"}
+{"ts":"2026-09-08T08:20:42.313Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-20-42-149z-qzi2qt message=\"auto: structural amend (add-edge decides-module-manifest-index) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:20:42.359Z","actor":"cli","kind":"edge_created","edge":"decides-module-manifest-index","detail":"adr_0015 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T08:20:42.376Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-manifest-index; auto_snapshot=2026-09-08t08-20-42-149z-qzi2qt"}
+{"ts":"2026-09-08T08:20:43.295Z","actor":"cli","kind":"adr_accepted","node":"adr_0015","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T08:20:51.019Z","actor":"unknown","kind":"checkpoint_updated","node":"l1_module_contract","from":"pending","to":"passed","detail":"checkpoint=manifest"}

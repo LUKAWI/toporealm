@@ -73,9 +73,56 @@ bindings:
 
 绑定不存在、目标不可读或数据模式不兼容时，该模块视为不可用，图进入已定义的缺失模块降级模式。基座必须报告具体解析来源和失败原因。
 
+## 已确认：模块清单的职责
+
+`module.yaml` 只保存模块元数据和贡献索引。对象类型、关系类型、能力、操作、Web UI 和 Skills 的完整定义使用独立文件或目录，首版不支持把完整定义内联到清单中。
+
+```yaml
+format: toporealm.module/v1alpha1
+id: research
+namespace: research
+version: 0.1.0
+
+supports:
+  schemas: [1]
+
+contributes:
+  object_kinds:
+    - id: question
+      schema: schemas/objects/question.yaml
+    - id: source
+      schema: schemas/objects/source.yaml
+
+  relation_kinds:
+    - id: supports
+      schema: schemas/relations/supports.yaml
+
+  capabilities:
+    - id: confidence
+      schema: schemas/capabilities/confidence.yaml
+
+  operations:
+    - id: expand-question
+      declaration: operations/expand-question.yaml
+
+runtime:
+  entry: runtime/index.js
+
+ui:
+  contribution: ui/contribution.yaml
+
+skills:
+  directory: skills/
+```
+
+`format`、`id`、`namespace`、`version` 和 `supports.schemas` 是模块清单的基础身份字段。其余字段按实际贡献省略。每项贡献在清单中登记模块内局部 ID 和相对路径；完整身份由模块命名空间与局部 ID 组合，例如 `research.question`。
+
+基座先读取清单以建立贡献注册表，再按实际操作加载相应定义。所有路径必须留在已解析模块目录内。清单中未登记的文件不构成模块贡献。
+
+使用单一引用形式可以避免内联定义与文件定义的覆盖顺序、迁移方式和错误位置出现两套规则。最小模块因此至少包含一个 `module.yaml` 和其登记的定义文件。
+
 ## 尚待确定
 
-- `module.yaml` 的最小字段与贡献索引方式；
 - 模块依赖与版本约束；
 - 类型、能力和操作的注册及冲突规则；
 - 声明式校验、操作与可信代码钩子的边界。

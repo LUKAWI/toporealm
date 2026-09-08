@@ -1,0 +1,14 @@
+id: adr_0015
+type: adr
+label: 模块清单只保存贡献索引
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T08:20:32.440Z'
+updated_at: '2026-09-08T08:20:43.288Z'
+decision: module.yaml 保存模块身份、兼容数据模式和贡献 ID 到定义文件的索引；完整 Schema、规则、操作和界面定义必须位于独立文件，首版不支持内联完整定义。
+background: 模块清单需要让基座快速建立注册表，同时避免大型模块把所有 Schema、表单和规则集中在一个文件中。
+considered_options: 全部内联：单文件但会膨胀；同时支持内联和引用：灵活但产生双重解析规则；只索引独立定义文件：采用。
+why: 单一引用形式让按需加载、错误定位、文件级协作和迁移规则保持一致。
+consequences: 最小模块至少包含 module.yaml 和被索引的定义文件；未登记文件不构成模块贡献；清单路径必须相对于同一模块目录解析。
