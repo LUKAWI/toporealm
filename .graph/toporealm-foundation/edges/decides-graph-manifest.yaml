@@ -1,0 +1,4 @@
+id: decides-graph-manifest
+source: adr_0010
+target: ctx-kernel
+type: decides

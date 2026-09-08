@@ -4,7 +4,7 @@
 
 ## 已确认：事实来源与文件布局
 
-TopoRealm 使用目录式 YAML 作为唯一事实来源。一张图的对象和关系分别按稳定 ID 存入独立文件，图清单只保存图级信息、模块声明和实体引用。
+TopoRealm 使用目录式 YAML 作为唯一事实来源。一张图的对象和关系分别按稳定 ID 存入独立文件，图清单只保存图级信息、模块声明和实体目录来源。
 
 ```text
 .toporealm/
@@ -22,6 +22,34 @@ TopoRealm 使用目录式 YAML 作为唯一事实来源。一张图的对象和�
 ## 派生数据
 
 邻接索引、搜索索引、布局坐标和其他加速数据不是事实来源。它们可以使用 JSON、SQLite 或其他适合实现的格式，但必须能够仅根据 YAML 事实源重新生成。删除派生数据不得改变图的业务含义。
+
+## 已确认：图清单的最小结构
+
+`graph.yaml` 声明格式版本、图身份、图中使用的模块数据模式，以及对象和关系的目录来源：
+
+```yaml
+format: toporealm.graph/v1alpha1
+id: attention-research
+label: 注意力机制研究
+
+modules:
+  - id: research
+    schema: 1
+  - id: exploration
+    schema: 1
+
+sources:
+  objects: objects/*.yaml
+  relations: relations/*.yaml
+
+meta:
+  created_at: 2026-09-08T10:00:00+08:00
+  updated_at: 2026-09-08T10:00:00+08:00
+```
+
+`format`、`id` 和 `sources` 是必填字段；`label`、`modules` 和 `meta` 没有内容时可以省略。模块声明中的 `schema` 是图内模块数据所遵循的模式版本，不是本机安装的软件包版本。模块运行时只要声明支持该模式版本，就可以解释这些数据。
+
+图清单不逐个列出对象和关系。基座根据 `sources` 发现实体，使不同 agent 新增实体时只创建各自文件，无需共同修改中央清单。首版来源只支持图目录内的相对 glob，暂不引入远程来源。
 
 ## 无损边界
 
@@ -92,6 +120,5 @@ meta:
 
 ## 尚待确定
 
-- `graph.yaml` 的最小字段和模块版本声明；
 - 未知模块数据允许进行哪些基础编辑；
 - 标识符在单图、工作区和跨图引用中的作用域。

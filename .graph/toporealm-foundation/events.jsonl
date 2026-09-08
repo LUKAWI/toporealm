@@ -234,3 +234,10 @@
 {"ts":"2026-09-08T06:53:31.273Z","actor":"cli","kind":"edge_created","edge":"decides-relation-shape","detail":"adr_0009 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T06:53:31.278Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-relation-shape; auto_snapshot=2026-09-08t06-53-31-098z-3koznx"}
 {"ts":"2026-09-08T06:53:32.168Z","actor":"cli","kind":"adr_accepted","node":"adr_0009","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T07:00:39.390Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-00-39-254z-7gsud1 message=\"auto: structural amend (add-node adr_0010) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:00:39.410Z","actor":"cli","kind":"adr_created","node":"adr_0010","to":"proposed","detail":"图清单声明实体目录与模块数据模式"}
+{"ts":"2026-09-08T07:00:39.415Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0010; auto_snapshot=2026-09-08t07-00-39-254z-7gsud1"}
+{"ts":"2026-09-08T07:00:52.482Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-00-52-345z-tt0noi message=\"auto: structural amend (add-edge decides-graph-manifest) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:00:52.502Z","actor":"cli","kind":"edge_created","edge":"decides-graph-manifest","detail":"adr_0010 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T07:00:52.506Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-graph-manifest; auto_snapshot=2026-09-08t07-00-52-345z-tt0noi"}
+{"ts":"2026-09-08T07:00:53.438Z","actor":"cli","kind":"adr_accepted","node":"adr_0010","from":"proposed","to":"accepted"}

@@ -1,0 +1,16 @@
+id: adr_0010
+type: adr
+label: 图清单声明实体目录与模块数据模式
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T07:00:39.250Z'
+updated_at: '2026-09-08T07:00:53.429Z'
+decision: >-
+  graph.yaml 包含 format、id、可选 label、modules、sources 和 meta；sources 以图内相对 glob 声明对象和关系目录，不逐个枚举实体；modules
+  记录模块数据模式版本而非安装包版本。
+background: TopoRealm 需要可迁移的图级入口，同时避免多 agent 新增实体时共同修改中央清单，并允许新版模块运行时兼容读取旧数据。
+considered_options: 逐实体引用：明确但制造中央写冲突；自动固定目录：最简但难演化；清单声明目录来源与数据模式：采用。
+why: 目录来源保留分文件并行优势，显式格式和模块模式版本提供迁移及降级读取所需信息。
+consequences: 首版只支持图目录内相对 glob；运行时安装版本由环境管理，不能从 graph.yaml 推断；缺失模块仍可从清单识别所缺的数据解释器。
