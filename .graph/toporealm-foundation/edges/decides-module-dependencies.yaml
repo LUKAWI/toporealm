@@ -1,0 +1,4 @@
+id: decides-module-dependencies
+source: adr_0016
+target: ctx-kernel
+type: decides

@@ -283,3 +283,10 @@
 {"ts":"2026-09-08T08:20:42.376Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-manifest-index; auto_snapshot=2026-09-08t08-20-42-149z-qzi2qt"}
 {"ts":"2026-09-08T08:20:43.295Z","actor":"cli","kind":"adr_accepted","node":"adr_0015","from":"proposed","to":"accepted"}
 {"ts":"2026-09-08T08:20:51.019Z","actor":"unknown","kind":"checkpoint_updated","node":"l1_module_contract","from":"pending","to":"passed","detail":"checkpoint=manifest"}
+{"ts":"2026-09-08T08:29:47.108Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-29-46-907z-m6yd4y message=\"auto: structural amend (add-node adr_0016) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:29:47.135Z","actor":"cli","kind":"adr_created","node":"adr_0016","to":"proposed","detail":"模块依赖显式绑定且不自动安装"}
+{"ts":"2026-09-08T08:29:47.139Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0016; auto_snapshot=2026-09-08t08-29-46-907z-m6yd4y"}
+{"ts":"2026-09-08T08:29:59.186Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-29-59-012z-vdq60a message=\"auto: structural amend (add-edge decides-module-dependencies) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:29:59.209Z","actor":"cli","kind":"edge_created","edge":"decides-module-dependencies","detail":"adr_0016 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T08:29:59.213Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-dependencies; auto_snapshot=2026-09-08t08-29-59-012z-vdq60a"}
+{"ts":"2026-09-08T08:30:00.186Z","actor":"cli","kind":"adr_accepted","node":"adr_0016","from":"proposed","to":"accepted"}
