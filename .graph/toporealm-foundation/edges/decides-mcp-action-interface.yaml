@@ -1,0 +1,4 @@
+id: decides-mcp-action-interface
+source: adr_0019
+target: ctx-surfaces
+type: decides

@@ -297,3 +297,17 @@
 {"ts":"2026-09-08T08:55:56.424Z","actor":"cli","kind":"edge_created","edge":"decides-npm-module-carrier","detail":"adr_0017 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T08:55:56.429Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-npm-module-carrier; auto_snapshot=2026-09-08t08-55-56-209z-zdbu4e"}
 {"ts":"2026-09-08T08:55:57.379Z","actor":"cli","kind":"adr_accepted","node":"adr_0017","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:24:21.156Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-24-20-992z-xx0x08 message=\"auto: structural amend (add-node adr_0018) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:24:21.180Z","actor":"cli","kind":"adr_created","node":"adr_0018","to":"proposed","detail":"模块采用两阶段分类不可变注册快照"}
+{"ts":"2026-09-08T11:24:21.184Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0018; auto_snapshot=2026-09-08t11-24-20-992z-xx0x08"}
+{"ts":"2026-09-08T11:24:41.688Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-24-41-533z-6aa0nv message=\"auto: structural amend (add-edge decides-module-registry-snapshot) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:24:41.708Z","actor":"cli","kind":"edge_created","edge":"decides-module-registry-snapshot","detail":"adr_0018 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T11:24:41.712Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-registry-snapshot; auto_snapshot=2026-09-08t11-24-41-533z-6aa0nv"}
+{"ts":"2026-09-08T11:24:41.870Z","actor":"cli","kind":"adr_accepted","node":"adr_0018","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:24:42.165Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-24-42-003z-k5hz0f message=\"auto: structural amend (add-node adr_0019) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:24:42.188Z","actor":"cli","kind":"adr_created","node":"adr_0019","to":"proposed","detail":"MCP 采用固定核心工具与动作引用"}
+{"ts":"2026-09-08T11:24:42.192Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0019; auto_snapshot=2026-09-08t11-24-42-003z-k5hz0f"}
+{"ts":"2026-09-08T11:24:50.294Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-24-50-131z-ivxx8h message=\"auto: structural amend (add-edge decides-mcp-action-interface) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:24:50.317Z","actor":"cli","kind":"edge_created","edge":"decides-mcp-action-interface","detail":"adr_0019 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T11:24:50.321Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-mcp-action-interface; auto_snapshot=2026-09-08t11-24-50-131z-ivxx8h"}
+{"ts":"2026-09-08T11:24:50.481Z","actor":"cli","kind":"adr_accepted","node":"adr_0019","from":"proposed","to":"accepted"}

@@ -1,0 +1,18 @@
+id: adr_0019
+type: adr
+label: MCP 采用固定核心工具与动作引用
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T11:24:41.999Z'
+updated_at: '2026-09-08T11:24:50.474Z'
+decision: >-
+  MCP 对 agent 暴露稳定、强类型的基座工具集合，模块不动态新增 MCP 工具。模块操作通过查询响应中的 Action Reference 暴露，并由统一 execute_action
+  执行。动作引用携带操作身份、目标、输入模式或模板和注册快照修订号；执行前检查模块可用性、动作存在性、目标适用性、输入和修订号。错误使用
+  MODULE_UNAVAILABLE、ACTION_NOT_FOUND、ACTION_NOT_APPLICABLE、INVALID_INPUT、STALE_ACTION、RUNTIME_FAILED 等稳定代码并附恢复提示。Super
+  Plumber 既有命名工具先作为兼容适配器调用新操作核心。
+background: 完全动态 MCP 工具会随模块组合改变工具清单和参数模式，增加 agent 选错工具、缓存旧定义以及服务重启后的调用失败。仅提供一个无结构 run_operation 又会丢失发现性和输入引导。
+considered_options: 每个模块动态注册 MCP 工具最直观但接口漂移大；单一不透明操作入口稳定但 agent 难以正确构造调用；固定核心工具配合可发现动作引用兼顾稳定性和模块扩展。
+why: agent 始终学习有限的稳定工具；动作由当前图快照生成并带明确输入约束；预检和结构化错误可在进入模块运行时前暴露可恢复问题。
+consequences: MCP 响应需要控制动作描述体积；客户端应在 STALE_ACTION 后重新查询；兼容适配器需要明确退役条件；模块只能贡献操作声明和处理器，不能改变 MCP 顶层工具表。

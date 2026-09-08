@@ -1,0 +1,4 @@
+id: decides-module-registry-snapshot
+source: adr_0018
+target: ctx-kernel
+type: decides
