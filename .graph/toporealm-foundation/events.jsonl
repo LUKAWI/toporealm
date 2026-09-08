@@ -209,3 +209,4 @@
 {"ts":"2026-09-08T06:26:17.273Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-26-17-171z-14h7ef message=\"auto: structural amend (add-edge dep-roadmap-review) by cli\" docs_export=skipped"}
 {"ts":"2026-09-08T06:26:17.297Z","actor":"cli","kind":"edge_created","edge":"dep-roadmap-review","detail":"l4_delivery_plan -[depends_on]-> l4_human_review"}
 {"ts":"2026-09-08T06:26:17.302Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=dep-roadmap-review; auto_snapshot=2026-09-08t06-26-17-171z-14h7ef"}
+{"ts":"2026-09-08T06:32:07.540Z","actor":"user","kind":"design_approved","detail":"by=user, status=approved"}
