@@ -1,4 +1,4 @@
-format: toporealm.module/v1alpha1
+format: toporealm.module/v1
 id: research
 namespace: research
 version: 0.1.0

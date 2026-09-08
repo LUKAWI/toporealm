@@ -1,4 +1,4 @@
-format: toporealm.graph/v1alpha1
+format: toporealm.graph/v1
 id: research-demo
 label: Offline research vertical slice
 modules:

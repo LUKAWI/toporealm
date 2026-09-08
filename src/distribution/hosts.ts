@@ -52,7 +52,7 @@ function ensureOwnedOrEmpty(path: string, expectedModule?: string): void {
 }
 
 function projectionManifest(host: HostId, modules: readonly string[]): Record<string, unknown> {
-  const base = { name: "toporealm", version: "0.1.0-alpha.1", host, skills: modules.map((id) => `skills/${id}`), mcp: "mcp/toporealm.json", hooks: ["hooks/session-brief.mjs"] };
+  const base = { name: "toporealm", version: "0.1.0", host, skills: modules.map((id) => `skills/${id}`), mcp: "mcp/toporealm.json", hooks: ["hooks/session-brief.mjs"] };
   if (host === "pi") return { ...base, entry: "index.js" };
   return base;
 }

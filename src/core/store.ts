@@ -346,6 +346,12 @@ export class GraphStore {
         });
       }
     }
+    const entityIds = new Set<string>();
+    for (const object of objects.values()) entityIds.add(object.id);
+    for (const relation of relations.values()) {
+      if (entityIds.has(relation.id)) throw new CoreError({ code: "DUPLICATE_ID", message: `对象和关系不能共享 ID：${relation.id}` });
+      entityIds.add(relation.id);
+    }
     return { manifest, objects: sortedRecords(objects.values()), relations: sortedRecords(relations.values()), revision: snapshot.revision };
   }
 
@@ -362,7 +368,13 @@ export class GraphStore {
     const path = join(this.graphRoot, directory);
     if (!existsSync(path)) return [];
     const files = readdirSync(path).filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"));
-    return sortedRecords(files.map((file) => validator(parseYaml<unknown>(join(path, file)), join(path, file))));
+    return sortedRecords(files.map((file) => {
+      const recordPath = join(path, file);
+      const record = validator(parseYaml<unknown>(recordPath), recordPath);
+      const fileId = file.replace(/\.(yaml|yml)$/i, "");
+      if (fileId !== record.id) throw new CoreError({ code: "FILE_ID_MISMATCH", message: `文件名 ${file} 与记录 ID ${record.id} 不一致。`, details: { path: recordPath } });
+      return record;
+    }));
   }
 
   private writeSnapshot(snapshot: GraphSnapshot): void {

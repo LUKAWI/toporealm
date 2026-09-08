@@ -107,7 +107,7 @@ function validateManifest(value: unknown, path: string): ModuleManifest {
   if (!value || typeof value !== "object") throw new CoreError({ code: "INVALID_MODULE_MANIFEST", message: `模块清单不是对象：${path}` });
   const manifest = value as Partial<ModuleManifest>;
   if (
-    manifest.format !== ("toporealm.module/v1alpha1" as ModuleFormat) ||
+    manifest.format !== ("toporealm.module/v1" as ModuleFormat) ||
     typeof manifest.id !== "string" ||
     typeof manifest.namespace !== "string" ||
     typeof manifest.version !== "string" ||

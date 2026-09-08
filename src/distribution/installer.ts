@@ -64,7 +64,7 @@ function validatePackage(packageRoot: string): ModuleManifest {
   if (typeof packageJson.toporealm !== "string") throw new CoreError({ code: "INVALID_MODULE_PACKAGE", message: "package.json 缺少 toporealm 清单入口。" });
   const manifestPath = ensureInside(packageRoot, join(packageRoot, packageJson.toporealm));
   const manifest = parseYaml<ModuleManifest>(manifestPath);
-  if (manifest.format !== "toporealm.module/v1alpha1" || typeof manifest.id !== "string" || typeof manifest.version !== "string") {
+  if (manifest.format !== "toporealm.module/v1" || typeof manifest.id !== "string" || typeof manifest.version !== "string") {
     throw new CoreError({ code: "INVALID_MODULE_PACKAGE", message: "module.yaml 缺少有效的 TopoRealm 身份。" });
   }
   safeModuleId(manifest.id);

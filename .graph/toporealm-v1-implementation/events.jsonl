@@ -83,3 +83,9 @@
 {"ts":"2026-09-08T14:58:24.148Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m5_distribution","from":"pending","to":"passed","detail":"checkpoint=hosts"}
 {"ts":"2026-09-08T14:58:24.188Z","actor":"codex-mcp-client","kind":"verdict","node":"m5_distribution","detail":"verdict=passed"}
 {"ts":"2026-09-08T14:58:24.226Z","actor":"codex-mcp-client","kind":"node_status","node":"m5_distribution","from":"running","to":"passed"}
+{"ts":"2026-09-08T14:59:04.208Z","actor":"codex-mcp-client","kind":"node_status","node":"m6_protocol_freeze","from":"pending","to":"ready"}
+{"ts":"2026-09-08T14:59:04.260Z","actor":"codex-root","kind":"node_status","node":"m6_protocol_freeze","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T15:03:42.268Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m6_protocol_freeze","from":"pending","to":"passed","detail":"checkpoint=hardening"}
+{"ts":"2026-09-08T15:03:42.308Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m6_protocol_freeze","from":"pending","to":"passed","detail":"checkpoint=freeze"}
+{"ts":"2026-09-08T15:03:42.345Z","actor":"codex-mcp-client","kind":"verdict","node":"m6_protocol_freeze","detail":"verdict=passed"}
+{"ts":"2026-09-08T15:03:42.417Z","actor":"codex-mcp-client","kind":"node_status","node":"m6_protocol_freeze","from":"running","to":"passed"}

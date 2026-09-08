@@ -1,6 +1,6 @@
 import type { ModuleId, ModuleNamespace } from "../core/index.js";
 
-export type ModuleFormat = "toporealm.module/v1alpha1";
+export type ModuleFormat = "toporealm.module/v1";
 
 export interface ContributionRef {
   id: string;
@@ -39,7 +39,7 @@ export interface ModuleSurface {
 
 export const moduleSurface: ModuleSurface = {
   name: "module-sdk",
-  manifestFormat: "toporealm.module/v1alpha1",
+  manifestFormat: "toporealm.module/v1",
 };
 
 export * from "./registry.js";

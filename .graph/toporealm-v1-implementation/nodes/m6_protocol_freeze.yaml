@@ -2,7 +2,7 @@ id: m6_protocol_freeze
 type: task
 label: M6 协议冻结与稳定基线
 level: 6
-status: pending
+status: passed
 plan:
   description: 收敛两条领域切片暴露的问题，核对 Core、CLI、MCP、Server、Web、Module SDK 与三宿主投影的一致性，并准备冻结 v1。
 expected_outcome:
@@ -12,13 +12,41 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:11.080Z'
-updated_at: '2026-09-08T14:18:11.080Z'
+updated_at: '2026-09-08T15:03:42.396Z'
 checkpoints:
   - id: hardening
     label: 全链路回归与文档对齐通过
-    status: pending
+    status: passed
     verifier: cross_review
   - id: freeze
     label: v1 冻结清单和发布候选通过
-    status: pending
+    status: passed
     verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    完成 v1 协议收口：将图/模块格式从切片期 v1alpha1 冻结为 toporealm.graph/v1 与 toporealm.module/v1，补充基础/完整校验边界、重复 ID/文件名漂移检测、冻结清单和产品
+    README；回归 Core、模块、research/exploration、workflow、分发与宿主投影。
+  started_at: '2026-09-08T14:59:04.254Z'
+  artifacts:
+    - src/core/validate.ts
+    - src/core/store.ts
+    - src/core/types.ts
+    - src/module-sdk/index.ts
+    - src/module-sdk/registry.ts
+    - src/distribution/installer.ts
+    - src/distribution/hosts.ts
+    - docs/architecture/v1-freeze.md
+    - docs/architecture/data-model.md
+    - docs/architecture/module-contract.md
+    - docs/architecture/implementation-roadmap.md
+    - README.md
+    - tests/protocol-freeze.test.ts
+  notes: >-
+    规格轴复核：Core 仍无领域枚举，旧 .graph 不在兼容范围，模块缺失仍无损读取；惯例轴复核：npm run verify 7 files / 19 tests passed，git diff --check
+    无错误，仓库实际契约无 v1alpha1 机器引用。冻结后破坏性变更必须升级格式并显式迁移。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T15:03:42.338Z'
+    note: 全链路回归、格式冻结、文档对齐与双轴复核均通过。
+  completed_at: '2026-09-08T15:03:42.396Z'

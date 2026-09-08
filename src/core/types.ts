@@ -1,5 +1,5 @@
-/** The alpha graph format intentionally contains no domain-specific enums. */
-export const GRAPH_FORMAT = "toporealm.graph/v1alpha1" as const;
+/** The v1 graph format intentionally contains no domain-specific enums. */
+export const GRAPH_FORMAT = "toporealm.graph/v1" as const;
 export type GraphFormat = typeof GRAPH_FORMAT;
 
 export type EntityId = string;

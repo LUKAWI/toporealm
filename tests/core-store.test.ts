@@ -19,7 +19,7 @@ function fixtureStore(): GraphStore {
   temporaryRoots.push(root);
   const store = GraphStore.fromWorkspace(root, "demo");
   store.initialize({
-    format: "toporealm.graph/v1alpha1",
+    format: "toporealm.graph/v1",
     id: "demo",
     label: "M1 demo",
     sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" },

@@ -1,6 +1,6 @@
 # TopoRealm 模块契约
 
-状态：讨论中。本文随 `toporealm-foundation/l1_module_contract` 的逐项决策更新。
+状态：v1 已冻结。本文记录 TopoRealm v1 的模块协议。
 
 ## 已确认：模块装载单元
 
@@ -78,7 +78,7 @@ bindings:
 `module.yaml` 只保存模块元数据和贡献索引。对象类型、关系类型、能力、操作、Web UI 和 Skills 的完整定义使用独立文件或目录，首版不支持把完整定义内联到清单中。
 
 ```yaml
-format: toporealm.module/v1alpha1
+format: toporealm.module/v1
 id: research
 namespace: research
 version: 0.1.0

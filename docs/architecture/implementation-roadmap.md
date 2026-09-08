@@ -1,13 +1,13 @@
 # TopoRealm 基座实施路线图
 
-状态：待用户最终审核。路线图只规划实施，不在本节点编写产品代码。
+状态：已实施并冻结 v1。本文保留路线图与实际交付边界。
 
 ## 交付原则
 
 - 先贯通最薄的 Core → CLI/MCP → Server → Web UI 全链路，不先横向做完单层。
 - 所有写入共用 Core，Web UI 是基座正式组成部分。
 - 先以工作区本地模块验证协议，再增加 npm 获取与宿主投影。
-- `v1alpha1` 允许在两条领域切片验证期间修正；research/exploration 与 workflow 均通过后才冻结 `v1`。
+- 早期 `v1alpha1` 在两条领域切片期间允许修正；research/exploration 与 workflow 均通过后已冻结 `v1`。
 - 不在 TopoRealm 仓库外实施重构，不把旧图兼容列为 v1 门禁。
 
 ## 阶段与依赖
@@ -23,7 +23,7 @@
 - 各包只能通过公开接口依赖 Core，不复制对象或关系类型；
 - Web 使用 Svelte 与 D3 的现有成熟外壳，但不迁入旧 `NodeSchema`；
 - 单一命令可完成类型检查、单元测试和构建；
-- 提供一张最小 `v1alpha1` 空图 fixture。
+- 提供一张最小 `v1` 空图 fixture。
 
 ### M1：最薄基座全链路
 

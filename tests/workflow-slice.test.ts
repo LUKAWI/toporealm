@@ -64,6 +64,6 @@ describe("workflow representative slice", () => {
     const { root, store } = copiedFixture();
     const registry = new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read());
     expect(registry.objectKinds.map((kind) => kind.fullId)).toContain("workflow.task");
-    expect(store.read().manifest.format).toBe("toporealm.graph/v1alpha1");
+    expect(store.read().manifest.format).toBe("toporealm.graph/v1");
   });
 });

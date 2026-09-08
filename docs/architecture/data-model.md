@@ -1,6 +1,6 @@
 # TopoRealm 最小数据模型
 
-状态：待验收。本文随 `toporealm-foundation/l1_data_model` 的逐项决策更新。
+状态：v1 已冻结。本文记录 TopoRealm v1 的事实模型。
 
 ## 已确认：事实来源与文件布局
 
@@ -28,7 +28,7 @@ TopoRealm 使用目录式 YAML 作为唯一事实来源。一张图的对象和�
 `graph.yaml` 声明格式版本、图身份、图中使用的模块数据模式，以及对象和关系的目录来源：
 
 ```yaml
-format: toporealm.graph/v1alpha1
+format: toporealm.graph/v1
 id: attention-research
 label: 注意力机制研究
 

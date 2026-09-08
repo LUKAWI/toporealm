@@ -1,4 +1,4 @@
-format: toporealm.graph/v1alpha1
+format: toporealm.graph/v1
 id: workflow-demo
 label: Workflow representative slice
 modules:

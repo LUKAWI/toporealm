@@ -1,4 +1,4 @@
-format: toporealm.graph/v1alpha1
+format: toporealm.graph/v1
 id: empty
 label: Empty TopoRealm graph
 sources:

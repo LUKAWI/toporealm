@@ -25,12 +25,12 @@ function moduleWorkspace(): { root: string; store: GraphStore } {
   mkdirSync(join(moduleRoot, "schemas"), { recursive: true });
   mkdirSync(join(moduleRoot, "operations"), { recursive: true });
   writeFileSync(join(root, ".toporealm", "modules.yaml"), `bindings:\n  research:\n    source: workspace\n    path: modules/research\n`, "utf8");
-  writeFileSync(join(moduleRoot, "module.yaml"), `format: toporealm.module/v1alpha1\nid: research\nnamespace: research\nversion: 0.1.0\nsupports:\n  schemas: [1]\ncontributes:\n  object_kinds:\n    - id: question\n      declaration: schemas/question.yaml\n  operations:\n    - id: expand-question\n      declaration: operations/expand-question.yaml\n`, "utf8");
+  writeFileSync(join(moduleRoot, "module.yaml"), `format: toporealm.module/v1\nid: research\nnamespace: research\nversion: 0.1.0\nsupports:\n  schemas: [1]\ncontributes:\n  object_kinds:\n    - id: question\n      declaration: schemas/question.yaml\n  operations:\n    - id: expand-question\n      declaration: operations/expand-question.yaml\n`, "utf8");
   writeFileSync(join(moduleRoot, "schemas", "question.yaml"), "label: Research question\n", "utf8");
   writeFileSync(join(moduleRoot, "operations", "expand-question.yaml"), "input_schema: research.expand-question/input-v1\ninput_template:\n  depth: 2\n", "utf8");
   const store = GraphStore.fromWorkspace(root, "research-notes");
   store.initialize({
-    format: "toporealm.graph/v1alpha1",
+    format: "toporealm.graph/v1",
     id: "research-notes",
     sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" },
     modules: [{ id: "research", namespace: "research", schema: 1 }],
