@@ -377,3 +377,10 @@
 {"ts":"2026-09-08T12:08:32.293Z","actor":"cli","kind":"edge_created","edge":"decides-minimal-onboarding-hook","detail":"adr_0026 -[decides]-> ctx-surfaces"}
 {"ts":"2026-09-08T12:08:32.297Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-minimal-onboarding-hook; auto_snapshot=2026-09-08t12-08-32-053z-7pcqiy"}
 {"ts":"2026-09-08T12:08:32.490Z","actor":"cli","kind":"adr_accepted","node":"adr_0026","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T12:15:49.328Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-15-49-101z-7ydbbq message=\"auto: structural amend (add-node adr_0027) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T12:15:49.360Z","actor":"cli","kind":"adr_created","node":"adr_0027","to":"proposed","detail":"模块绑定驱动用户级与项目级宿主投影"}
+{"ts":"2026-09-08T12:15:49.364Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0027; auto_snapshot=2026-09-08t12-15-49-101z-7ydbbq"}
+{"ts":"2026-09-08T12:15:58.105Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-15-57-883z-kip4vo message=\"auto: structural amend (add-edge decides-scope-driven-host-projection) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T12:15:58.138Z","actor":"cli","kind":"edge_created","edge":"decides-scope-driven-host-projection","detail":"adr_0027 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T12:15:58.142Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-scope-driven-host-projection; auto_snapshot=2026-09-08t12-15-57-883z-kip4vo"}
+{"ts":"2026-09-08T12:15:58.339Z","actor":"cli","kind":"adr_accepted","node":"adr_0027","from":"proposed","to":"accepted"}

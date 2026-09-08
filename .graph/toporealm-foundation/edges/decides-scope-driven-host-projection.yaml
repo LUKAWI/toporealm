@@ -1,0 +1,4 @@
+id: decides-scope-driven-host-projection
+source: adr_0027
+target: ctx-surfaces
+type: decides

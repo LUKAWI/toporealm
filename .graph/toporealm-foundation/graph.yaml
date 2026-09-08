@@ -51,6 +51,7 @@ nodes:
   - file: nodes/adr_0024.yaml
   - file: nodes/adr_0025.yaml
   - file: nodes/adr_0026.yaml
+  - file: nodes/adr_0027.yaml
 edges:
   - file: edges/rel-kernel-surfaces.yaml
   - file: edges/rel-surfaces-adoption.yaml
@@ -91,6 +92,7 @@ edges:
   - file: edges/decides-module-skill-granularity.yaml
   - file: edges/decides-three-host-projections.yaml
   - file: edges/decides-minimal-onboarding-hook.yaml
+  - file: edges/decides-scope-driven-host-projection.yaml
 version: 1.0.0
 class: program
 root_context:
@@ -111,4 +113,4 @@ fog:
 review:
   status: unreviewed
   by: cli
-  at: '2026-09-08T12:08:32.301Z'
+  at: '2026-09-08T12:15:58.145Z'
