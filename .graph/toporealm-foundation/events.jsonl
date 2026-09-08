@@ -255,3 +255,12 @@
 {"ts":"2026-09-08T07:24:52.413Z","actor":"cli","kind":"edge_created","edge":"decides-entity-id-scope","detail":"adr_0012 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T07:24:52.418Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-entity-id-scope; auto_snapshot=2026-09-08t07-24-52-237z-lnwmwi"}
 {"ts":"2026-09-08T07:24:53.378Z","actor":"cli","kind":"adr_accepted","node":"adr_0012","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T07:35:32.305Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-35-32-140z-o1t52l message=\"auto: structural amend (add-node adr_0013) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:35:32.328Z","actor":"cli","kind":"adr_created","node":"adr_0013","to":"proposed","detail":"缺失模块时采用有限降级编辑"}
+{"ts":"2026-09-08T07:35:32.334Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0013; auto_snapshot=2026-09-08t07-35-32-140z-o1t52l"}
+{"ts":"2026-09-08T07:35:42.123Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-35-41-962z-9n19a0 message=\"auto: structural amend (add-edge decides-degraded-editing) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:35:42.160Z","actor":"cli","kind":"edge_created","edge":"decides-degraded-editing","detail":"adr_0013 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T07:35:42.166Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-degraded-editing; auto_snapshot=2026-09-08t07-35-41-962z-9n19a0"}
+{"ts":"2026-09-08T07:35:43.150Z","actor":"cli","kind":"adr_accepted","node":"adr_0013","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T07:35:50.210Z","actor":"unknown","kind":"checkpoint_updated","node":"l1_data_model","from":"pending","to":"passed","detail":"checkpoint=roundtrip"}
+{"ts":"2026-09-08T07:36:15.876Z","actor":"unknown","kind":"execution_report","node":"l1_data_model"}

@@ -1,0 +1,4 @@
+id: decides-degraded-editing
+source: adr_0013
+target: ctx-kernel
+type: decides
