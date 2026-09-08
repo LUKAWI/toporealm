@@ -1,0 +1,5 @@
+id: task-b
+kind: workflow.task
+label: 执行处理
+data:
+  status: pending

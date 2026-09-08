@@ -1,0 +1,6 @@
+presentation:
+  workflow.task: {color: "#2563eb", icon: "T"}
+  workflow.checkpoint: {color: "#16a34a", icon: "C"}
+  workflow.execution_report: {color: "#7c3aed", icon: "R"}
+forms:
+  workflow.task: [label, data.status]

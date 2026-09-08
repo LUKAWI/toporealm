@@ -1,0 +1,2 @@
+label: Workflow checkpoint
+required: [label, data.status, data.task]

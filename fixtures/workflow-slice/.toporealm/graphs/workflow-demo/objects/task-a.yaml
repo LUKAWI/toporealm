@@ -1,0 +1,5 @@
+id: task-a
+kind: workflow.task
+label: 准备输入
+data:
+  status: pending

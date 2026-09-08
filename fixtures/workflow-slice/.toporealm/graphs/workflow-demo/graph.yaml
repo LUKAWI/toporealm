@@ -1,0 +1,10 @@
+format: toporealm.graph/v1alpha1
+id: workflow-demo
+label: Workflow representative slice
+modules:
+  - id: workflow
+    namespace: workflow
+    schema: 1
+sources:
+  objects: objects/*.yaml
+  relations: relations/*.yaml

@@ -1,0 +1,2 @@
+label: Workflow task
+required: [label, data.status]

@@ -1,0 +1,5 @@
+id: task-a-depends-task-b
+kind: workflow.depends_on
+source: task-a
+target: task-b
+direction: directed

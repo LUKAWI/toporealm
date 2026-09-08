@@ -1,0 +1,4 @@
+bindings:
+  workflow:
+    source: path
+    path: ../../modules/workflow

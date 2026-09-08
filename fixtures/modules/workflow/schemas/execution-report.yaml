@@ -1,0 +1,2 @@
+label: Workflow execution report
+required: [data.summary, data.task]

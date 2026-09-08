@@ -2,7 +2,7 @@ id: m4_workflow_slice
 type: task
 label: M4 workflow 代表性切片
 level: 4
-status: pending
+status: passed
 plan:
   description: 把 Super Plumber 的任务状态、依赖门禁、checkpoint、execution report 和下一行动选择性实现为 workflow 模块，保持 TopoRealm Core 通用。
 expected_outcome:
@@ -12,13 +12,34 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:10.911Z'
-updated_at: '2026-09-08T14:18:10.911Z'
+updated_at: '2026-09-08T14:50:44.539Z'
 checkpoints:
   - id: workflow
     label: workflow 模块 Schema、操作和 Skills 可运行
-    status: pending
+    status: passed
     verifier: auto
   - id: proof
     label: 任务链门禁、报告和下一行动验收通过
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    实现独立 workflow 模块切片：workflow.task、depends_on、checkpoint、execution_report
+    对象/关系、状态转移、依赖门禁、下一行动查询以及报告/检查点操作；领域字段只在模块数据和声明中。
+  started_at: '2026-09-08T14:48:10.644Z'
+  artifacts:
+    - src/modules/workflow.ts
+    - src/modules/index.ts
+    - fixtures/modules/workflow/module.yaml
+    - fixtures/workflow-slice/.toporealm/modules.yaml
+    - fixtures/workflow-slice/.toporealm/graphs/workflow-demo/graph.yaml
+    - tests/workflow-slice.test.ts
+  notes: >-
+    npm run verify 已通过：tsc build 成功，Vitest 5 files / 15 tests passed；git diff --check 无错误。使用 TopoRealm 新格式
+    fixture，不读取或写回 Super Plumber .graph。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T14:50:44.506Z'
+    note: 状态流转、依赖门禁、checkpoint/report、下一行动和 Core 通用边界均通过最小验证。
+  completed_at: '2026-09-08T14:50:44.539Z'

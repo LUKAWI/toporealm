@@ -1,0 +1,4 @@
+applies_to: workflow.task
+input_schema: workflow.record-report/input-v1
+input_template:
+  summary: ""
