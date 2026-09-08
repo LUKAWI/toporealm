@@ -329,3 +329,21 @@
 {"ts":"2026-09-08T11:40:33.560Z","actor":"unknown","kind":"execution_report","node":"l1_module_contract"}
 {"ts":"2026-09-08T11:40:47.781Z","actor":"cli","kind":"verdict","node":"l1_module_contract","detail":"verdict=passed"}
 {"ts":"2026-09-08T11:40:47.993Z","actor":"cli","kind":"node_status","node":"l1_module_contract","from":"running","to":"passed"}
+{"ts":"2026-09-08T11:49:34.788Z","actor":"cli","kind":"node_status","node":"l2_web_contract","from":"pending","to":"ready"}
+{"ts":"2026-09-08T11:49:35.017Z","actor":"cli","kind":"node_status","node":"l2_web_contract","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T11:51:26.996Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-51-26-805z-59113g message=\"auto: structural amend (add-node adr_0022) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:51:27.025Z","actor":"cli","kind":"adr_created","node":"adr_0022","to":"proposed","detail":"复用现有 Web UI 外壳并限制扩展插槽"}
+{"ts":"2026-09-08T11:51:27.029Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0022; auto_snapshot=2026-09-08t11-51-26-805z-59113g"}
+{"ts":"2026-09-08T11:51:48.374Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-51-48-182z-jjkpjo message=\"auto: structural amend (add-edge decides-web-shell-reuse) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:51:48.401Z","actor":"cli","kind":"edge_created","edge":"decides-web-shell-reuse","detail":"adr_0022 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T11:51:48.405Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-web-shell-reuse; auto_snapshot=2026-09-08t11-51-48-182z-jjkpjo"}
+{"ts":"2026-09-08T11:51:48.581Z","actor":"cli","kind":"adr_accepted","node":"adr_0022","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:51:48.919Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-51-48-725z-fe5498 message=\"auto: structural amend (add-node adr_0023) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:51:48.946Z","actor":"cli","kind":"adr_created","node":"adr_0023","to":"proposed","detail":"Web UI 使用带版本的增量变更事件"}
+{"ts":"2026-09-08T11:51:48.951Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0023; auto_snapshot=2026-09-08t11-51-48-725z-fe5498"}
+{"ts":"2026-09-08T11:51:56.337Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-51-56-134z-39baqe message=\"auto: structural amend (add-edge decides-web-incremental-events) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:51:56.366Z","actor":"cli","kind":"edge_created","edge":"decides-web-incremental-events","detail":"adr_0023 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T11:51:56.370Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-web-incremental-events; auto_snapshot=2026-09-08t11-51-56-134z-39baqe"}
+{"ts":"2026-09-08T11:51:56.555Z","actor":"cli","kind":"adr_accepted","node":"adr_0023","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:53:17.652Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_web_contract","from":"pending","to":"running","detail":"checkpoint=shell"}
+{"ts":"2026-09-08T11:53:17.755Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_web_contract","from":"pending","to":"running","detail":"checkpoint=contributions"}

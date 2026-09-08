@@ -1,0 +1,4 @@
+id: decides-web-shell-reuse
+source: adr_0022
+target: ctx-surfaces
+type: decides
