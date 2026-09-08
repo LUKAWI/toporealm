@@ -241,3 +241,10 @@
 {"ts":"2026-09-08T07:00:52.502Z","actor":"cli","kind":"edge_created","edge":"decides-graph-manifest","detail":"adr_0010 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T07:00:52.506Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-graph-manifest; auto_snapshot=2026-09-08t07-00-52-345z-tt0noi"}
 {"ts":"2026-09-08T07:00:53.438Z","actor":"cli","kind":"adr_accepted","node":"adr_0010","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T07:17:34.814Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-17-34-650z-sf4hn0 message=\"auto: structural amend (add-node adr_0011) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:17:34.837Z","actor":"cli","kind":"adr_created","node":"adr_0011","to":"proposed","detail":"统一模块命名空间与自建模块协议"}
+{"ts":"2026-09-08T07:17:34.842Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0011; auto_snapshot=2026-09-08t07-17-34-650z-sf4hn0"}
+{"ts":"2026-09-08T07:17:44.652Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-17-44-509z-nqwh99 message=\"auto: structural amend (add-edge decides-module-namespace) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:17:44.691Z","actor":"cli","kind":"edge_created","edge":"decides-module-namespace","detail":"adr_0011 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T07:17:44.696Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-namespace; auto_snapshot=2026-09-08t07-17-44-509z-nqwh99"}
+{"ts":"2026-09-08T07:17:45.655Z","actor":"cli","kind":"adr_accepted","node":"adr_0011","from":"proposed","to":"accepted"}

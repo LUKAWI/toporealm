@@ -1,0 +1,4 @@
+id: decides-module-namespace
+source: adr_0011
+target: ctx-kernel
+type: decides
