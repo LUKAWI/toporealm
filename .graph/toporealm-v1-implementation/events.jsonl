@@ -90,3 +90,9 @@
 {"ts":"2026-09-08T15:03:42.345Z","actor":"codex-mcp-client","kind":"verdict","node":"m6_protocol_freeze","detail":"verdict=passed"}
 {"ts":"2026-09-08T15:03:42.417Z","actor":"codex-mcp-client","kind":"node_status","node":"m6_protocol_freeze","from":"running","to":"passed"}
 {"ts":"2026-09-08T15:04:53.713Z","actor":"codex-mcp-client","kind":"node_status","node":"m7_human_acceptance","from":"pending","to":"ready"}
+{"ts":"2026-09-08T15:09:31.827Z","actor":"codex-root","kind":"node_status","node":"m7_human_acceptance","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T15:09:38.189Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m7_human_acceptance","from":"pending","to":"passed","detail":"checkpoint=review"}
+{"ts":"2026-09-08T15:09:45.026Z","actor":"user","kind":"design_approved","detail":"by=user, status=approved"}
+{"ts":"2026-09-08T15:09:50.628Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"m7_human_acceptance","from":"pending","to":"passed","detail":"checkpoint=record"}
+{"ts":"2026-09-08T15:10:23.590Z","actor":"codex-mcp-client","kind":"verdict","node":"m7_human_acceptance","detail":"verdict=passed"}
+{"ts":"2026-09-08T15:10:30.080Z","actor":"codex-mcp-client","kind":"node_status","node":"m7_human_acceptance","from":"running","to":"passed"}

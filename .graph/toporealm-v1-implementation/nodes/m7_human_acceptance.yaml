@@ -2,7 +2,7 @@ id: m7_human_acceptance
 type: gate
 label: 用户审核 v1 实施结果
 level: 7
-status: ready
+status: passed
 plan:
   description: 在 Web UI 中审核实现结果、验收证据、模块投影和协议冻结清单，记录用户最终批准或修改意见。
 expected_outcome:
@@ -12,13 +12,33 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:11.188Z'
-updated_at: '2026-09-08T15:04:53.709Z'
+updated_at: '2026-09-08T15:10:30.076Z'
 checkpoints:
   - id: review
     label: 用户完成 Web UI 成果审核
-    status: pending
+    status: passed
     verifier: human
   - id: record
     label: 最终审核结论已记录
-    status: pending
+    status: passed
     verifier: human
+assigned_to: codex-root
+execution_report:
+  summary: 用户已在 Web 预览中确认当前 v1 实施结果正常，并批准继续收口；无新增修改意见。
+  started_at: '2026-09-08T15:09:31.823Z'
+  artifacts:
+    - src/core/store.ts
+    - src/module-sdk/registry.ts
+    - src/modules/research.ts
+    - src/modules/workflow.ts
+    - src/server/index.ts
+    - src/web/index.ts
+    - docs/architecture/v1-freeze.md
+    - tests/protocol-freeze.test.ts
+  blockers: []
+  notes: 人工审核结论：最小 Web shell、图快照接口、撤销/重做入口和 toporealm.graph/v1 数据快照符合本轮验收范围。当前预览未包含 D3 画布与表单编辑，这属于后续 UI 增量，不影响本轮已冻结的 v1 基座验收。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T15:10:23.584Z'
+    note: 用户明确回复“没问题，继续”，视为人工验收通过；验收文件均存在。
+  completed_at: '2026-09-08T15:10:30.076Z'
