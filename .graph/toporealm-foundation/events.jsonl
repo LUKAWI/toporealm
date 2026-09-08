@@ -248,3 +248,10 @@
 {"ts":"2026-09-08T07:17:44.691Z","actor":"cli","kind":"edge_created","edge":"decides-module-namespace","detail":"adr_0011 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T07:17:44.696Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-namespace; auto_snapshot=2026-09-08t07-17-44-509z-nqwh99"}
 {"ts":"2026-09-08T07:17:45.655Z","actor":"cli","kind":"adr_accepted","node":"adr_0011","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T07:24:38.879Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-24-38-729z-km3o1k message=\"auto: structural amend (add-node adr_0012) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:24:38.904Z","actor":"cli","kind":"adr_created","node":"adr_0012","to":"proposed","detail":"实体使用图内统一 ID 空间"}
+{"ts":"2026-09-08T07:24:38.909Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0012; auto_snapshot=2026-09-08t07-24-38-729z-km3o1k"}
+{"ts":"2026-09-08T07:24:52.389Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t07-24-52-237z-lnwmwi message=\"auto: structural amend (add-edge decides-entity-id-scope) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T07:24:52.413Z","actor":"cli","kind":"edge_created","edge":"decides-entity-id-scope","detail":"adr_0012 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T07:24:52.418Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-entity-id-scope; auto_snapshot=2026-09-08t07-24-52-237z-lnwmwi"}
+{"ts":"2026-09-08T07:24:53.378Z","actor":"cli","kind":"adr_accepted","node":"adr_0012","from":"proposed","to":"accepted"}
