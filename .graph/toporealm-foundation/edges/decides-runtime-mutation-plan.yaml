@@ -1,0 +1,4 @@
+id: decides-runtime-mutation-plan
+source: adr_0020
+target: ctx-kernel
+type: decides

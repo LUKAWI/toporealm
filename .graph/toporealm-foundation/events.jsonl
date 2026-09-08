@@ -311,3 +311,10 @@
 {"ts":"2026-09-08T11:24:50.317Z","actor":"cli","kind":"edge_created","edge":"decides-mcp-action-interface","detail":"adr_0019 -[decides]-> ctx-surfaces"}
 {"ts":"2026-09-08T11:24:50.321Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-mcp-action-interface; auto_snapshot=2026-09-08t11-24-50-131z-ivxx8h"}
 {"ts":"2026-09-08T11:24:50.481Z","actor":"cli","kind":"adr_accepted","node":"adr_0019","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T11:27:50.900Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-27-50-700z-rubwx7 message=\"auto: structural amend (add-node adr_0020) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:27:50.934Z","actor":"cli","kind":"adr_created","node":"adr_0020","to":"proposed","detail":"运行时通过变更计划请求图写入"}
+{"ts":"2026-09-08T11:27:50.938Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0020; auto_snapshot=2026-09-08t11-27-50-700z-rubwx7"}
+{"ts":"2026-09-08T11:27:59.851Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t11-27-59-678z-9kmsag message=\"auto: structural amend (add-edge decides-runtime-mutation-plan) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T11:27:59.875Z","actor":"cli","kind":"edge_created","edge":"decides-runtime-mutation-plan","detail":"adr_0020 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T11:27:59.878Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-runtime-mutation-plan; auto_snapshot=2026-09-08t11-27-59-678z-9kmsag"}
+{"ts":"2026-09-08T11:28:00.063Z","actor":"cli","kind":"adr_accepted","node":"adr_0020","from":"proposed","to":"accepted"}
