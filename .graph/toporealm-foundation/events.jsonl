@@ -290,3 +290,10 @@
 {"ts":"2026-09-08T08:29:59.209Z","actor":"cli","kind":"edge_created","edge":"decides-module-dependencies","detail":"adr_0016 -[decides]-> ctx-kernel"}
 {"ts":"2026-09-08T08:29:59.213Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-dependencies; auto_snapshot=2026-09-08t08-29-59-012z-vdq60a"}
 {"ts":"2026-09-08T08:30:00.186Z","actor":"cli","kind":"adr_accepted","node":"adr_0016","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T08:55:46.699Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-55-46-513z-2w3lbl message=\"auto: structural amend (add-node adr_0017) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:55:46.725Z","actor":"cli","kind":"adr_created","node":"adr_0017","to":"proposed","detail":"npm 作为模块可选分发载体"}
+{"ts":"2026-09-08T08:55:46.730Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0017; auto_snapshot=2026-09-08t08-55-46-513z-2w3lbl"}
+{"ts":"2026-09-08T08:55:56.395Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t08-55-56-209z-zdbu4e message=\"auto: structural amend (add-edge decides-npm-module-carrier) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T08:55:56.424Z","actor":"cli","kind":"edge_created","edge":"decides-npm-module-carrier","detail":"adr_0017 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T08:55:56.429Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-npm-module-carrier; auto_snapshot=2026-09-08t08-55-56-209z-zdbu4e"}
+{"ts":"2026-09-08T08:55:57.379Z","actor":"cli","kind":"adr_accepted","node":"adr_0017","from":"proposed","to":"accepted"}

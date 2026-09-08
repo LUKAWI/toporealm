@@ -47,6 +47,7 @@ TopoRealm 区分全局可用、工作区绑定和图级启用：
 bindings:
   research:
     source: global
+    package: "@toporealm/research"
     version: 1.1.0
 
   mystudy:
@@ -58,7 +59,7 @@ bindings:
     path: ../exploration-module
 ```
 
-`source` 首版只支持 `global`、`workspace` 和 `path`。`workspace` 与 `path` 均使用相对于 `.toporealm/` 的路径；解析后必须读取目标目录中的 `module.yaml`。同一个绑定只能指向一个完整模块来源。
+`source` 首版只支持 `global`、`workspace` 和 `path`。`global` 和 `workspace` 可以通过 `package` 定位 TopoRealm 管理的 npm 包，`workspace` 也可以通过 `path` 定位 `.toporealm/modules/` 中的纯文件模块；`path` 来源用于显式外部开发目录。相对路径以 `.toporealm/` 为基准。解析后必须读取目标目录中的 `module.yaml`，同一个绑定只能指向一个完整模块来源。
 
 ## 模块读取顺序
 
@@ -139,6 +140,65 @@ requires:
 硬依赖缺失、未在图中启用或版本不兼容时，依赖方模块整体视为不可用，图进入相应降级模式。其他已正确解析的模块不受影响。
 
 首版不提供可选依赖、条件贡献、远程依赖解析和自动安装。模块自身运行时代码使用的普通程序库不属于 TopoRealm 模块依赖，由其分发载体负责提供。
+
+## 已确认：npm 分发与安装
+
+模块的统一格式始终是包含 `module.yaml` 的纯文件目录。npm 是可选的分发和安装载体，不定义第二种模块格式。npm 包解析完成后，其包根目录与工作区纯文件模块进入完全相同的清单校验和贡献注册流程。
+
+TopoRealm 为 npm 模块使用独立于宿主项目的安装环境：
+
+```text
+<workspace>/.toporealm/packages/
+├─ package.json
+├─ package-lock.json
+└─ node_modules/
+
+$TOPOREALM_HOME/packages/
+├─ package.json
+└─ node_modules/
+```
+
+基座不扫描宿主项目根目录中的普通 `node_modules`。`source: workspace` 的包只从工作区专属环境解析，`source: global` 的包只从全局专属环境解析。
+
+```yaml
+bindings:
+  research:
+    source: workspace
+    package: "@toporealm/research"
+    version: 1.2.0
+
+  exploration:
+    source: global
+    package: "@toporealm/exploration"
+    version: 1.1.0
+
+  mystudy:
+    source: workspace
+    path: modules/my-study
+```
+
+npm 包的 `package.json` 必须使用 `toporealm` 字段指向模块清单，并把清单引用的全部文件包含在发布内容中：
+
+```json
+{
+  "name": "@toporealm/research",
+  "version": "1.2.0",
+  "type": "module",
+  "toporealm": "./module.yaml",
+  "files": [
+    "module.yaml",
+    "schemas",
+    "operations",
+    "runtime",
+    "ui",
+    "skills"
+  ]
+}
+```
+
+包版本必须与 `module.yaml` 中的模块版本一致。模块清单还必须声明兼容的 TopoRealm API 范围。可选运行时必须以可直接加载的 JavaScript 发布，首版不在装载阶段编译 TypeScript。
+
+模块运行时使用的普通 JavaScript 依赖由 `package.json` 管理；其他 TopoRealm 模块依赖仍由 `module.yaml` 和工作区显式绑定管理。用户发布的 npm 模块、官方 npm 模块和纯文件模块拥有相同注册能力，来源只影响安装、更新和来源信息。
 
 ## 尚待确定
 

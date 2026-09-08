@@ -1,0 +1,16 @@
+id: adr_0017
+type: adr
+label: npm 作为模块可选分发载体
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T08:55:46.510Z'
+updated_at: '2026-09-08T08:55:57.372Z'
+decision: >-
+  统一模块格式仍是含 module.yaml 的纯目录；npm 包通过 package.json 的 toporealm 字段指向该清单，安装到 TopoRealm 专属全局或工作区 node_modules
+  环境，解析后与本地模块使用相同注册协议。
+background: TopoRealm 模块需要支持 npm 发布和依赖打包，同时不能要求所有项目都是 Node 项目，也不能让来源决定模块能力。
+considered_options: 只支持纯目录：简单但缺少成熟分发；扫描项目 node_modules：方便但污染且不确定；专属 npm 环境作为分发载体：采用。
+why: 该方案复用 npm 的发布和普通代码依赖管理，同时保留单一模块格式、显式绑定和本地模块同权。
+consequences: 工作区增加专属 packages 目录；包版本与模块版本必须一致；运行时需预编译为 JavaScript；普通库依赖由 npm 管理，TopoRealm 模块依赖仍由模块清单管理。

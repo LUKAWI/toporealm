@@ -1,0 +1,4 @@
+id: decides-npm-module-carrier
+source: adr_0017
+target: ctx-kernel
+type: decides
