@@ -1,0 +1,14 @@
+id: adr_0007
+type: adr
+label: 目录式 YAML 作为事实来源
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T06:43:30.715Z'
+updated_at: '2026-09-08T06:44:03.930Z'
+decision: 每张图使用独立目录，graph.yaml 记录图与模块声明，对象和关系分别按稳定 ID 存为单独 YAML 文件；索引和布局均为可重建派生数据。
+background: TopoRealm 需要支持人工编辑、Git 审阅、多 agent 分工和模块缺失时的数据保留。
+considered_options: 单一 YAML：简单但冲突集中；数据库事实源：查询快但不利于人工审阅；目录式 YAML 加派生索引：采用。
+why: 延续现有项目已验证的本地文件优势，同时让大型图可以分对象修改和增量索引。
+consequences: 无损保证针对未知字段的语义和值，不承诺保留 YAML 的原始排版和注释位置；缓存必须可删除重建。

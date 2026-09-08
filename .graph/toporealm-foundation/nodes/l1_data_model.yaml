@@ -3,7 +3,7 @@ type: decision
 label: 确定最小持久化模型
 level: 1
 context: ctx-kernel
-status: pending
+status: running
 plan:
   description: 比较文件布局、核心字段、命名空间扩展和未知模块无损往返方案，形成数据格式规格；只定义契约，不开始编码。
 expected_outcome:
@@ -13,13 +13,17 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:36.517Z'
-updated_at: '2026-09-08T06:25:36.517Z'
+updated_at: '2026-09-08T06:44:27.116Z'
 checkpoints:
   - id: alternatives
     label: 记录候选格式及取舍
-    status: pending
+    status: passed
     verifier: auto
   - id: roundtrip
     label: 定义未知字段往返场景
     status: pending
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: ''
+  started_at: '2026-09-08T06:43:29.741Z'
