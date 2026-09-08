@@ -1,0 +1,18 @@
+id: adr_0025
+type: adr
+label: 维护三套可直接导入的宿主投影
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T12:05:46.100Z'
+updated_at: '2026-09-08T12:05:56.245Z'
+decision: >-
+  TopoRealm 正式维护 Codex、Claude 和 Pi 三套可直接导入的完整宿主投影。每套投影包含该宿主要求的插件清单、市场索引或入口文件、渲染后的 Skills、固定 TopoRealm MCP
+  连接，以及已确认需要的宿主钩子配置与脚本。共享语义保留规范源，构建器按宿主模板生成真实的三套正文和目录；不同宿主的路径、调用方式、清单字段和生命周期事件允许明确不同，生成产物进入发布校验。
+background: >-
+  用户指出不同正文与宿主文件是为了让 Codex、Claude 和 Pi 可以直接导入。当前 Super Plumber 已维护 Codex 和 Claude 的 marketplace/plugin 清单以及 Pi 投影，但 hooks
+  虽有脚本却未注册到插件产物。
+considered_options: 只发布一套宿主中立文件维护最少但不能直接导入；人工维护三套完全独立正本最直观但容易漂移；共享规范源加宿主模板可以同时得到直接可用产物和可控一致性。
+why: 宿主插件协议确实不同，差异不能被抹平；生成式投影延续当前成熟做法，并允许 TopoRealm 正式补齐各宿主入口和钩子。
+consequences: 需要分别验证三套导入路径和清单；宿主特有内容在对应模板中维护；共同语义改动必须重新生成三套产物；钩子的具体职责与模块能否贡献钩子仍需单独决策。

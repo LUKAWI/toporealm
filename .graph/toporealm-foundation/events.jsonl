@@ -362,3 +362,11 @@
 {"ts":"2026-09-08T11:56:49.644Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-module-skill-granularity; auto_snapshot=2026-09-08t11-56-49-406z-r4uv1k"}
 {"ts":"2026-09-08T11:56:49.820Z","actor":"cli","kind":"adr_accepted","node":"adr_0024","from":"proposed","to":"accepted"}
 {"ts":"2026-09-08T11:57:33.082Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_skill_contract","from":"pending","to":"passed","detail":"checkpoint=base-skills"}
+{"ts":"2026-09-08T12:05:46.317Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-05-46-104z-e2p8oe message=\"auto: structural amend (add-node adr_0025) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T12:05:46.350Z","actor":"cli","kind":"adr_created","node":"adr_0025","to":"proposed","detail":"维护三套可直接导入的宿主投影"}
+{"ts":"2026-09-08T12:05:46.354Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0025; auto_snapshot=2026-09-08t12-05-46-104z-e2p8oe"}
+{"ts":"2026-09-08T12:05:56.033Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-05-55-811z-u6j2s2 message=\"auto: structural amend (add-edge decides-three-host-projections) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T12:05:56.063Z","actor":"cli","kind":"edge_created","edge":"decides-three-host-projections","detail":"adr_0025 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T12:05:56.067Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-three-host-projections; auto_snapshot=2026-09-08t12-05-55-811z-u6j2s2"}
+{"ts":"2026-09-08T12:05:56.251Z","actor":"cli","kind":"adr_accepted","node":"adr_0025","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T12:06:37.340Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_skill_contract","from":"pending","to":"running","detail":"checkpoint=host-projection"}

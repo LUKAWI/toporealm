@@ -13,7 +13,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:39.444Z'
-updated_at: '2026-09-08T11:57:33.075Z'
+updated_at: '2026-09-08T12:06:37.332Z'
 checkpoints:
   - id: base-skills
     label: 界定三个基座 skills
@@ -21,7 +21,7 @@ checkpoints:
     verifier: auto
   - id: host-projection
     label: 定义宿主插件投影方式
-    status: pending
+    status: running
     verifier: auto
 assigned_to: codex-root
 execution_report:

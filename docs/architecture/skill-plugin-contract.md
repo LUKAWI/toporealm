@@ -1,6 +1,6 @@
 # TopoRealm Skills 与宿主插件契约
 
-状态：基座 Skills 与模块 Skill 粒度已确认，宿主投影方式待确认。
+状态：基座 Skills、模块 Skill 粒度与三宿主发行结构已确认，钩子职责待确认。
 
 ## 目标
 
@@ -56,7 +56,37 @@ skills:
 
 检查失败时返回模块状态和恢复方向，不尝试猜测缺失模块语义。这个检查由基座提供统一调用，模块 Skill 不各自实现一套绑定解析。
 
+## 三套宿主投影
+
+TopoRealm 正式维护 Codex、Claude 和 Pi 三套可直接导入的完整投影，而不是要求三个宿主读取同一份中立目录：
+
+```text
+integrations/
+├─ src/                 # 共享规范源、模板和宿主差异源
+├─ codex/               # 可直接导入的 Codex 插件
+├─ claude/              # 可直接导入的 Claude 插件
+└─ pi/                  # 可直接导入的 Pi 扩展
+```
+
+三个发布投影分别维护宿主所需的真实文件，包括：
+
+- Codex 的 `.codex-plugin/plugin.json`、marketplace 条目、Skills、MCP 配置和 hooks；
+- Claude 的 `.claude-plugin/plugin.json`、marketplace 条目、Skills、MCP 配置和 hooks；
+- Pi 的 `index.js`、Skills、扩展注册与其支持的生命周期接入。
+
+共享规则只在 `integrations/src/` 保留一份规范源；构建器按宿主条件模板生成三套完整正文。路径、入口、调用方式、清单字段和生命周期事件可以因宿主而不同，不能为了文本一致而牺牲可直接导入性。三套生成产物都进入发布校验，禁止把其中一套当作其他宿主的隐式兼容层。
+
+基座的固定 TopoRealm MCP 连接进入三套宿主投影。模块仍只贡献自身的 Skills 和模块资产，不另起 MCP Server；模块 Skills 由安装流程加入三套投影能够发现的位置。具体的全局与工作区投影位置、所有权记录和清理方式仍需确认。
+
+## 钩子设计方向
+
+现有 Super Plumber 包含 `session-brief.mjs` 和 `git-guardrails.mjs` 两个可选脚本，但没有在 Codex、Claude 或 Pi 的发行清单中注册，因此没有形成插件默认行为。
+
+TopoRealm 可以正式使用宿主钩子改善图入场和上下文恢复。钩子属于宿主适配层：每个宿主映射自己支持的生命周期事件，核心模块协议不假设三个宿主拥有完全相同的事件名称或阻断能力。
+
+钩子必须保持轻量，不能复制 Core 门禁、动态注册 MCP 工具或绕过动作接口修改图。首版应只选择能明显减少 agent 入场调用或上下文丢失的生命周期点。
+
 ## 尚待确定
 
-- 模块的 Skills、MCP 连接和其他资产如何投影到 Codex、Claude、Pi 等不同宿主；
+- 首版基座钩子具体覆盖哪些生命周期点，模块是否可以贡献钩子；
 - 安装、更新和卸载投影时的所有权记录与清理方式。
