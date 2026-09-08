@@ -52,6 +52,7 @@ nodes:
   - file: nodes/adr_0025.yaml
   - file: nodes/adr_0026.yaml
   - file: nodes/adr_0027.yaml
+  - file: nodes/adr_0028.yaml
 edges:
   - file: edges/rel-kernel-surfaces.yaml
   - file: edges/rel-surfaces-adoption.yaml
@@ -93,6 +94,7 @@ edges:
   - file: edges/decides-three-host-projections.yaml
   - file: edges/decides-minimal-onboarding-hook.yaml
   - file: edges/decides-scope-driven-host-projection.yaml
+  - file: edges/decides-unpacked-module-install.yaml
 version: 1.0.0
 class: program
 root_context:
@@ -112,5 +114,5 @@ fog:
     - l3_research_slice
 review:
   status: unreviewed
-  by: cli
-  at: '2026-09-08T12:15:58.145Z'
+  by: codex-mcp-client
+  at: '2026-09-08T12:53:52.503Z'

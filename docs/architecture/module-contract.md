@@ -47,7 +47,6 @@ TopoRealm 区分全局可用、工作区绑定和图级启用：
 bindings:
   research:
     source: global
-    package: "@toporealm/research"
     version: 1.1.0
 
   mystudy:
@@ -59,7 +58,7 @@ bindings:
     path: ../exploration-module
 ```
 
-`source` 首版只支持 `global`、`workspace` 和 `path`。`global` 和 `workspace` 可以通过 `package` 定位 TopoRealm 管理的 npm 包，`workspace` 也可以通过 `path` 定位 `.toporealm/modules/` 中的纯文件模块；`path` 来源用于显式外部开发目录。相对路径以 `.toporealm/` 为基准。解析后必须读取目标目录中的 `module.yaml`，同一个绑定只能指向一个完整模块来源。
+`source` 首版只支持 `global`、`workspace` 和 `path`。`global` 按模块身份和准确版本定位 TopoRealm 用户目录中的已安装模块；`workspace` 通过 `path` 定位 `.toporealm/modules/` 中的模块；`path` 来源用于显式外部开发目录。相对路径以 `.toporealm/` 为基准。解析后必须读取目标目录中的 `module.yaml`，同一个绑定只能指向一个完整模块来源。
 
 ## 模块读取顺序
 
@@ -139,37 +138,39 @@ requires:
 
 硬依赖缺失、未在图中启用或版本不兼容时，依赖方模块整体视为不可用，图进入相应降级模式。其他已正确解析的模块不受影响。
 
-首版不提供可选依赖、条件贡献、远程依赖解析和自动安装。模块自身运行时代码使用的普通程序库不属于 TopoRealm 模块依赖，由其分发载体负责提供。
+首版不提供可选依赖、条件贡献、远程依赖解析和自动安装。模块自身运行时代码使用的普通程序库不属于 TopoRealm 模块依赖；对外分发模块必须在发布前把这些依赖打入可直接装载的运行时或 UI bundle。
 
-## 已确认：npm 分发与安装
+## 已确认：npm 只作为获取渠道
 
-模块的统一格式始终是包含 `module.yaml` 的纯文件目录。npm 是可选的分发和安装载体，不定义第二种模块格式。npm 包解析完成后，其包根目录与工作区纯文件模块进入完全相同的清单校验和贡献注册流程。
+模块的统一格式始终是包含 `module.yaml` 的自包含纯文件目录。npm 只提供包发布与 tarball 获取能力，不定义第二种模块格式，也不成为安装后的运行目录。
 
-TopoRealm 为 npm 模块使用独立于宿主项目的安装环境：
+统一安装入口为 `toporealm module add`：
 
-```text
-<workspace>/.toporealm/packages/
-├─ package.json
-├─ package-lock.json
-└─ node_modules/
+```powershell
+# 默认安装到当前工作区
+npx @toporealm/cli module add npm:@toporealm/research@1.2.0
 
-$TOPOREALM_HOME/packages/
-├─ package.json
-└─ node_modules/
+# 安装到用户级模块目录
+npx @toporealm/cli module add npm:@toporealm/research@1.2.0 --global
 ```
 
-基座不扫描宿主项目根目录中的普通 `node_modules`。`source: workspace` 的包只从工作区专属环境解析，`source: global` 的包只从全局专属环境解析。
+安装器使用 `npm pack --ignore-scripts` 获取 tarball，在临时目录解包，校验 `package.json`、`module.yaml` 及全部登记文件，然后原子移动到目标目录：
+
+```text
+工作区：<workspace>/.toporealm/modules/<module-id>/
+用户级：$TOPOREALM_HOME/modules/<module-id>/<version>/
+```
+
+安装后不保留专属或宿主项目的 `node_modules`。npm 模块、压缩包模块和用户手写模块进入同一套清单校验、贡献注册和宿主投影流程。安装器只为受管模块保留轻量来源记录，用于更新和卸载；没有该记录的用户手写目录不会被安装器覆盖或删除。
 
 ```yaml
 bindings:
   research:
     source: workspace
-    package: "@toporealm/research"
-    version: 1.2.0
+    path: modules/research
 
   exploration:
     source: global
-    package: "@toporealm/exploration"
     version: 1.1.0
 
   mystudy:
@@ -198,7 +199,9 @@ npm 包的 `package.json` 必须使用 `toporealm` 字段指向模块清单，�
 
 包版本必须与 `module.yaml` 中的模块版本一致。模块清单还必须声明兼容的 TopoRealm API 范围。可选运行时必须以可直接加载的 JavaScript 发布，首版不在装载阶段编译 TypeScript。
 
-模块运行时使用的普通 JavaScript 依赖由 `package.json` 管理；其他 TopoRealm 模块依赖仍由 `module.yaml` 和工作区显式绑定管理。用户发布的 npm 模块、官方 npm 模块和纯文件模块拥有相同注册能力，来源只影响安装、更新和来源信息。
+发布包必须自包含：`runtime/index.js` 已编译并打包普通 JavaScript 依赖，Web UI 扩展也是可直接装载的 bundle。首版允许使用 Node 内置模块，但不支持运行时依赖外部 `node_modules`、安装阶段编译、安装脚本或原生二进制依赖。其他 TopoRealm 模块依赖仍由 `module.yaml` 和工作区显式绑定管理。
+
+用户发布的 npm 模块、官方 npm 模块和纯文件模块拥有相同注册能力，来源只影响获取、更新、卸载和来源信息。Codex、Claude 与 Pi 可以提供宿主便捷命令，但都调用同一个 TopoRealm 安装核心；模块不能提供自己的安装脚本。
 
 ## 已确认：两阶段分类注册
 

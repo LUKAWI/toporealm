@@ -1,0 +1,4 @@
+id: decides-unpacked-module-install
+source: adr_0028
+target: ctx-kernel
+type: decides

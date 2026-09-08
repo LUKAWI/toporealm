@@ -384,3 +384,15 @@
 {"ts":"2026-09-08T12:15:58.138Z","actor":"cli","kind":"edge_created","edge":"decides-scope-driven-host-projection","detail":"adr_0027 -[decides]-> ctx-surfaces"}
 {"ts":"2026-09-08T12:15:58.142Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-scope-driven-host-projection; auto_snapshot=2026-09-08t12-15-57-883z-kip4vo"}
 {"ts":"2026-09-08T12:15:58.339Z","actor":"cli","kind":"adr_accepted","node":"adr_0027","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T12:53:33.747Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-53-33-532z-dogzxi message=\"auto: structural amend (add-node adr_0028) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T12:53:33.766Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0028","to":"proposed","detail":"npm tarball 解包为自包含模块目录"}
+{"ts":"2026-09-08T12:53:33.770Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0028; auto_snapshot=2026-09-08t12-53-33-532z-dogzxi"}
+{"ts":"2026-09-08T12:53:52.478Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-53-52-264z-c7701i message=\"auto: structural amend (add-edge decides-unpacked-module-install) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T12:53:52.494Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-unpacked-module-install","detail":"adr_0028 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T12:53:52.499Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-unpacked-module-install; auto_snapshot=2026-09-08t12-53-52-264z-c7701i"}
+{"ts":"2026-09-08T12:53:52.564Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0028","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T12:53:52.594Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"adr_0017","detail":"fields: superseded_by"}
+{"ts":"2026-09-08T12:53:52.624Z","actor":"codex-mcp-client","kind":"adr_superseded","node":"adr_0017","from":"accepted","to":"superseded","detail":"superseded_by=adr_0028"}
+{"ts":"2026-09-08T12:55:05.265Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l2_skill_contract","from":"running","to":"passed","detail":"checkpoint=host-projection"}
+{"ts":"2026-09-08T12:55:20.415Z","actor":"codex-mcp-client","kind":"verdict","node":"l2_skill_contract","detail":"verdict=passed"}
+{"ts":"2026-09-08T12:55:27.666Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_skill_contract","from":"running","to":"passed"}

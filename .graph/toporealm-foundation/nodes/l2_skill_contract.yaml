@@ -3,7 +3,7 @@ type: decision
 label: 确定 skills 与宿主插件协议
 level: 2
 context: ctx-surfaces
-status: running
+status: passed
 plan:
   description: 定义基座 skills、模块 skills、安装生命周期、图级适用检查和 Codex、Claude、Pi 等宿主投影方式。
 expected_outcome:
@@ -13,7 +13,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:39.444Z'
-updated_at: '2026-09-08T12:06:37.332Z'
+updated_at: '2026-09-08T12:55:27.662Z'
 checkpoints:
   - id: base-skills
     label: 界定三个基座 skills
@@ -21,9 +21,22 @@ checkpoints:
     verifier: auto
   - id: host-projection
     label: 定义宿主插件投影方式
-    status: running
+    status: passed
     verifier: auto
 assigned_to: codex-root
 execution_report:
-  summary: ''
+  summary: >-
+    已完成基座 Skills、模块 Skill 粒度、Codex/Claude/Pi 三宿主投影、最小入场钩子、投影范围与 npm 模块安装生命周期契约。用户确认 npm 仅作获取渠道，模块解包到 modules
+    目录且分发包必须自包含；ADR-0028 已接受并接替 ADR-0017。
   started_at: '2026-09-08T11:55:04.826Z'
+  artifacts:
+    - docs/architecture/skill-plugin-contract.md
+    - docs/architecture/module-contract.md
+    - .graph/toporealm-foundation/nodes/adr_0028.yaml
+  blockers: []
+  notes: 两个 checkpoint 均 passed；graph validate 0 error，唯一 warning 为 program 图尚未毕业的预期雾区。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T12:55:20.408Z'
+    note: 用户逐项确认全部主观边界；文档与 ADR 已对齐，artifact 存在且 graph validate 通过。
+  completed_at: '2026-09-08T12:55:27.662Z'
