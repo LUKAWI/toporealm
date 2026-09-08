@@ -264,3 +264,7 @@
 {"ts":"2026-09-08T07:35:43.150Z","actor":"cli","kind":"adr_accepted","node":"adr_0013","from":"proposed","to":"accepted"}
 {"ts":"2026-09-08T07:35:50.210Z","actor":"unknown","kind":"checkpoint_updated","node":"l1_data_model","from":"pending","to":"passed","detail":"checkpoint=roundtrip"}
 {"ts":"2026-09-08T07:36:15.876Z","actor":"unknown","kind":"execution_report","node":"l1_data_model"}
+{"ts":"2026-09-08T07:53:12.865Z","actor":"cli","kind":"verdict","node":"l1_data_model","detail":"verdict=passed"}
+{"ts":"2026-09-08T07:53:13.799Z","actor":"cli","kind":"node_status","node":"l1_data_model","from":"running","to":"passed"}
+{"ts":"2026-09-08T07:53:27.903Z","actor":"cli","kind":"node_status","node":"l1_module_contract","from":"pending","to":"ready"}
+{"ts":"2026-09-08T07:53:28.886Z","actor":"cli","kind":"node_status","node":"l1_module_contract","from":"ready","to":"running","detail":"claim by codex-root"}

@@ -3,7 +3,7 @@ type: decision
 label: 确定模块清单与运行时契约
 level: 1
 context: ctx-kernel
-status: pending
+status: running
 plan:
   description: 定义声明式清单、可选可信代码钩子、能力组合、依赖、版本和注册接口；只形成模块协议规格。
 expected_outcome:
@@ -13,7 +13,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:37.487Z'
-updated_at: '2026-09-08T06:25:37.487Z'
+updated_at: '2026-09-08T07:53:28.877Z'
 checkpoints:
   - id: manifest
     label: 定义声明式清单边界
@@ -23,3 +23,7 @@ checkpoints:
     label: 定义可信代码钩子边界
     status: pending
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: ''
+  started_at: '2026-09-08T07:53:28.878Z'
