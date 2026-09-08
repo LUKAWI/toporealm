@@ -1,0 +1,4 @@
+id: decides-independent-legacy-policy
+source: adr_0029
+target: ctx-adoption
+type: decides

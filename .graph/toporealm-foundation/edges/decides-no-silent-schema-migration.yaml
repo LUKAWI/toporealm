@@ -1,0 +1,4 @@
+id: decides-no-silent-schema-migration
+source: adr_0031
+target: ctx-kernel
+type: decides

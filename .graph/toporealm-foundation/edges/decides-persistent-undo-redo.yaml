@@ -1,0 +1,4 @@
+id: decides-persistent-undo-redo
+source: adr_0032
+target: ctx-kernel
+type: decides

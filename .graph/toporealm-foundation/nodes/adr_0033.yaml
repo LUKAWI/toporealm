@@ -1,0 +1,14 @@
+id: adr_0033
+type: adr
+label: 图写入采用串行提交与 revision 冲突拒绝
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:46:12.730Z'
+updated_at: '2026-09-08T13:46:15.305Z'
+decision: 每张图使用单调递增 revision 和图级写锁串行提交。调用方携带的 revision 过期时拒绝写入并返回当前 revision；v1 不自动合并并发修改。普通编辑、撤销和重做成功后均产生新 revision 与局部 patch。
+background: Web UI 与多个 agent 可能同时修改同一张图，需要避免静默覆盖，同时保持首版并发模型简单。
+considered_options: 最后写入覆盖：会丢数据；自动三方合并：首版复杂；串行提交加乐观冲突拒绝：采用。
+why: 用一个清晰的并发门禁统一 Core、CLI、MCP、Web 与模块动作。
+consequences: 冲突调用方需要重新读取后重试；互不冲突的并发写也会按图串行。

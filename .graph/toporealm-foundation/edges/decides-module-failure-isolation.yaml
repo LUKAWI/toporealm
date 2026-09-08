@@ -1,0 +1,4 @@
+id: decides-module-failure-isolation
+source: adr_0034
+target: ctx-kernel
+type: decides

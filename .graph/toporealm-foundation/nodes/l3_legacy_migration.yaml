@@ -3,7 +3,7 @@ type: decision
 label: 设计 Super Plumber 兼容迁移
 level: 3
 context: ctx-adoption
-status: pending
+status: passed
 plan:
   description: 盘点旧项目可复用核心、workflow 与 domain-modeling 模块归属、旧图读取及迁移期限；只读取旧工作区。
 expected_outcome:
@@ -13,13 +13,30 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:40.443Z'
-updated_at: '2026-09-08T06:25:40.443Z'
+updated_at: '2026-09-08T13:46:36.948Z'
 checkpoints:
   - id: inventory
     label: 完成旧能力归属清单
-    status: pending
+    status: passed
     verifier: auto
   - id: compatibility
     label: 定义旧图兼容策略
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    已核对 Super Plumber 当前 Core、CLI、MCP 与 Web 结构，完成通用机制、workflow、domain-modeling、exploration 与淘汰内容的归属表。用户确认 TopoRealm v1
+    不承诺旧图兼容，旧项目保持独立，可选一次性转换器延后评估。
+  started_at: '2026-09-08T13:40:22.902Z'
+  artifacts:
+    - docs/architecture/super-plumber-migration.md
+    - docs/architecture/FOUNDATION.md
+    - .graph/toporealm-foundation/nodes/adr_0029.yaml
+  blockers: []
+  notes: 只读检查 topological-tool，未在旧工作区产生修改。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T13:46:36.916Z'
+    note: 用户已确认独立新项目与不承诺旧图兼容；文档覆盖复用、模块归属、淘汰和兼容范围。
+  completed_at: '2026-09-08T13:46:36.948Z'

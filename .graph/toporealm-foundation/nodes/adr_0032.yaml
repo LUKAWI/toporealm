@@ -1,0 +1,16 @@
+id: adr_0032
+type: adr
+label: Core 提供持久化线性撤销与重做
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:46:12.419Z'
+updated_at: '2026-09-08T13:46:14.949Z'
+decision: >-
+  对象、关系、图级元数据及模块 MutationPlan 的图内变化均进入持久化线性编辑历史。一次用户动作或 MutationPlan
+  是一个撤销单位；创建、修改、删除可在重启后撤销和重做。事实目录中的删除真实移除文件，恢复内容保存在历史。
+background: 撤销、更改、删除和重做是基座编辑器的基本能力，不能只依赖浏览器内存或 Git。
+considered_options: 仅浏览器内撤销：重启丢失；只依赖 Git：不适合普通编辑；Core 持久化线性历史：采用；完整分支时间线：首版过重。
+why: 为 Web、CLI、MCP 和模块动作提供一致、可靠且可恢复的编辑语义。
+consequences: 图内变化可撤销；artifact 与 external 副作用不保证撤销；撤销后新编辑使旧 redo 分支不可达；直接 YAML 编辑不推断逆操作。

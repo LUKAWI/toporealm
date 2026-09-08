@@ -53,6 +53,12 @@ nodes:
   - file: nodes/adr_0026.yaml
   - file: nodes/adr_0027.yaml
   - file: nodes/adr_0028.yaml
+  - file: nodes/adr_0029.yaml
+  - file: nodes/adr_0030.yaml
+  - file: nodes/adr_0031.yaml
+  - file: nodes/adr_0032.yaml
+  - file: nodes/adr_0033.yaml
+  - file: nodes/adr_0034.yaml
 edges:
   - file: edges/rel-kernel-surfaces.yaml
   - file: edges/rel-surfaces-adoption.yaml
@@ -95,6 +101,12 @@ edges:
   - file: edges/decides-minimal-onboarding-hook.yaml
   - file: edges/decides-scope-driven-host-projection.yaml
   - file: edges/decides-unpacked-module-install.yaml
+  - file: edges/decides-independent-legacy-policy.yaml
+  - file: edges/decides-offline-research-slice.yaml
+  - file: edges/decides-no-silent-schema-migration.yaml
+  - file: edges/decides-persistent-undo-redo.yaml
+  - file: edges/decides-graph-revision-concurrency.yaml
+  - file: edges/decides-module-failure-isolation.yaml
 version: 1.0.0
 class: program
 root_context:
@@ -115,4 +127,4 @@ fog:
 review:
   status: unreviewed
   by: codex-mcp-client
-  at: '2026-09-08T12:53:52.503Z'
+  at: '2026-09-08T13:46:15.644Z'

@@ -396,3 +396,57 @@
 {"ts":"2026-09-08T12:55:05.265Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l2_skill_contract","from":"running","to":"passed","detail":"checkpoint=host-projection"}
 {"ts":"2026-09-08T12:55:20.415Z","actor":"codex-mcp-client","kind":"verdict","node":"l2_skill_contract","detail":"verdict=passed"}
 {"ts":"2026-09-08T12:55:27.666Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_skill_contract","from":"running","to":"passed"}
+{"ts":"2026-09-08T13:40:22.861Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_legacy_migration","from":"pending","to":"ready"}
+{"ts":"2026-09-08T13:40:22.907Z","actor":"codex-root","kind":"node_status","node":"l3_legacy_migration","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T13:46:11.727Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-11-481z-51kgo1 message=\"auto: structural amend (add-node adr_0029) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:11.747Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0029","to":"proposed","detail":"TopoRealm v1 不承诺 Super Plumber 旧图兼容"}
+{"ts":"2026-09-08T13:46:11.755Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0029; auto_snapshot=2026-09-08t13-46-11-481z-51kgo1"}
+{"ts":"2026-09-08T13:46:12.043Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-11-809z-2viw40 message=\"auto: structural amend (add-node adr_0030) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:12.092Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0030","to":"proposed","detail":"Research 采用离线双模块最小验收切片"}
+{"ts":"2026-09-08T13:46:12.098Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0030; auto_snapshot=2026-09-08t13-46-11-809z-2viw40"}
+{"ts":"2026-09-08T13:46:12.361Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-12-137z-kmfsrg message=\"auto: structural amend (add-node adr_0031) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:12.381Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0031","to":"proposed","detail":"模块升级不静默迁移图数据"}
+{"ts":"2026-09-08T13:46:12.385Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0031; auto_snapshot=2026-09-08t13-46-12-137z-kmfsrg"}
+{"ts":"2026-09-08T13:46:12.654Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-12-421z-rnyhtc message=\"auto: structural amend (add-node adr_0032) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:12.685Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0032","to":"proposed","detail":"Core 提供持久化线性撤销与重做"}
+{"ts":"2026-09-08T13:46:12.690Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0032; auto_snapshot=2026-09-08t13-46-12-421z-rnyhtc"}
+{"ts":"2026-09-08T13:46:12.960Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-12-733z-crhx10 message=\"auto: structural amend (add-node adr_0033) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:12.979Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0033","to":"proposed","detail":"图写入采用串行提交与 revision 冲突拒绝"}
+{"ts":"2026-09-08T13:46:12.986Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0033; auto_snapshot=2026-09-08t13-46-12-733z-crhx10"}
+{"ts":"2026-09-08T13:46:13.322Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-13-075z-55ns5a message=\"auto: structural amend (add-node adr_0034) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:13.367Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0034","to":"proposed","detail":"模块故障局部隔离并回退通用界面"}
+{"ts":"2026-09-08T13:46:13.372Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0034; auto_snapshot=2026-09-08t13-46-13-075z-55ns5a"}
+{"ts":"2026-09-08T13:46:13.639Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-13-411z-q9x7os message=\"auto: structural amend (add-edge decides-independent-legacy-policy) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:13.679Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-independent-legacy-policy","detail":"adr_0029 -[decides]-> ctx-adoption"}
+{"ts":"2026-09-08T13:46:13.684Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-independent-legacy-policy; auto_snapshot=2026-09-08t13-46-13-411z-q9x7os"}
+{"ts":"2026-09-08T13:46:13.749Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0029","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:46:14.019Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-13-777z-9kk6z8 message=\"auto: structural amend (add-edge decides-offline-research-slice) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:14.069Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-offline-research-slice","detail":"adr_0030 -[decides]-> ctx-adoption"}
+{"ts":"2026-09-08T13:46:14.075Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-offline-research-slice; auto_snapshot=2026-09-08t13-46-13-777z-9kk6z8"}
+{"ts":"2026-09-08T13:46:14.117Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0030","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:46:14.466Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-14-174z-m6c4zc message=\"auto: structural amend (add-edge decides-no-silent-schema-migration) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:14.501Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-no-silent-schema-migration","detail":"adr_0031 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T13:46:14.506Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-no-silent-schema-migration; auto_snapshot=2026-09-08t13-46-14-174z-m6c4zc"}
+{"ts":"2026-09-08T13:46:14.556Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0031","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:46:14.830Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-14-584z-1ietql message=\"auto: structural amend (add-edge decides-persistent-undo-redo) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:14.890Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-persistent-undo-redo","detail":"adr_0032 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T13:46:14.895Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-persistent-undo-redo; auto_snapshot=2026-09-08t13-46-14-584z-1ietql"}
+{"ts":"2026-09-08T13:46:14.954Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0032","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:46:15.221Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-14-983z-l4yf26 message=\"auto: structural amend (add-edge decides-graph-revision-concurrency) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:15.259Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-graph-revision-concurrency","detail":"adr_0033 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T13:46:15.264Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-graph-revision-concurrency; auto_snapshot=2026-09-08t13-46-14-983z-l4yf26"}
+{"ts":"2026-09-08T13:46:15.310Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0033","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:46:15.589Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t13-46-15-336z-khgb3h message=\"auto: structural amend (add-edge decides-module-failure-isolation) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T13:46:15.635Z","actor":"codex-mcp-client","kind":"edge_created","edge":"decides-module-failure-isolation","detail":"adr_0034 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T13:46:15.640Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=decides-module-failure-isolation; auto_snapshot=2026-09-08t13-46-15-336z-khgb3h"}
+{"ts":"2026-09-08T13:46:15.693Z","actor":"codex-mcp-client","kind":"adr_accepted","node":"adr_0034","from":"proposed","to":"accepted"}
+{"ts":"2026-09-08T13:46:23.165Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_legacy_migration","from":"pending","to":"passed","detail":"checkpoint=inventory"}
+{"ts":"2026-09-08T13:46:23.201Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_legacy_migration","from":"pending","to":"passed","detail":"checkpoint=compatibility"}
+{"ts":"2026-09-08T13:46:36.923Z","actor":"codex-mcp-client","kind":"verdict","node":"l3_legacy_migration","detail":"verdict=passed"}
+{"ts":"2026-09-08T13:46:36.953Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_legacy_migration","from":"running","to":"passed"}
+{"ts":"2026-09-08T13:46:51.727Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_research_slice","from":"pending","to":"ready"}
+{"ts":"2026-09-08T13:46:51.780Z","actor":"codex-root","kind":"node_status","node":"l3_research_slice","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T13:46:59.373Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_research_slice","from":"pending","to":"passed","detail":"checkpoint=scenario"}
+{"ts":"2026-09-08T13:46:59.403Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_research_slice","from":"pending","to":"passed","detail":"checkpoint=proof"}
+{"ts":"2026-09-08T13:47:12.178Z","actor":"codex-mcp-client","kind":"verdict","node":"l3_research_slice","detail":"verdict=passed"}
+{"ts":"2026-09-08T13:47:12.201Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_research_slice","from":"running","to":"passed"}

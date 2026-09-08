@@ -3,7 +3,7 @@ type: decision
 label: 设计最小 research 纵向切片
 level: 3
 context: ctx-adoption
-status: pending
+status: passed
 plan:
   description: 选择一个问题、来源、论点、证据与未知区域贯通场景，用于验证模块组合、MCP 和 Web UI 扩展契约。
 expected_outcome:
@@ -13,13 +13,29 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:41.452Z'
-updated_at: '2026-09-08T06:25:41.452Z'
+updated_at: '2026-09-08T13:47:12.197Z'
 checkpoints:
   - id: scenario
     label: 确定最小研究场景
-    status: pending
+    status: passed
     verifier: auto
   - id: proof
     label: 定义协议验证读数
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    已将 research 严格限制为基座验收样例：固定本地资料，question/source/claim 三种对象，supports/contradicts 证据关系；exploration 只提供独立 unknown
+    capability，两模块无硬依赖。验收链覆盖模块装载、MCP MutationPlan、Web UI patch、缺失模块降级与撤销历史。
+  started_at: '2026-09-08T13:46:51.775Z'
+  artifacts:
+    - docs/architecture/research-vertical-slice.md
+    - .graph/toporealm-foundation/nodes/adr_0030.yaml
+  blockers: []
+  notes: 不接外部 API，不设计完整 research 产品，不预设自定义 UI 扩展。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T13:47:12.171Z'
+    note: 用户逐项确认对象范围、证据关系、离线资料和无依赖组合；文档列出可运行链路与协议读数。
+  completed_at: '2026-09-08T13:47:12.197Z'

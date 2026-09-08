@@ -1,0 +1,16 @@
+id: adr_0030
+type: adr
+label: Research 采用离线双模块最小验收切片
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:46:11.806Z'
+updated_at: '2026-09-08T13:46:14.113Z'
+decision: >-
+  基座验收样例完全离线。research 提供 question、source、claim 对象和带证据数据的 supports/contradicts 一等关系；exploration 仅提供可组合的 unknown
+  能力。两模块无硬依赖，由图显式组合。
+background: 需要用最小实例验证模块注册、组合、MCP 动作、Web UI 增量更新与缺失模块降级，但不能把完整深度研究产品带入基座范围。
+considered_options: 接真实外部 API：更贴近产品但干扰基座定位；只测单模块：无法证明组合；固定本地资料加两个独立模块：采用。
+why: 以可重复、低成本方式证明协议端到端成立，并测试一等关系与跨模块 capability 组合。
+consequences: 完整 research 产品另开拓扑；首版样例不含联网搜索和专用 UI 代码。

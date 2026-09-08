@@ -1,0 +1,14 @@
+id: adr_0031
+type: adr
+label: 模块升级不静默迁移图数据
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:46:12.135Z'
+updated_at: '2026-09-08T13:46:14.551Z'
+decision: 模块安装或升级不能自动改写图。新版本只有明确支持 graph.yaml 声明的数据模式时才能提供完整能力；不兼容时保留旧数据并进入降级读取。v1 不建设通用 Schema 自动迁移框架。
+background: 模块包版本与图数据模式分离，提前建设跨版本迁移系统会引入尚无真实用例的脚本路径、回滚和版本组合。
+considered_options: 升级时自动迁移：体验直接但风险与复杂度高；拒绝不兼容并保留数据：采用；永久禁止模式升级：限制过强。
+why: 避免升级静默改写用户图，并把迁移机制推迟到出现真实 schema 变化时按需设计。
+consequences: 不兼容模块版本只能降级读取；未来迁移必须由用户显式触发并走 Core 写入入口。

@@ -1,0 +1,14 @@
+id: adr_0029
+type: adr
+label: TopoRealm v1 不承诺 Super Plumber 旧图兼容
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T13:46:11.478Z'
+updated_at: '2026-09-08T13:46:13.744Z'
+decision: TopoRealm 作为独立新项目，不依赖 topological-tool，也不在 v1 直接读取、修改或写回旧 .graph。只按新职责选择性移植成熟机制；低成本的一次性复制转换器延后独立评估，不阻塞 v1。
+background: 旧 Core 将通用图能力与 workflow、domain-modeling、exploration 领域字段混合。兼容旧格式会把这些假设带回新基座。
+considered_options: 持续兼容读写：迁移平滑但耦合最重；v1 只读兼容：仍需长期维护旧解析；独立新格式并延后可选转换器：采用。
+why: 优先保证新基座职责纯净和实施速度，同时保留未来按真实需求迁移旧数据的出口。
+consequences: Super Plumber 继续独立运行历史图；TopoRealm v1 的完成不以旧图迁移率为门禁。

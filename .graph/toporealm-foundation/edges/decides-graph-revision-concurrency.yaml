@@ -1,0 +1,4 @@
+id: decides-graph-revision-concurrency
+source: adr_0033
+target: ctx-kernel
+type: decides
