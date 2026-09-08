@@ -32,6 +32,7 @@ nodes:
   - file: nodes/l4_delivery_plan.yaml
   - file: nodes/l4_human_review.yaml
   - file: nodes/adr_0007.yaml
+  - file: nodes/adr_0008.yaml
 edges:
   - file: edges/rel-kernel-surfaces.yaml
   - file: edges/rel-surfaces-adoption.yaml
@@ -53,6 +54,7 @@ edges:
   - file: edges/dep-research-roadmap.yaml
   - file: edges/dep-roadmap-review.yaml
   - file: edges/decides-storage.yaml
+  - file: edges/decides-object-shape.yaml
 version: 1.0.0
 class: program
 root_context:
@@ -73,4 +75,4 @@ fog:
 review:
   status: unreviewed
   by: cli
-  at: '2026-09-08T06:44:03.042Z'
+  at: '2026-09-08T06:50:09.868Z'

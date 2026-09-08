@@ -1,0 +1,4 @@
+id: decides-object-shape
+source: adr_0008
+target: ctx-kernel
+type: decides

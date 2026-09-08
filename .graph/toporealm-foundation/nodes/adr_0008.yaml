@@ -1,0 +1,14 @@
+id: adr_0008
+type: adr
+label: 对象采用主类型数据与能力状态分层
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T06:49:58.959Z'
+updated_at: '2026-09-08T06:50:10.728Z'
+decision: 对象的基座字段为 id、kind、label；kind 所属模块的数据统一存入 data；可组合能力及其状态以命名空间能力 ID 为键存入 capabilities；基座记录信息存入 meta；不设置额外 extensions 区域。
+background: TopoRealm 需要让一个对象保持唯一领域身份，同时组合来自多个模块的状态与行为，并在模块缺失时无损保存未知内容。
+considered_options: 扁平字段：简单但模块字段易冲突；按模块划分 extensions：通用但会让主类型与能力数据分散；主类型 data 加能力 capabilities：采用。
+why: 该结构把对象是什么与对象能做什么分开，所有权清晰，并为缺失模块提供稳定的原样保存边界。
+consequences: 模块负责校验各自拥有的数据；基座只能校验核心结构。data、capabilities、meta 无内容时可省略，首版 meta 只定义创建和更新时间。

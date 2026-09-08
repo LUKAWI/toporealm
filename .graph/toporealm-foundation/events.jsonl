@@ -220,3 +220,10 @@
 {"ts":"2026-09-08T06:44:03.038Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-storage; auto_snapshot=2026-09-08t06-44-02-841z-ongi2t"}
 {"ts":"2026-09-08T06:44:03.938Z","actor":"cli","kind":"adr_accepted","node":"adr_0007","from":"proposed","to":"accepted"}
 {"ts":"2026-09-08T06:44:27.137Z","actor":"unknown","kind":"checkpoint_updated","node":"l1_data_model","from":"pending","to":"passed","detail":"checkpoint=alternatives"}
+{"ts":"2026-09-08T06:49:59.090Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-49-58-963z-f6reuk message=\"auto: structural amend (add-node adr_0008) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:49:59.110Z","actor":"cli","kind":"adr_created","node":"adr_0008","to":"proposed","detail":"对象采用主类型数据与能力状态分层"}
+{"ts":"2026-09-08T06:49:59.115Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0008; auto_snapshot=2026-09-08t06-49-58-963z-f6reuk"}
+{"ts":"2026-09-08T06:50:09.835Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t06-50-09-694z-2n33qu message=\"auto: structural amend (add-edge decides-object-shape) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T06:50:09.856Z","actor":"cli","kind":"edge_created","edge":"decides-object-shape","detail":"adr_0008 -[decides]-> ctx-kernel"}
+{"ts":"2026-09-08T06:50:09.862Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-object-shape; auto_snapshot=2026-09-08t06-50-09-694z-2n33qu"}
+{"ts":"2026-09-08T06:50:10.736Z","actor":"cli","kind":"adr_accepted","node":"adr_0008","from":"proposed","to":"accepted"}
