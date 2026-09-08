@@ -2,7 +2,7 @@ id: m5_distribution
 type: task
 label: M5 模块安装器与三宿主投影
 level: 5
-status: pending
+status: passed
 plan:
   description: 实现 toporealm module add、用户级/工作区模块生命周期、host sync，以及 Codex、Claude、Pi 三套可直接导入投影和图入场摘要钩子。
 expected_outcome:
@@ -12,13 +12,36 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:10.978Z'
-updated_at: '2026-09-08T14:18:10.978Z'
+updated_at: '2026-09-08T14:58:24.220Z'
 checkpoints:
   - id: installer
     label: 安装、绑定、更新、卸载和来源记录通过
-    status: pending
+    status: passed
     verifier: auto
   - id: hosts
     label: 三宿主投影和最小入场摘要验收通过
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    实现模块分发与宿主投影：installModule 使用 npm pack --ignore-scripts 解包自包含包，校验
+    package.json/module.yaml/版本/安装脚本/依赖，原子写入工作区或全局目录并维护来源记录与 modules.yaml；uninstall 仅处理受管目录。syncHosts 生成 Codex、Claude、Pi
+    各自插件入口、固定 MCP 配置、只读入场钩子、基础 Skills 和模块 Skills，并以所有权标记保护用户资产。
+  started_at: '2026-09-08T14:51:04.356Z'
+  artifacts:
+    - src/distribution/installer.ts
+    - src/distribution/hosts.ts
+    - src/distribution/index.ts
+    - src/cli/index.ts
+    - src/cli/main.ts
+    - package.json
+    - tests/distribution.test.ts
+  notes: >-
+    npm run verify 已通过：tsc build 成功，Vitest 6 files / 17 tests passed；git diff --check 无错误。分发测试实际运行本地 npm pack
+    --ignore-scripts、更新、卸载和三宿主同步。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T14:58:24.179Z'
+    note: npm tarball 生命周期、来源记录、绑定、更新/卸载、三宿主插件/MCP/hooks/Skills 投影和无归属资产保护均通过。
+  completed_at: '2026-09-08T14:58:24.220Z'

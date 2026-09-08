@@ -3,6 +3,9 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
+  "bin": {
+    "toporealm": "dist/cli/main.js"
+  },
   "description": "TopoRealm modular graph foundation",
   "scripts": {
     "build": "tsc -p tsconfig.json",
