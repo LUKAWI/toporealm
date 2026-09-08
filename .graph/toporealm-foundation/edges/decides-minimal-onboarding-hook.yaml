@@ -1,0 +1,4 @@
+id: decides-minimal-onboarding-hook
+source: adr_0026
+target: ctx-surfaces
+type: decides

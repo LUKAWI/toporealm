@@ -1,0 +1,18 @@
+id: adr_0026
+type: adr
+label: 首版钩子只提供图入场摘要
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T12:08:24.017Z'
+updated_at: '2026-09-08T12:08:32.484Z'
+decision: >-
+  TopoRealm 首版在 Codex、Claude 和 Pi 各自支持的会话启动、恢复与压缩恢复生命周期中注册一个轻量钩子。钩子只读取当前工作区并输出短摘要：目标图、已启用或缺失模块、注册快照修订号和适用
+  Skills。钩子不修改图、不认领或执行领域对象、不复制 Core 门禁。首版模块不能贡献宿主钩子，也不提供 PreToolUse 拦截、Stop 检查或 git 护栏。
+background: >-
+  当前 Super Plumber 提供 session-brief 和 git-guardrails 脚本但未接入发行清单。TopoRealm 需要利用宿主钩子改善 agent
+  入场效果，同时避免每次工具调用都增加钩子开销或形成多套治理机制。
+considered_options: 完全不使用钩子最简单但每次会话都要重新探测；注册多类门禁钩子能力更强但增加延迟、信任成本和重复规则；只做入场摘要能以较低成本减少上下文丢失。
+why: 图入场是三个宿主共同具有且高频的需求；摘要只读、短小并可映射到各宿主最接近的生命周期事件。
+consequences: 三套投影要分别维护钩子注册格式；不支持相应生命周期的宿主可以退化为首次调用 toporealm Skill；摘要长度使用内部固定上限，不增加用户配置参数；更复杂钩子须由后续真实需求另行决策。

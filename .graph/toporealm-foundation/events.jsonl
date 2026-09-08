@@ -370,3 +370,10 @@
 {"ts":"2026-09-08T12:05:56.067Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-three-host-projections; auto_snapshot=2026-09-08t12-05-55-811z-u6j2s2"}
 {"ts":"2026-09-08T12:05:56.251Z","actor":"cli","kind":"adr_accepted","node":"adr_0025","from":"proposed","to":"accepted"}
 {"ts":"2026-09-08T12:06:37.340Z","actor":"unknown","kind":"checkpoint_updated","node":"l2_skill_contract","from":"pending","to":"running","detail":"checkpoint=host-projection"}
+{"ts":"2026-09-08T12:08:24.235Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-08-24-021z-zm0co7 message=\"auto: structural amend (add-node adr_0026) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T12:08:24.291Z","actor":"cli","kind":"adr_created","node":"adr_0026","to":"proposed","detail":"首版钩子只提供图入场摘要"}
+{"ts":"2026-09-08T12:08:24.295Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0026; auto_snapshot=2026-09-08t12-08-24-021z-zm0co7"}
+{"ts":"2026-09-08T12:08:32.262Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t12-08-32-053z-7pcqiy message=\"auto: structural amend (add-edge decides-minimal-onboarding-hook) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T12:08:32.293Z","actor":"cli","kind":"edge_created","edge":"decides-minimal-onboarding-hook","detail":"adr_0026 -[decides]-> ctx-surfaces"}
+{"ts":"2026-09-08T12:08:32.297Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=decides-minimal-onboarding-hook; auto_snapshot=2026-09-08t12-08-32-053z-7pcqiy"}
+{"ts":"2026-09-08T12:08:32.490Z","actor":"cli","kind":"adr_accepted","node":"adr_0026","from":"proposed","to":"accepted"}
