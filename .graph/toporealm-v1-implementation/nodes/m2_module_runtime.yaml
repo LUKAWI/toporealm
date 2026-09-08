@@ -2,7 +2,7 @@ id: m2_module_runtime
 type: task
 label: M2 模块装载与缺失模块降级
 level: 3
-status: pending
+status: passed
 plan:
   description: 实现本地模块目录、module.yaml、注册快照、动作引用、MutationPlan、跨模块分域校验、缺失模块无损读取和声明式 UI 贡献。
 expected_outcome:
@@ -12,13 +12,34 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:10.764Z'
-updated_at: '2026-09-08T14:18:10.764Z'
+updated_at: '2026-09-08T14:42:00.939Z'
 checkpoints:
   - id: resolver
     label: 模块解析、绑定、注册快照和动作发现通过
-    status: pending
+    status: passed
     verifier: auto
   - id: degraded
     label: MutationPlan、无损降级和 UI 错误边界通过
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    实现 WorkspaceModuleResolver 与 GraphActivator：显式解析 workspace/global/path 绑定，读取 module.yaml 和登记贡献，按图 revision
+    生成不可变注册快照，隔离缺失/不兼容/损坏模块；提供动作引用、命名空间编辑校验与 Core 原子提交入口。
+  started_at: '2026-09-08T14:36:21.429Z'
+  artifacts:
+    - src/module-sdk/index.ts
+    - src/module-sdk/registry.ts
+    - src/web/index.ts
+    - tests/module-registry.test.ts
+    - package.json
+    - package-lock.json
+  notes: >-
+    npm run verify 已通过：tsc build 成功，Vitest 3 files / 10 tests passed；git diff --check 无错误。基础 GraphStore
+    不依赖模块即可无损读取未知对象字段；UI 扩展通过错误边界回退。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T14:42:00.905Z'
+    note: 解析、注册快照、动作发现、缺失模块降级、贡献校验、原子提交与 UI 错误边界均已通过最小验证。
+  completed_at: '2026-09-08T14:42:00.939Z'

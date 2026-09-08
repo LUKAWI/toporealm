@@ -45,6 +45,21 @@ export class WebGraphModel {
   }
 }
 
+export interface UiExtensionResult<T> {
+  enabled: boolean;
+  value: T;
+  error?: string;
+}
+
+/** One extension failing must leave the generic surface usable. */
+export function withUiErrorBoundary<T>(extension: () => T, fallback: () => T): UiExtensionResult<T> {
+  try {
+    return { enabled: true, value: extension() };
+  } catch (error) {
+    return { enabled: false, value: fallback(), error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 function byId(left: ObjectRecord | RelationRecord, right: ObjectRecord | RelationRecord): number {
   return left.id.localeCompare(right.id);
 }
