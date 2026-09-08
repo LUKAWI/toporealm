@@ -1,0 +1,24 @@
+id: m1_thin_vertical
+type: task
+label: M1 最薄基座全链路
+level: 2
+status: pending
+plan:
+  description: 贯通最小 Core、CLI、MCP、Server 与 Web UI：图读写、对象/关系编辑、revision、增量 patch 和持久化撤销/重做。
+expected_outcome:
+  definition_of_done:
+    - 同一 Core 操作可由 Web、CLI 和 MCP 调用。
+    - 创建、修改、连接、删除、撤销和重做可在重启后工作，revision 冲突不会覆盖数据。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T14:18:10.708Z'
+updated_at: '2026-09-08T14:18:10.708Z'
+checkpoints:
+  - id: core-edit
+    label: 完成 Core 原子编辑、revision 与历史
+    status: pending
+    verifier: auto
+  - id: surfaces
+    label: CLI/MCP/Web UI 全链路与 patch 验证通过
+    status: pending
+    verifier: auto

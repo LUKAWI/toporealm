@@ -1,0 +1,4 @@
+id: fan-m2-m3
+source: m2_module_runtime
+target: m3_research_slice
+type: fan_out

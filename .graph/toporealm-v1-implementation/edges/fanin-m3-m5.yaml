@@ -1,0 +1,4 @@
+id: fanin-m3-m5
+source: m3_research_slice
+target: m5_distribution
+type: fan_in

@@ -1,0 +1,6 @@
+format: toporealm.graph/v1alpha1
+id: empty
+label: Empty TopoRealm graph
+sources:
+  objects: objects/*.yaml
+  relations: relations/*.yaml

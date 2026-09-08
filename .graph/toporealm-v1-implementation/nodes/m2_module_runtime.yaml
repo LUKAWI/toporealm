@@ -1,0 +1,24 @@
+id: m2_module_runtime
+type: task
+label: M2 模块装载与缺失模块降级
+level: 3
+status: pending
+plan:
+  description: 实现本地模块目录、module.yaml、注册快照、动作引用、MutationPlan、跨模块分域校验、缺失模块无损读取和声明式 UI 贡献。
+expected_outcome:
+  definition_of_done:
+    - Core 不增加领域枚举即可注册对象、关系、capability、操作和表单。
+    - 模块缺失、不兼容或故障时，基础读取和其他模块继续可用。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T14:18:10.764Z'
+updated_at: '2026-09-08T14:18:10.764Z'
+checkpoints:
+  - id: resolver
+    label: 模块解析、绑定、注册快照和动作发现通过
+    status: pending
+    verifier: auto
+  - id: degraded
+    label: MutationPlan、无损降级和 UI 错误边界通过
+    status: pending
+    verifier: auto

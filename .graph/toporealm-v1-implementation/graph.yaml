@@ -1,0 +1,46 @@
+id: graph_1788877031445_lqsjvp
+label: TopoRealm v1 基座实施
+entry:
+  description: 从已批准的 TopoRealm 基座契约和 implementation-roadmap.md 出发，在独立仓库中实现并验证最薄全链路、模块组合和 workflow 代表性切片。
+  defined_by: human
+  level: 0
+exit:
+  description: 交付可运行的 TopoRealm v1 基座、模块协议、CLI/MCP/Web UI、离线 research/exploration 与 workflow 验收切片，并完成协议冻结前审核。
+  acceptance_criteria:
+    - M0-M6 所有实现节点均 passed，且每个节点有真实 artifact 与验证记录。
+    - Core、CLI、MCP、Server 和 Web UI 共享同一对象/关系、MutationPlan、revision 与历史契约。
+    - research/exploration 与 workflow 两条切片在不扩充 Core 领域枚举的情况下通过。
+    - 缺失模块、撤销/重做、revision 冲突和模块故障隔离场景通过。
+    - npm 模块安装与 Codex、Claude、Pi 三套宿主投影按已批准边界工作。
+    - 用户完成最终 Web UI 图级审核并批准 v1 实施结果。
+  defined_by: human
+  level: 0
+nodes:
+  - file: nodes/m0_scaffold.yaml
+  - file: nodes/m1_thin_vertical.yaml
+  - file: nodes/m2_module_runtime.yaml
+  - file: nodes/m3_research_slice.yaml
+  - file: nodes/m4_workflow_slice.yaml
+  - file: nodes/m5_distribution.yaml
+  - file: nodes/m6_protocol_freeze.yaml
+  - file: nodes/m7_human_acceptance.yaml
+edges:
+  - file: edges/dep-m0-m1.yaml
+  - file: edges/dep-m1-m2.yaml
+  - file: edges/fan-m2-m3.yaml
+  - file: edges/fan-m2-m4.yaml
+  - file: edges/fanin-m3-m5.yaml
+  - file: edges/fanin-m4-m5.yaml
+  - file: edges/dep-m5-m6.yaml
+  - file: edges/dep-m6-m7.yaml
+version: 1.0.0
+class: standard
+root_context:
+  source: docs/architecture/implementation-roadmap.md
+  architecture: docs/architecture/FOUNDATION.md
+  status: implementation-not-started
+  legacy_policy: no-v1-compatibility
+review:
+  status: approved
+  by: user
+  at: '2026-09-08T14:19:16.653Z'

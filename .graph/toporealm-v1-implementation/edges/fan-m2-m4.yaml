@@ -1,0 +1,4 @@
+id: fan-m2-m4
+source: m2_module_runtime
+target: m4_workflow_slice
+type: fan_out

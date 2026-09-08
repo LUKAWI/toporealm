@@ -1,0 +1,4 @@
+id: dep-m1-m2
+source: m1_thin_vertical
+target: m2_module_runtime
+type: depends_on

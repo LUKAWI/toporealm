@@ -1,0 +1,24 @@
+id: m6_protocol_freeze
+type: task
+label: M6 协议冻结与稳定基线
+level: 6
+status: pending
+plan:
+  description: 收敛两条领域切片暴露的问题，核对 Core、CLI、MCP、Server、Web、Module SDK 与三宿主投影的一致性，并准备冻结 v1。
+expected_outcome:
+  definition_of_done:
+    - 两条切片、缺失模块、撤销/重做和并发冲突场景全部通过。
+    - 破坏性格式变更规则、文档和发布基线准备完成。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T14:18:11.080Z'
+updated_at: '2026-09-08T14:18:11.080Z'
+checkpoints:
+  - id: hardening
+    label: 全链路回归与文档对齐通过
+    status: pending
+    verifier: cross_review
+  - id: freeze
+    label: v1 冻结清单和发布候选通过
+    status: pending
+    verifier: cross_review

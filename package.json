@@ -1,0 +1,18 @@
+{
+  "name": "toporealm",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "description": "TopoRealm modular graph foundation",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "verify": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

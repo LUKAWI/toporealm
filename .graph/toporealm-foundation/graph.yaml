@@ -119,18 +119,7 @@ root_context:
   source: docs/architecture/FOUNDATION.md
   legacy_reference: ../topological-tool
   implementation: not-started
-fog:
-  id: architecture-contracts
-  description: TopoRealm 的产品边界已确认，但最小数据格式、模块运行时、Web UI 贡献协议和兼容迁移仍会决定实施结构。
-  graduation: 上述契约均形成可核对规格，research 纵向切片可验证组合能力，并据此形成经用户审核的可信实施路线图。
-  ignited:
-    - l1_data_model
-    - l1_module_contract
-    - l2_web_contract
-    - l2_skill_contract
-    - l3_legacy_migration
-    - l3_research_slice
 review:
-  status: unreviewed
-  by: codex-mcp-client
-  at: '2026-09-08T13:58:53.539Z'
+  status: approved
+  by: user
+  at: '2026-09-08T14:14:25.196Z'

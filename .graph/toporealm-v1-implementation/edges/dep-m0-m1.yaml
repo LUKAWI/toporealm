@@ -1,0 +1,4 @@
+id: dep-m0-m1
+source: m0_scaffold
+target: m1_thin_vertical
+type: depends_on

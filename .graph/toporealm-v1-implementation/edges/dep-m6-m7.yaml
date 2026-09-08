@@ -1,0 +1,4 @@
+id: dep-m6-m7
+source: m6_protocol_freeze
+target: m7_human_acceptance
+type: depends_on

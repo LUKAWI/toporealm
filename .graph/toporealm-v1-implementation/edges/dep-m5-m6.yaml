@@ -1,0 +1,4 @@
+id: dep-m5-m6
+source: m5_distribution
+target: m6_protocol_freeze
+type: depends_on

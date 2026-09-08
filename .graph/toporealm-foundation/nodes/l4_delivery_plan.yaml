@@ -3,7 +3,7 @@ type: task
 label: 形成可执行实施路线图
 level: 4
 context: ctx-adoption
-status: running
+status: passed
 plan:
   description: 汇总已批准契约和两个验证方案，拆出有依赖、可验收的实现阶段和迁移顺序；不执行实现节点。
 expected_outcome:
@@ -13,7 +13,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T06:25:42.441Z'
-updated_at: '2026-09-08T14:02:12.089Z'
+updated_at: '2026-09-08T14:14:05.626Z'
 checkpoints:
   - id: phases
     label: 形成分阶段实现顺序
@@ -21,19 +21,18 @@ checkpoints:
     verifier: auto
   - id: credibility
     label: 核对可信交付计划条件
-    status: running
+    status: passed
     verifier: cross_review
 assigned_to: codex-root
 execution_report:
-  summary: 已形成 M0-M6 分阶段实施路线图：先贯通最薄 Core/CLI/MCP/Server/Web 全链路，再实现模块装载、research/exploration 与 workflow 两条切片、三宿主安装投影，最后冻结 v1。
+  summary: 用户已审核并批准 M0-M6 实施路线图。路线图满足阶段目标、依赖、验收和暂不建设项要求，可转换为 standard 实施拓扑。
   started_at: '2026-09-08T13:58:17.206Z'
   artifacts:
     - docs/architecture/implementation-roadmap.md
-    - docs/architecture/edit-history.md
-    - docs/architecture/module-contract.md
   blockers: []
-  notes: 规格轴自查：阶段目标、依赖、验收、暂不建设项均已覆盖；惯例轴自查：未修改 topological-tool，保留模块缺失无损读取，同时覆盖 Core/CLI/MCP/Web UI。cross_review 仍等待用户独立审核。
+  notes: 用户批准时间由本轮对话记录；规格轴与惯例轴自查均无 blocker。
   verification:
-    verdict: pending
-    checked_at: '2026-09-08T14:02:12.088Z'
-    note: 同会话自查不能替代 cross_review；等待用户审核路线图与整图。
+    verdict: passed
+    checked_at: '2026-09-08T14:14:05.587Z'
+    note: 用户明确回复“批准”，完成 cross_review 裁决。
+  completed_at: '2026-09-08T14:14:05.626Z'

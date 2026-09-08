@@ -1,0 +1,49 @@
+id: m0_scaffold
+type: task
+label: M0 工程骨架与契约固化
+level: 1
+status: passed
+plan:
+  description: 建立 TypeScript 工作区及 Core、CLI、MCP、Server、Web、Module SDK 的代码边界，固定构建、测试和最小 v1alpha1 空图 fixture。
+expected_outcome:
+  definition_of_done:
+    - 各包通过公开接口依赖 Core，不复制对象或关系类型。
+    - 单一命令可完成类型检查、测试和构建，并有最小空图 fixture。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T14:18:10.652Z'
+updated_at: '2026-09-08T14:28:14.851Z'
+checkpoints:
+  - id: boundaries
+    label: 确认包边界与依赖方向
+    status: passed
+    verifier: auto
+  - id: baseline
+    label: 构建、测试和空图 fixture 通过
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: 完成 M0 工程骨架与契约固化：建立 TypeScript ESM 工程、Core/Module SDK/CLI/MCP/Server/Web 最小入口、空图 fixture 与基座/模块格式契约测试。
+  started_at: '2026-09-08T14:19:16.776Z'
+  artifacts:
+    - package.json
+    - package-lock.json
+    - tsconfig.json
+    - vitest.config.ts
+    - src/core/types.ts
+    - src/core/index.ts
+    - src/module-sdk/index.ts
+    - src/cli/index.ts
+    - src/mcp/index.ts
+    - src/server/index.ts
+    - src/web/index.ts
+    - src/index.ts
+    - tests/core-contract.test.ts
+    - fixtures/empty-graph/.toporealm/graphs/empty/graph.yaml
+  notes: npm run verify 已通过：tsc build 成功，Vitest 2 tests passed；git diff --check 无错误。模块领域类型未写入 Core。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T14:28:14.814Z'
+    note: 骨架、契约边界、空图 fixture 与最小测试均已核验。
+  completed_at: '2026-09-08T14:28:14.851Z'

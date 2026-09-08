@@ -476,3 +476,16 @@
 {"ts":"2026-09-08T14:00:45.446Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_delivery_plan","from":"pending","to":"passed","detail":"checkpoint=phases"}
 {"ts":"2026-09-08T14:02:12.045Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_delivery_plan","from":"pending","to":"running","detail":"checkpoint=credibility"}
 {"ts":"2026-09-08T14:02:12.094Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_delivery_plan","detail":"verdict=pending"}
+{"ts":"2026-09-08T14:14:05.565Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_delivery_plan","from":"running","to":"passed","detail":"checkpoint=credibility"}
+{"ts":"2026-09-08T14:14:05.595Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_delivery_plan","detail":"verdict=passed"}
+{"ts":"2026-09-08T14:14:05.632Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_delivery_plan","from":"running","to":"passed"}
+{"ts":"2026-09-08T14:14:14.323Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t14-14-14-018z-srxj0b message=\"auto: structural amend (graduate-fog architecture-contracts; reason=\"产品边界、数据模型、模块契约、Web UI、Skills/宿主投影、Super Plumber 迁移边界、离线 research 纵向切片和实施路线图均已形成可核对规格并经用户逐项确认；未知已从 architecture-contracts 雾区毕业。\") by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T14:14:14.347Z","actor":"codex-mcp-client","kind":"fog_graduated","detail":"fog=architecture-contracts; produced=l1_data_model,l1_module_contract,l2_web_contract,l2_skill_contract,l3_legacy_migration,l3_research_slice,l4_delivery_plan; reason=\"产品边界、数据模型、模块契约、Web UI、Skills/宿主投影、Super Plumber 迁移边界、离线 research 纵向切片和实施路线图均已形成可核对规格并经用户逐项确认；未知已从 architecture-contracts 雾区毕业。\""}
+{"ts":"2026-09-08T14:14:14.351Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=graduate-fog target=architecture-contracts; reason=\"产品边界、数据模型、模块契约、Web UI、Skills/宿主投影、Super Plumber 迁移边界、离线 research 纵向切片和实施路线图均已形成可核对规格并经用户逐项确认；未知已从 architecture-contracts 雾区毕业。\"; auto_snapshot=2026-09-08t14-14-14-018z-srxj0b"}
+{"ts":"2026-09-08T14:14:25.214Z","actor":"user","kind":"design_approved","detail":"by=user, status=approved"}
+{"ts":"2026-09-08T14:14:25.280Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_human_review","from":"pending","to":"ready"}
+{"ts":"2026-09-08T14:14:25.365Z","actor":"codex-root","kind":"node_status","node":"l4_human_review","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T14:14:37.056Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_human_review","from":"pending","to":"passed","detail":"checkpoint=review"}
+{"ts":"2026-09-08T14:14:37.090Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_human_review","from":"pending","to":"passed","detail":"checkpoint=record"}
+{"ts":"2026-09-08T14:14:37.146Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_human_review","detail":"verdict=passed"}
+{"ts":"2026-09-08T14:14:37.192Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_human_review","from":"running","to":"passed"}

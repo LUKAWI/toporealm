@@ -1,0 +1,24 @@
+id: m3_research_slice
+type: task
+label: M3 离线 research/exploration 验收切片
+level: 4
+status: pending
+plan:
+  description: 按 research-vertical-slice.md 实现固定本地资料场景：question、source、claim、supports/contradicts 与 exploration.unknown 的无依赖组合。
+expected_outcome:
+  definition_of_done:
+    - 两个模块可独立安装并在同一图组合，不扩充 Core 类型枚举。
+    - 动作、跨模块编辑、缺失模块恢复和 Web 增量显示均有可重复验收证据。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T14:18:10.823Z'
+updated_at: '2026-09-08T14:18:10.823Z'
+checkpoints:
+  - id: fixture
+    label: 固定资料、模块对象和关系链可运行
+    status: pending
+    verifier: auto
+  - id: protocol
+    label: MCP、patch、降级和恢复验收通过
+    status: pending
+    verifier: auto
