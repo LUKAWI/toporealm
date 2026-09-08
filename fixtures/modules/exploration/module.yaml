@@ -1,0 +1,15 @@
+format: toporealm.module/v1alpha1
+id: exploration
+namespace: exploration
+version: 0.1.0
+supports:
+  schemas: [1]
+contributes:
+  object_kinds:
+    - id: unknown
+      declaration: schemas/unknown.yaml
+  operations:
+    - id: open-unknown
+      declaration: operations/open-unknown.yaml
+ui:
+  contribution: ui/contribution.yaml

@@ -1,0 +1,4 @@
+presentation:
+  exploration.unknown: {color: "#b45309", icon: "?"}
+forms:
+  exploration.unknown: [label, data.status]

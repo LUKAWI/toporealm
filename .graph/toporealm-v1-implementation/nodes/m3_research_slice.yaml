@@ -2,7 +2,7 @@ id: m3_research_slice
 type: task
 label: M3 离线 research/exploration 验收切片
 level: 4
-status: pending
+status: passed
 plan:
   description: 按 research-vertical-slice.md 实现固定本地资料场景：question、source、claim、supports/contradicts 与 exploration.unknown 的无依赖组合。
 expected_outcome:
@@ -12,13 +12,37 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-08T14:18:10.823Z'
-updated_at: '2026-09-08T14:18:10.823Z'
+updated_at: '2026-09-08T14:47:50.540Z'
 checkpoints:
   - id: fixture
     label: 固定资料、模块对象和关系链可运行
-    status: pending
+    status: passed
     verifier: auto
   - id: protocol
     label: MCP、patch、降级和恢复验收通过
-    status: pending
+    status: passed
     verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    完成离线 research/exploration 纵向切片：两个无依赖模块、固定本地资料 fixture、对象/关系声明、离线 expand-question 与 open-unknown 动作、跨模块原子
+    MutationPlan、MCP execute_action、Web revision patch，以及模块移除后的无损读取和恢复。
+  started_at: '2026-09-08T14:42:45.624Z'
+  artifacts:
+    - src/module-sdk/actions.ts
+    - src/modules/research.ts
+    - src/modules/exploration.ts
+    - src/modules/index.ts
+    - fixtures/modules/research/module.yaml
+    - fixtures/modules/exploration/module.yaml
+    - fixtures/research-vertical/.toporealm/modules.yaml
+    - fixtures/research-vertical/.toporealm/graphs/research-demo/graph.yaml
+    - tests/research-vertical.test.ts
+  notes: >-
+    npm run verify 已通过：tsc build 成功，Vitest 4 files / 13 tests passed；git diff --check 无错误。没有接入真实搜索 API；研究动作只使用
+    fixture:// 本地资料，确保可重复。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T14:47:50.504Z'
+    note: 两个模块独立注册、离线动作、跨模块计划、MCP/Web 通路、缺失模块降级与恢复均通过。
+  completed_at: '2026-09-08T14:47:50.540Z'

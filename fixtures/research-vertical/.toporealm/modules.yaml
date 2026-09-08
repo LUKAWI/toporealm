@@ -1,0 +1,7 @@
+bindings:
+  research:
+    source: path
+    path: ../../modules/research
+  exploration:
+    source: path
+    path: ../../modules/exploration

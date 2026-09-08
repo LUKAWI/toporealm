@@ -1,0 +1,4 @@
+applies_to: research.question
+input_schema: research.expand-question/input-v1
+input_template:
+  depth: 1

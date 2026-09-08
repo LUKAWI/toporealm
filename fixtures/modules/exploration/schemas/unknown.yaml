@@ -1,0 +1,2 @@
+label: Exploration unknown
+required: [label, data.status]

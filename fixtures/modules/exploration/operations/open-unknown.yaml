@@ -1,0 +1,4 @@
+applies_to: exploration.unknown
+input_schema: exploration.open-unknown/input-v1
+input_template:
+  label: ""

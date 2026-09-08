@@ -1,0 +1,5 @@
+id: question-1
+kind: research.question
+label: 增量图更新如何保持可追溯？
+data:
+  status: open

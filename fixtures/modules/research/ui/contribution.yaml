@@ -1,0 +1,8 @@
+presentation:
+  research.question: {color: "#6d28d9", icon: "?"}
+  research.source: {color: "#0369a1", icon: "S"}
+  research.claim: {color: "#15803d", icon: "C"}
+forms:
+  research.question: [label]
+  research.source: [label, data.uri, data.excerpt]
+  research.claim: [label, data.text]

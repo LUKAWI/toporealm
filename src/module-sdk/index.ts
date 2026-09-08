@@ -43,3 +43,4 @@ export const moduleSurface: ModuleSurface = {
 };
 
 export * from "./registry.js";
+export * from "./actions.js";

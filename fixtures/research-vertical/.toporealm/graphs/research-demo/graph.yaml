@@ -1,0 +1,13 @@
+format: toporealm.graph/v1alpha1
+id: research-demo
+label: Offline research vertical slice
+modules:
+  - id: research
+    namespace: research
+    schema: 1
+  - id: exploration
+    namespace: exploration
+    schema: 1
+sources:
+  objects: objects/*.yaml
+  relations: relations/*.yaml

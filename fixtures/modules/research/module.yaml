@@ -1,0 +1,24 @@
+format: toporealm.module/v1alpha1
+id: research
+namespace: research
+version: 0.1.0
+supports:
+  schemas: [1]
+contributes:
+  object_kinds:
+    - id: question
+      declaration: schemas/question.yaml
+    - id: source
+      declaration: schemas/source.yaml
+    - id: claim
+      declaration: schemas/claim.yaml
+  relation_kinds:
+    - id: supports
+      declaration: schemas/supports.yaml
+    - id: contradicts
+      declaration: schemas/contradicts.yaml
+  operations:
+    - id: expand-question
+      declaration: operations/expand-question.yaml
+ui:
+  contribution: ui/contribution.yaml
