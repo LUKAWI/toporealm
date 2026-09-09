@@ -1,0 +1,11 @@
+id: e_gateway_module
+source: l1_web_gateway
+target: l3_module_ui
+type: depends_on
+contract:
+  produces: GraphRegistrySnapshot、模块状态和动作执行边界
+  consumed_by:
+    - artifact: module-ui-host
+      used_as: 解析贡献和动作可用性
+  validation:
+    criteria: 缺失模块保留原始数据并返回不可用原因

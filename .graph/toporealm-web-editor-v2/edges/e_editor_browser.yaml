@@ -1,0 +1,4 @@
+id: e_editor_browser
+source: l3_editor_flows
+target: l4_browser_acceptance
+type: depends_on

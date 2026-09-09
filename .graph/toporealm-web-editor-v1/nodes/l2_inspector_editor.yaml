@@ -1,0 +1,50 @@
+id: l2_inspector_editor
+type: task
+label: 实现通用检视器与增删改编辑
+level: 2
+priority: 4
+context: ctx_web_surface
+status: failed
+plan:
+  description: >-
+    实现对象与关系的通用检视器和编辑器：显示稳定 ID、kind、label、data、capabilities、meta 原始视图，支持新增、修改、删除对象与关系以及从选中端点创建关系。提交统一 MutationPlan 并带
+    expectedRevision；未知 kind 使用原始编辑器，模块字段不被猜测或丢弃。只修改 Web 检视器、表单、编辑状态和交互测试。
+expected_outcome:
+  definition_of_done:
+    - 选择对象或关系后可查看其稳定字段和未知扩展数据；未知模块记录可读、可复制并保持原始内容。
+    - 用户新增、修改、删除对象与关系后能看到连续 revision，刷新页面仍保留结果；关系端点错误会显示 Core 错误而不是落盘。
+    - 删除对象后关联关系按 Core 语义消失；编辑器不直接写文件、不绕过 Server。
+    - 提交失败时表单保留用户输入并提供恢复或重载入口。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.689Z'
+updated_at: '2026-09-08T23:18:15.653Z'
+checkpoints:
+  - id: inspector_view
+    label: 对象、关系和原始数据检视已可用
+    status: passed
+    verifier: auto
+  - id: inspector_mutation
+    label: 新增修改删除与关系连接已验证
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    实现通用检视器与编辑器：查看稳定 ID/kind/label/data/capabilities/meta 及完整原始 JSON，支持复制；对象与关系新增、修改、删除及从选中对象预填关系 source，统一通过带当前
+    revision 的 MutationPlan 提交。
+  started_at: '2026-09-08T15:55:52.134Z'
+  artifacts:
+    - web-ui/src/lib/InspectorEditor.svelte
+    - web-ui/src/lib/InspectorEditor.test.ts
+    - web-ui/src/lib/protocol.ts
+    - web-ui/src/App.svelte
+    - tests/core-store.test.ts
+  blockers: []
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T16:02:27.695Z'
+    note: >-
+      npm run web:verify 通过（typecheck 0 errors/0 warnings、build、Web 4 个测试文件 10 个测试通过）；npm run build 与 root npm test 通过（8
+      个测试文件 23 个测试通过）。HTTP 集成验证统一 Server MutationPlan、409 冲突、基础校验、历史接口及删除对象时关联关系清理。
+  completed_at: '2026-09-08T23:18:15.653Z'

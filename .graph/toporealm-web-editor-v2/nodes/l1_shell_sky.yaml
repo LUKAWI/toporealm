@@ -1,0 +1,54 @@
+id: l1_shell_sky
+type: task
+label: 建立深空玻璃应用外壳与设计令牌
+level: 1
+priority: 1
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    把 topological-tool/web-ui 的设计令牌（纯黑画布、近黑玻璃 chrome、wash/ink 白阶梯、状态色、字体阶梯、间距/圆角/easing/z-index）整段迁移到
+    web-ui/index.html；重写 web-ui/src/App.svelte 为参考同构外壳：单排 48px 顶栏（品牌、图切换、搜索、统计）、主区画布舞台、DetailDrawer
+    共享舱体（右缘悬浮玻璃抽屉）、加载骨架屏/错误态/空态、专注模式骨架与响应式行为。允许直接拷贝参考实现的结构与样式代码再适配 TopoRealm 数据流，保持类名与几何一致。只改 web-ui 与构建入口；不复制旧
+    NodeSchema 或工作流专用面板。
+expected_outcome:
+  definition_of_done:
+    - >-
+      web-ui/index.html 的 :root 设计令牌与 topological-tool/web-ui/index.html 一致（逐项对照清单），npm run web:typecheck 与 web:build
+      退出码 0。
+    - 真实浏览器打开根路由：深空黑底、单排顶栏、玻璃面板、加载骨架屏可见；停服时显示参考同款错误态（重试按钮），空图显示参考同款空态。
+    - App.svelte 不再包含旧版蓝色三栏布局样式与 CORE ONLINE 徽章等自创元素；不导入旧 NodeSchema；npm run verify 通过。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:02.641Z'
+updated_at: '2026-09-09T00:04:44.246Z'
+checkpoints:
+  - id: shell_tokens
+    label: 设计令牌迁移与参考逐项一致
+    status: passed
+    verifier: auto
+  - id: shell_states
+    label: 加载/空/错误态与响应式在浏览器可见
+    status: passed
+    verifier: auto
+  - id: shell_boundary
+    label: 独立项目边界（不改 topological-tool）与 verify 通过
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    建立深空玻璃应用外壳：web-ui/index.html 迁移 Super Plumber 全部 63 项设计令牌（脚本逐项比对一致）；重写 App.svelte 为参考同构单排顶栏（品牌+图标签、kind chips
+    计数即图例、搜索、obj/rel/rev 统计）+ 左缘玻璃工具轨（图库/校验/模块/原始快照浮层、撤销重做、刷新、只读）+ 加载骨架屏/错误态/空态/过滤徽章/操作提示 chip；新建 DetailDrawer
+    共享舱体组件。真实浏览器（IAB）验证全部界面状态；npm run verify 与 web:typecheck/web:build 全绿；topological-tool 无改动。
+  started_at: '2026-09-08T23:43:41.674Z'
+  artifacts:
+    - web-ui/index.html
+    - web-ui/src/App.svelte
+    - web-ui/src/lib/components/DetailDrawer.svelte
+  notes: >-
+    计划微调：工具轨改为常显（空态也可切换图库），参考 Super Plumber「画布存在时显示 dock」的语义在 TopoRealm 空图场景下不可用——空图也需要图库/只读入口。环境备注：本会话 Git Bash PATH 中
+    GNU tar 优先，npm run verify 的 distribution 测试需 export PATH="/c/Windows/System32:$PATH"
+    后运行（已记忆存档），仓库代码无改动。检查点证据：shell_tokens=63/63 令牌逐项一致脚本比对；shell_states=IAB 浏览器验证（加载骨架/错误重试/空态/加载态/kind chips
+    过滤/图库/校验/模块/原始快照浮层/只读徽标+撤销禁用）；shell_boundary=git status 仅存先前 openai.yaml 修改 + verify 全绿（根 26/26、web 16/16）。
+  completed_at: '2026-09-09T00:04:44.246Z'

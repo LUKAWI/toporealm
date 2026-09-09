@@ -1,0 +1,44 @@
+id: l4_human_review
+type: gate
+label: 用户审核 Web 编辑器实施拓扑
+level: 4
+priority: 8
+context: ctx_web_surface
+status: failed
+plan:
+  description: 在 graph serve 预览中审核 Web 编辑器的目标、上下文边界、ADR、节点拆分、依赖关系和验收标准；用户批准后才进入 plumber-execute，未批准前不认领或执行任何节点。
+expected_outcome:
+  definition_of_done:
+    - 用户明确批准本 Web 编辑器实施拓扑及其范围。
+    - 用户提出的修改意见、批准凭据和未解决事项已记录在图中。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.749Z'
+updated_at: '2026-09-08T23:19:41.369Z'
+checkpoints:
+  - id: review
+    label: 用户完成拓扑图审核
+    status: pending
+    verifier: human
+  - id: record
+    label: 审核结论已记录
+    status: pending
+    verifier: human
+execution_report:
+  summary: 用户审核不通过，要求返工后由其他 agent 接手。
+  artifacts:
+    - http://localhost:8944/
+    - web-ui/src/App.svelte
+    - web-ui/src/lib/GraphCanvas.svelte
+    - web-ui/src/lib/InspectorEditor.svelte
+    - web-ui/src/lib/protocol.ts
+    - D:/LUKAWI/AI_project/projects/topological-tool/web-ui
+  blockers:
+    - 点击画布节点无法显示节点具体内容，选择到检视器的链路不可用或不可见。
+    - 前端没有完全沿用 Super Plumber 的 UI/UX 设计语言，视觉、布局、交互反馈和动效未达要求。
+    - 鼠标与画布交互不流畅，编辑流程不可用。
+  notes: 用户明确要求所有可执行节点与审核 gate 打回 failed，并让其他 agent 接手返工。topological-tool 仅作只读 UI/UX 参考，不得修改。
+  verification:
+    verdict: failed
+    checked_at: '2026-09-08T23:19:41.366Z'
+    note: 用户人工审核结论；此前自动化测试通过不能抵消真实浏览器可用性与设计一致性问题。

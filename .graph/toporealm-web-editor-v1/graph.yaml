@@ -1,0 +1,59 @@
+id: graph_1788881005642_cddc4r
+label: TopoRealm Web 编辑器 v1
+entry:
+  description: TopoRealm Core v1 已完成，但现有 Web 仅为最小 shell；需要在不修改 Core 数据模型、不修改 topological-tool 的前提下，建设可交互的通用图编辑器。
+  defined_by: human
+  level: 0
+exit:
+  description: 浏览器可打开 TopoRealm 图并完成查看、布局、缩放、平移、选择、搜索、筛选、通用新增/编辑/连接/删除、撤销/重做、原始数据/校验/模块状态/只读操作；所有写入经 Server 进入同一 Core revision 历史。
+  acceptance_criteria:
+    - 启动 TopoRealm Server 后，浏览器加载真实 GraphSnapshot；画布能渲染对象与关系，缩放、平移、拖拽和选择均不改变 Core 数据语义。
+    - 用户可通过通用编辑器新增、修改、删除对象与关系；写入产生连续 revision，刷新后仍可见，并可用撤销/重做恢复。
+    - 搜索、筛选、原始数据、校验结果、模块状态与只读模式可用；缺失或不兼容模块的数据仍可查看且不会被 UI 改写。
+    - revision 冲突、patch gap、模块 UI/动作失败均显示可恢复的用户错误，不覆盖本地未确认修改。
+    - TopoRealm 工作区的构建、类型检查、测试和浏览器验收通过，且不修改 D:/LUKAWI/AI_project/projects/topological-tool。
+  defined_by: human
+  level: 0
+nodes:
+  - file: nodes/adr_0001.yaml
+  - file: nodes/ctx_core_gateway.yaml
+  - file: nodes/ctx_module_projection.yaml
+  - file: nodes/ctx_web_surface.yaml
+  - file: nodes/l1_web_gateway.yaml
+  - file: nodes/l1_web_shell.yaml
+  - file: nodes/l2_canvas.yaml
+  - file: nodes/l2_inspector_editor.yaml
+  - file: nodes/l3_module_ui.yaml
+  - file: nodes/l3_panels.yaml
+  - file: nodes/l4_browser_verification.yaml
+  - file: nodes/l4_human_review.yaml
+edges:
+  - file: edges/e_shell_gateway.yaml
+  - file: edges/e_shell_canvas.yaml
+  - file: edges/e_gateway_canvas.yaml
+  - file: edges/e_gateway_inspector.yaml
+  - file: edges/e_canvas_inspector.yaml
+  - file: edges/e_canvas_panels.yaml
+  - file: edges/e_inspector_panels.yaml
+  - file: edges/e_gateway_panels.yaml
+  - file: edges/e_gateway_module.yaml
+  - file: edges/e_inspector_module.yaml
+  - file: edges/e_panels_browser.yaml
+  - file: edges/e_module_browser.yaml
+  - file: edges/e_browser_human.yaml
+  - file: edges/d_adr_shell.yaml
+  - file: edges/rel_core_web.yaml
+  - file: edges/rel_core_module.yaml
+  - file: edges/rel_module_web.yaml
+version: 1.0.0
+class: standard
+root_context:
+  stack: Svelte 5 + Vite + D3
+  reference: D:/LUKAWI/AI_project/projects/topological-tool/web-ui（只读迁移来源）
+  contract: TopoRealm Core toporealm.graph/v1；浏览器通过 Server GraphSnapshot/GraphPatch/MutationPlan 边界接入
+  scope: 仅 TopoRealm Web 编辑器；不读取或写回 Super Plumber .graph，不新增领域枚举
+  visual_language: 沿用当前 Super Plumber Web 的深色玻璃面板、状态色、D3 画布层次和轻量渐入/抽屉动效；新增功能可扩展同主题的不同 UI/UX，但不复制旧领域语义。
+review:
+  status: approved
+  by: user
+  at: '2026-09-08T15:31:13.166Z'

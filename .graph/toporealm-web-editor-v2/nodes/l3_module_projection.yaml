@@ -1,0 +1,50 @@
+id: l3_module_projection
+type: task
+label: 模块 UI 投影与降级显示
+level: 3
+priority: 7
+context: ctx_module_projection
+status: passed
+plan:
+  description: >-
+    保留并适配 web-ui/src/lib/moduleProjection.ts：模块 presentation（颜色/图标）驱动画布星体色与抽屉 meta chips；forms 字段提示进编辑表单；operations
+    动作按钮经 Server ActionExecutor 执行，mutation 结果回灌快照与
+    revision。模块缺失或不兼容时退回通用原始检视器，标注降级原因并禁用依赖该模块的动作与专用表单。research/exploration/workflow fixture 的声明可见且非 Web 硬编码领域分支。只改 Web
+    模块宿主与投影测试，不把领域枚举加入 Core。
+expected_outcome:
+  definition_of_done:
+    - fixture 图中模块声明的样式/表单提示/动作来自模块声明；动作执行成功推进 revision，失败显示稳定错误且不破坏画布状态或未提交表单。
+    - 缺失模块时原始 kind/data/capabilities 可查看、可往返保存，降级原因可见，依赖动作与专用表单禁用（组件测试 + 浏览器验证）。
+    - npm run web:verify 通过；不修改 Core 类型与 topological-tool。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:54.652Z'
+updated_at: '2026-09-09T01:01:18.647Z'
+checkpoints:
+  - id: module_decl
+    label: 模块样式/字段/动作投影已验证
+    status: passed
+    verifier: auto
+  - id: module_degraded
+    label: 缺失模块降级与动作错误边界已验证
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    补齐模块动作投影：ObjectDetail 新增「模块动作」节，声明式 operations（applies_to 匹配 kind）渲染为按钮，经 store.executeAction/Server ActionExecutor
+    执行，mutation 结果回灌快照与 revision，失败显示稳定错误码（RUNTIME_FAILED 等）且不影响画布与表单；只读禁用。presentation 驱动画布星体色/标签色与抽屉 chips，forms
+    提示进编辑表单（均为既有投影延续）。修复 structuredClone 无法克隆 Svelte $state 代理的实际缺陷。模块投影测试 3 个（声明投影/动作执行与错误边界/缺失模块降级）。
+  started_at: '2026-09-09T00:48:05.265Z'
+  artifacts:
+    - web-ui/src/lib/components/ObjectDetail.svelte
+    - web-ui/src/lib/components/module-projection.test.ts
+    - web-ui/src/lib/components/EditorPanel.svelte
+    - web-ui/src/lib/moduleProjection.ts
+  notes: >-
+    浏览器证据（IAB + browser use）：点击 question-1 星体打开抽屉，「模块动作」节显示声明式按钮 research.expand-question；点击动作 r14→r15，新对象
+    question-1-claim 出现且画布即时渲染新星体（7 星体）。presentation 色进入抽屉 kind chip 与画布星体/标签；forms 字段提示进编辑表单（l3_editor_flows
+    截图可见「模块声明字段：label、data.text（仅提示，不做领域解释）」）；缺失模块（alien.creature）时降级横幅显示原因、无动作按钮、原始 JSON 可展开（组件测试）。修复实际缺陷：runAction 用
+    structuredClone 克隆 $state 代理模板抛 DataCloneError（真实浏览器同样会失败），改 JSON 深拷贝。动作失败路径由组件测试覆盖（RUNTIME_FAILED
+    稳定错误码内联显示、画布状态不受影响）。web:verify 全绿（40/40）。
+  completed_at: '2026-09-09T01:01:18.647Z'

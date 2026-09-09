@@ -89,4 +89,91 @@ describe("GraphStore", () => {
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     }
   });
+
+  it("通过浏览器协议暴露历史、基础校验并拒绝过期 revision", async () => {
+    const store = fixtureStore();
+    const server = await listenToporealmServer(store);
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
+    const base = `http://127.0.0.1:${address.port}`;
+    try {
+      const initialHistory = await fetch(`${base}/api/history`).then((response) => response.json()) as { canUndo: boolean; canRedo: boolean };
+      expect(initialHistory).toEqual({ canUndo: false, canRedo: false });
+      const validation = await fetch(`${base}/api/validate`).then((response) => response.json()) as { ok: boolean; complete: boolean };
+      expect(validation).toMatchObject({ ok: true, complete: false });
+
+      const appliedResponse = await fetch(`${base}/api/mutations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 0, mutations: [{ op: "upsert_object", object: person("alice", "Alice") }] }),
+      });
+      expect(appliedResponse.status).toBe(200);
+      const applied = await appliedResponse.json() as { snapshot: { revision: number }; patch: { fromRevision: number; toRevision: number } };
+      expect(applied.patch).toEqual(expect.objectContaining({ fromRevision: 0, toRevision: 1 }));
+      expect(applied.snapshot.revision).toBe(1);
+
+      const conflictResponse = await fetch(`${base}/api/mutations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 0, mutations: [{ op: "upsert_object", object: person("bob", "Bob") }] }),
+      });
+      expect(conflictResponse.status).toBe(409);
+      expect(await conflictResponse.json()).toMatchObject({ error: { code: "REVISION_CONFLICT" } });
+      expect(store.read().objects.map((object) => object.id)).toEqual(["alice"]);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  });
+
+  it("通过 Server 删除对象时沿用 Core 的关联关系清理语义", async () => {
+    const store = fixtureStore();
+    store.apply({ mutations: [
+      { op: "upsert_object", object: person("alice", "Alice") },
+      { op: "upsert_object", object: person("bob", "Bob") },
+      { op: "upsert_relation", relation: { id: "knows-1", kind: "knows", source: "alice", target: "bob", direction: "directed" } },
+    ] });
+    const server = await listenToporealmServer(store);
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
+    try {
+      const response = await fetch(`http://127.0.0.1:${address.port}/api/mutations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 1, mutations: [{ op: "delete_object", id: "alice" }] }),
+      });
+      expect(response.status).toBe(200);
+      const result = await response.json() as { snapshot: { objects: unknown[]; relations: unknown[] } };
+      expect(result.snapshot.objects).toHaveLength(1);
+      expect(result.snapshot.relations).toHaveLength(0);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  });
+
+  it("通过显式 graph ID 列表和切换入口保持快照、历史与校验一致", async () => {
+    const store = fixtureStore();
+    const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
+    const other = GraphStore.fromWorkspace(workspaceRoot, "other");
+    other.initialize({ format: "toporealm.graph/v1", id: "other", label: "Other graph", sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" } });
+    const server = await listenToporealmServer(store);
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
+    const base = `http://127.0.0.1:${address.port}`;
+    try {
+      const listed = await fetch(`${base}/api/graphs`).then((response) => response.json()) as { currentId: string; graphs: Array<{ id: string }> };
+      expect(listed.currentId).toBe("demo");
+      expect(listed.graphs.map((graph) => graph.id)).toEqual(["demo", "other"]);
+      const switchedResponse = await fetch(`${base}/api/graph/switch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: "other" }) });
+      expect(switchedResponse.status).toBe(200);
+      const switched = await switchedResponse.json() as { snapshot: { manifest: { id: string }; revision: number }; history: { canUndo: boolean; canRedo: boolean } };
+      expect(switched.snapshot).toMatchObject({ manifest: { id: "other" }, revision: 0 });
+      expect(switched.history).toEqual({ canUndo: false, canRedo: false });
+      const complete = await fetch(`${base}/api/validate?mode=complete`).then((response) => response.json()) as { ok: boolean; complete: boolean };
+      expect(complete).toMatchObject({ ok: true, complete: true });
+      const modules = await fetch(`${base}/api/modules`).then((response) => response.json()) as { registryRevision: number; modules: unknown[] };
+      expect(modules).toMatchObject({ registryRevision: 0, modules: [] });
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  });
 });

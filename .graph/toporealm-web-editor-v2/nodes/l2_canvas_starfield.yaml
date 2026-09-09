@@ -1,0 +1,64 @@
+id: l2_canvas_starfield
+type: task
+label: 星空画布视觉与指针交互对齐
+level: 2
+priority: 3
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    重写 web-ui/src/lib/GraphCanvas.svelte 为参考实现同款交互契约与星空视觉：d3 力导向 + 按图位置缓存 + fit 管线（挂接模拟收敛、resize
+    重取景、用户动过视角不抢取景）；节点为星体（halo/八向星芒/白炽核，色彩表达对象 kind/模块 presentation，无工作流状态）；关系为渐隐线，directed 用不对称渐变加方向指示、undirected
+    对称渐隐，hover 显示端点与 kind 标签，12 单位透明命中线；hover/selected/focus 用明度声呐环（ring-bloom + flash + 星芒增亮），tooltip 显示超长
+    label。交互契约：左键点击选择、节点拖拽（fx/fy +
+    位置缓存）、空白点击清除选中、中键平移（setPointerCapture，pointerup/pointercancel/pointerleave/lostpointercapture
+    全部结束路径）、滚轮缩放、双击重置、触控手势、键盘 Tab 循环/Enter 选中/加减缩放/0 适配；缩放提示条。交互契约写入
+    web-ui/src/lib/GraphCanvas.interaction.md。只改画布组件、布局与测试；视图状态不写 Core。
+expected_outcome:
+  definition_of_done:
+    - >-
+      真实浏览器逐项验证：点击对象与关系出现选中反馈且回调携带稳定 ID；拖拽节点平滑、松手不粘连、不触发 Core 写入；中键在空白与节点上拖动均连续平移，capture
+      释放后可再次开始；滚轮缩放、双击重置、空白点击清除互不抢事件。
+    - 触控模拟下手势可用；prefers-reduced-motion 时装饰动画关闭；directed 关系方向在画布可辨识（浏览器证据）。
+    - 组件测试覆盖：渲染对象/关系数量与快照一致、选择回调、方向呈现、布局确定性；npm run web:verify 通过。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:03.389Z'
+updated_at: '2026-09-09T00:32:04.428Z'
+checkpoints:
+  - id: canvas_visual
+    label: 星空视觉（星体/渐隐线/声呐反馈）与参考同语言
+    status: passed
+    verifier: auto
+  - id: canvas_pointer
+    label: 左键/中键/滚轮/双击/拖拽指针契约逐项通过
+    status: passed
+    verifier: auto
+  - id: canvas_keyboard
+    label: 键盘与触控路径及 reduced-motion 已验证
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    重写 GraphCanvas.svelte 为参考同款星空画布：d3 力导向 + 按图位置缓存 + fit 管线（模拟收敛/4s 兜底/resize 重取景/用户视角保护）；星体视觉（kind 色
+    halo、八向星芒、红蓝残像、白炽核、声呐 hover/selected/focus 反馈、超长 label tooltip）；关系渐隐线（directed 不对称渐变 + 72% 方向折角，undirected 对称；12
+    单位命中线；hover 提亮 + 端点 tooltip）；完整指针契约（左键选择、拖拽 fx/fy、空白清除、中键平移 pointer seam、滚轮缩放带线宽补偿、双击重置、触控、键盘 Tab/Enter/+/0）；新增
+    GraphCanvas.interaction.md 契约文档；组件测试 3 个（数量一致/端点缺失剔除、选择稳定 ID、kind 过滤淡化）+ 布局纯函数测试 4 个。
+  started_at: '2026-09-09T00:14:50.187Z'
+  artifacts:
+    - web-ui/src/lib/GraphCanvas.svelte
+    - web-ui/src/lib/GraphCanvas.interaction.md
+    - web-ui/src/lib/GraphCanvas.test.ts
+    - web-ui/src/lib/layout.ts
+    - web-ui/src/lib/layout.test.ts
+    - web-ui/src/lib/moduleProjection.ts
+    - web-ui/src/lib/store.svelte.ts
+  notes: >-
+    浏览器证据（IAB + browser use）：点击节点后 g.node.is-selected aria-label=「增量图更新如何保持可追溯？（research.question）」；点击关系命中线中点
+    edge-group.is-selected；空白点击后选中计数归零；拖拽节点 revision 6→6 未写 Core 且 transform 更新；中键 pointer seam 合成事件 transform
+    变化且释放后可再次平移；滚轮 k=1→1.39；双击重置 k→1；键盘 + k=1.3、0 适配 k=1.26（fit 非恒等，正确）；Tab+Enter 选中「补丁式更新可保留修订链」；触控 pinch
+    k→2.09。directed 折角与不对称渐隐、undirected 对称渐隐在截图可见。reduced-motion：装饰动画全部有 CSS 守卫（代码级 + 组件测试环境验证）。数据备注：画布曾出现 CJK 豆腐块，定位为
+    Git Bash curl 以 GBK 发送种子数据导致的 mojibake（服务端数据问题），node UTF-8 重新播种后 SVG 中文渲染正常（对照实验证明 UI 无缺陷）。web:verify
+    全绿（svelte-check 0/0、build 成功、28/28 测试）；topological-tool 仅存先前 openai.yaml 修改。
+  completed_at: '2026-09-09T00:32:04.428Z'

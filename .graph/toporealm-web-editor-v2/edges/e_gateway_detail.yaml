@@ -1,0 +1,4 @@
+id: e_gateway_detail
+source: l1_gateway_ui
+target: l2_detail_chain
+type: depends_on

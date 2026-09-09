@@ -1,0 +1,19 @@
+id: ctx_web_surface
+type: context
+label: Web 交互与渲染边界
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:39:04.238Z'
+updated_at: '2026-09-08T23:39:04.553Z'
+boundary: 负责浏览器端 Svelte 状态、星空画布、布局、选择、详情抽屉、编辑表单、面板和只读交互，完全沿用 Super Plumber 设计语言；不负责持久化、revision 判断或模块领域规则。
+glossary:
+  - term: 视图状态
+    definition: 缩放、平移、选择和临时布局坐标，只影响浏览器呈现，不写入 Core。
+  - term: 通用编辑
+    definition: 以 MutationPlan 请求对象或关系的增删改，不猜测模块私有语义。
+  - term: 只读模式
+    definition: 保留查看、搜索、校验和原始数据能力，同时禁用所有写入入口。
+  - term: 深空玻璃
+    definition: 'Super Plumber 设计语言：纯黑画布、近黑玻璃 chrome、白色洗刷阶梯表交互、色彩只表达数据语义。Avoid: 蓝色三栏仪表盘、主题化近似。'

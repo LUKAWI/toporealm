@@ -1,0 +1,58 @@
+id: l4_browser_verification
+type: task
+label: 完成浏览器端到端验收与回归
+level: 4
+priority: 7
+context: ctx_web_surface
+status: failed
+plan:
+  description: >-
+    用临时 TopoRealm 工作区启动真实 Server 和 Web
+    资源，执行代表性浏览器流程并补齐自动化回归：加载快照、画布交互、对象/关系增删改、revision、撤销/重做、搜索筛选、只读、模块降级、冲突恢复。记录可复核命令和结果；只修改 Web 测试、fixture 和必要的文档，不改
+    topological-tool。
+expected_outcome:
+  definition_of_done:
+    - 浏览器测试能从真实 Server 加载 fixture，完成对象和关系的新增、修改、删除、撤销、重做并观察到持久化 revision。
+    - 测试覆盖 409 revision 冲突、patch gap、缺失模块降级和只读模式，均有可观察的恢复路径。
+    - TopoRealm 的 npm run verify、Web 构建/类型检查和浏览器验收命令全部退出码为 0。
+    - D:/LUKAWI/AI_project/projects/topological-tool 的 git 工作区、代码和配置未被修改。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.739Z'
+updated_at: '2026-09-08T23:18:15.812Z'
+checkpoints:
+  - id: browser_smoke
+    label: 真实 Server 浏览器主流程已通过
+    status: passed
+    verifier: auto
+  - id: browser_regression
+    label: 冲突、降级、只读和回归命令已通过
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    完成真实 Server/Web 资源浏览器主流程与回归：加载生产页面，执行对象/关系增删改、revision、undo/redo、research 模块动作、409 冲突、刷新持久化，并覆盖搜索过滤、patch
+    gap、模块降级、只读模式。
+  started_at: '2026-09-08T16:18:06.446Z'
+  artifacts:
+    - tests/browser-smoke.test.ts
+    - web-ui/src/lib/GraphCanvas.test.ts
+    - web-ui/src/lib/InspectorEditor.test.ts
+    - web-ui/src/lib/protocol.test.ts
+    - web-ui/src/lib/filter.test.ts
+    - web-ui/src/lib/moduleProjection.test.ts
+    - package.json
+    - web-ui/dist/index.html
+  blockers: []
+  notes: >-
+    真实预览服务保持在 http://localhost:8944，使用临时工作区，不写入 fixtures。D:/LUKAWI/AI_project/projects/topological-tool 在本节点执行前已存在
+    integrations/plugin/skills/sp-grilling/agents/openai.yaml 的未提交修改；本任务未触碰该仓库。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T16:23:21.548Z'
+    note: >-
+      npm run verify 通过：根目录 9 个测试文件 26 个测试通过；Web typecheck 0 errors/0 warnings、build 通过、Web 6 个测试文件 16 个测试通过；npm run
+      web:browser-smoke 单独通过。8944 HTTP smoke 验证根页面、生产脚本、/api/graph、/api/graphs、/api/modules、/api/validate?mode=complete
+      与动作/历史流程。
+  completed_at: '2026-09-08T23:18:15.812Z'

@@ -1,0 +1,11 @@
+id: e_canvas_detail
+source: l2_canvas_starfield
+target: l2_detail_chain
+type: depends_on
+contract:
+  produces: 对象/关系选择回调与稳定实体 ID
+  consumed_by:
+    - artifact: detail-drawer
+      used_as: 解析并渲染详情内容
+  validation:
+    criteria: 点击命中稳定携带 {type,id}；空白点击清除选中；未知 ID 不崩溃

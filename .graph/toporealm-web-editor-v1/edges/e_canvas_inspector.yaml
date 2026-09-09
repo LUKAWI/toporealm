@@ -1,0 +1,4 @@
+id: e_canvas_inspector
+source: l2_canvas
+target: l2_inspector_editor
+type: depends_on

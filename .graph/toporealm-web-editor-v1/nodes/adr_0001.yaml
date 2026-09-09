@@ -1,0 +1,20 @@
+id: adr_0001
+type: adr
+label: 复用成熟 Svelte/D3 外壳，通过 TopoRealm 稳定边界接入
+level: 1
+status: proposed
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-08T15:24:33.976Z'
+updated_at: '2026-09-08T15:24:33.976Z'
+decision: >-
+  Web 编辑器采用独立的 Svelte 5 + Vite 应用并复用 Super Plumber Web UI 的成熟交互经验；只迁移通用画布、布局、状态和 Markdown/面板思路，通过 TopoRealm 的
+  GraphSnapshot、GraphPatch、MutationPlan 与模块 UI 声明接入，不复制旧 NodeSchema，也不修改 topological-tool。
+background: >-
+  当前 TopoRealm Web 只有最小 HTML shell，而 topological-tool/web-ui 已有可运行的 Svelte/D3 画布、缩放平移、选择、面板和状态管理。两者数据契约不同，直接复制会把旧工作流字段带入
+  TopoRealm。
+considered_options: >-
+  A：复用成熟交互并新增适配层，交付快且可保留边界；B：用原生 DOM/SVG 重写，依赖少但要重新承担画布交互风险；C：原样嵌入旧 Web UI，最快但会耦合旧 NodeSchema 与 Super Plumber
+  语义，违反独立项目边界。
+why: 复用交互经验能降低画布与可用性风险，同时适配层让 Core 和模块协议保持唯一真相；旧仓库保持只读参考，后续可独立演进。
+consequences: TopoRealm 需要自己的 Web UI 包、协议适配测试和构建入口；视图坐标、缩放和选择保持浏览器本地状态，不扩张 Core v1 数据模型；旧 Web UI 的工作流专用面板必须改造成模块贡献。

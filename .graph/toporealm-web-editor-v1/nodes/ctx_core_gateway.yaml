@@ -1,0 +1,34 @@
+id: ctx_core_gateway
+type: context
+label: Core/Server 浏览器边界
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:23:54.602Z'
+updated_at: '2026-09-08T15:24:21.607Z'
+boundary: 负责 GraphSnapshot、GraphPatch、MutationPlan 的浏览器协议、revision 冲突、patch gap、历史和基础校验接口；不负责视觉布局或模块领域语义。
+glossary:
+  - term: GraphSnapshot
+    definition: 某一 revision 的完整图、对象和关系快照。
+  - term: GraphPatch
+    definition: 从一个连续 revision 到下一个 revision 的局部变化。
+  - term: revision
+    definition: Core 接受一次原子 MutationPlan 后递增的图版本号。
+contracts:
+  - to: ctx_web_surface
+    contract:
+      produces: 连续可应用的 GraphSnapshot/GraphPatch 与稳定 Core 错误
+      consumed_by:
+        - artifact: web-state-adapter
+          used_as: 驱动浏览器状态和错误提示
+      validation:
+        criteria: patch.fromRevision 等于本地 revision；冲突返回可恢复错误且不覆盖本地状态
+  - to: ctx_module_projection
+    contract:
+      produces: 启用模块清单、模块可用性和动作执行结果
+      consumed_by:
+        - artifact: module-ui-host
+          used_as: 显示贡献、降级状态和动作按钮
+      validation:
+        criteria: 模块缺失时仍返回原始数据并标注不可用，不静默改写

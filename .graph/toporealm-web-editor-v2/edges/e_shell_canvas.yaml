@@ -1,0 +1,4 @@
+id: e_shell_canvas
+source: l1_shell_sky
+target: l2_canvas_starfield
+type: depends_on

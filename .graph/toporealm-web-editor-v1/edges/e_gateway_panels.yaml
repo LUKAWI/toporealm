@@ -1,0 +1,11 @@
+id: e_gateway_panels
+source: l1_web_gateway
+target: l3_panels
+type: depends_on
+contract:
+  produces: 历史、校验、图列表/切换和模块状态查询结果
+  consumed_by:
+    - artifact: web-panels
+      used_as: 显示通用面板状态
+  validation:
+    criteria: 图切换使用显式 ID；基础/完整校验结果分别显示

@@ -1,0 +1,142 @@
+{"ts":"2026-09-08T15:23:54.515Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-23-54-508z-vfcihj message=\"auto: structural amend (add-node ctx_web_surface) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:23:54.529Z","actor":"codex-mcp-client","kind":"node_created","node":"ctx_web_surface","to":"pending"}
+{"ts":"2026-09-08T15:23:54.537Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=ctx_web_surface; auto_snapshot=2026-09-08t15-23-54-508z-vfcihj"}
+{"ts":"2026-09-08T15:23:54.593Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-23-54-578z-ixmrcx message=\"auto: structural amend (add-node ctx_core_gateway) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:23:54.612Z","actor":"codex-mcp-client","kind":"node_created","node":"ctx_core_gateway","to":"pending"}
+{"ts":"2026-09-08T15:23:54.620Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=ctx_core_gateway; auto_snapshot=2026-09-08t15-23-54-578z-ixmrcx"}
+{"ts":"2026-09-08T15:23:54.706Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-23-54-686z-05w8qn message=\"auto: structural amend (add-node ctx_module_projection) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:23:54.718Z","actor":"codex-mcp-client","kind":"node_created","node":"ctx_module_projection","to":"pending"}
+{"ts":"2026-09-08T15:23:54.725Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=ctx_module_projection; auto_snapshot=2026-09-08t15-23-54-686z-05w8qn"}
+{"ts":"2026-09-08T15:24:21.578Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"ctx_web_surface","detail":"fields: boundary, glossary"}
+{"ts":"2026-09-08T15:24:21.612Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"ctx_core_gateway","detail":"fields: boundary, glossary, contracts"}
+{"ts":"2026-09-08T15:24:21.640Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"ctx_module_projection","detail":"fields: boundary, glossary, contracts"}
+{"ts":"2026-09-08T15:24:33.993Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-24-33-979z-rzbr3d message=\"auto: structural amend (add-node adr_0001) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:24:34.005Z","actor":"codex-mcp-client","kind":"adr_created","node":"adr_0001","to":"proposed","detail":"复用成熟 Svelte/D3 外壳，通过 TopoRealm 稳定边界接入"}
+{"ts":"2026-09-08T15:24:34.011Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-node target=adr_0001; auto_snapshot=2026-09-08t15-24-33-979z-rzbr3d"}
+{"ts":"2026-09-08T15:26:17.626Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-17-600z-26rbuj message=\"auto: structural amend (batch-create; nodes=8, edges=0) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:17.659Z","actor":"codex-mcp-client","kind":"node_created","node":"l1_web_shell","to":"pending"}
+{"ts":"2026-09-08T15:26:17.670Z","actor":"codex-mcp-client","kind":"node_created","node":"l1_web_gateway","to":"pending"}
+{"ts":"2026-09-08T15:26:17.680Z","actor":"codex-mcp-client","kind":"node_created","node":"l2_canvas","to":"pending"}
+{"ts":"2026-09-08T15:26:17.691Z","actor":"codex-mcp-client","kind":"node_created","node":"l2_inspector_editor","to":"pending"}
+{"ts":"2026-09-08T15:26:17.719Z","actor":"codex-mcp-client","kind":"node_created","node":"l3_panels","to":"pending"}
+{"ts":"2026-09-08T15:26:17.730Z","actor":"codex-mcp-client","kind":"node_created","node":"l3_module_ui","to":"pending"}
+{"ts":"2026-09-08T15:26:17.740Z","actor":"codex-mcp-client","kind":"node_created","node":"l4_browser_verification","to":"pending"}
+{"ts":"2026-09-08T15:26:17.752Z","actor":"codex-mcp-client","kind":"node_created","node":"l4_human_review","to":"pending"}
+{"ts":"2026-09-08T15:26:17.771Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=batch-create; nodes=8, edges=0; auto_snapshot=2026-09-08t15-26-17-600z-26rbuj"}
+{"ts":"2026-09-08T15:26:52.130Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-082z-tja6v3 message=\"auto: structural amend (add-edge e_shell_gateway) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.148Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_shell_gateway","detail":"l1_web_shell -[depends_on]-> l1_web_gateway"}
+{"ts":"2026-09-08T15:26:52.153Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_shell_gateway; auto_snapshot=2026-09-08t15-26-52-082z-tja6v3"}
+{"ts":"2026-09-08T15:26:52.231Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-185z-kcawxg message=\"auto: structural amend (add-edge e_shell_canvas) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.247Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_shell_canvas","detail":"l1_web_shell -[depends_on]-> l2_canvas"}
+{"ts":"2026-09-08T15:26:52.252Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_shell_canvas; auto_snapshot=2026-09-08t15-26-52-185z-kcawxg"}
+{"ts":"2026-09-08T15:26:52.355Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-306z-393rs2 message=\"auto: structural amend (add-edge e_gateway_canvas) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.369Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_gateway_canvas","detail":"l1_web_gateway -[depends_on]-> l2_canvas"}
+{"ts":"2026-09-08T15:26:52.401Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_gateway_canvas; auto_snapshot=2026-09-08t15-26-52-306z-393rs2"}
+{"ts":"2026-09-08T15:26:52.490Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-437z-tfozwf message=\"auto: structural amend (add-edge e_gateway_inspector) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.506Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_gateway_inspector","detail":"l1_web_gateway -[depends_on]-> l2_inspector_editor"}
+{"ts":"2026-09-08T15:26:52.511Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_gateway_inspector; auto_snapshot=2026-09-08t15-26-52-437z-tfozwf"}
+{"ts":"2026-09-08T15:26:52.610Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-545z-193v2v message=\"auto: structural amend (add-edge e_canvas_inspector) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.639Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_canvas_inspector","detail":"l2_canvas -[depends_on]-> l2_inspector_editor"}
+{"ts":"2026-09-08T15:26:52.647Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_canvas_inspector; auto_snapshot=2026-09-08t15-26-52-545z-193v2v"}
+{"ts":"2026-09-08T15:26:52.769Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-712z-rrcvl7 message=\"auto: structural amend (add-edge e_canvas_panels) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.787Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_canvas_panels","detail":"l2_canvas -[depends_on]-> l3_panels"}
+{"ts":"2026-09-08T15:26:52.792Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_canvas_panels; auto_snapshot=2026-09-08t15-26-52-712z-rrcvl7"}
+{"ts":"2026-09-08T15:26:52.896Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-52-839z-7hy3p2 message=\"auto: structural amend (add-edge e_inspector_panels) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:52.939Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_inspector_panels","detail":"l2_inspector_editor -[depends_on]-> l3_panels"}
+{"ts":"2026-09-08T15:26:52.955Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_inspector_panels; auto_snapshot=2026-09-08t15-26-52-839z-7hy3p2"}
+{"ts":"2026-09-08T15:26:53.072Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-008z-y87o2p message=\"auto: structural amend (add-edge e_gateway_panels) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.092Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_gateway_panels","detail":"l1_web_gateway -[depends_on]-> l3_panels"}
+{"ts":"2026-09-08T15:26:53.097Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_gateway_panels; auto_snapshot=2026-09-08t15-26-53-008z-y87o2p"}
+{"ts":"2026-09-08T15:26:53.204Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-134z-pdbfv2 message=\"auto: structural amend (add-edge e_gateway_module) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.246Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_gateway_module","detail":"l1_web_gateway -[depends_on]-> l3_module_ui"}
+{"ts":"2026-09-08T15:26:53.252Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_gateway_module; auto_snapshot=2026-09-08t15-26-53-134z-pdbfv2"}
+{"ts":"2026-09-08T15:26:53.350Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-284z-zmf572 message=\"auto: structural amend (add-edge e_inspector_module) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.368Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_inspector_module","detail":"l2_inspector_editor -[depends_on]-> l3_module_ui"}
+{"ts":"2026-09-08T15:26:53.374Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_inspector_module; auto_snapshot=2026-09-08t15-26-53-284z-zmf572"}
+{"ts":"2026-09-08T15:26:53.477Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-409z-1oqa8r message=\"auto: structural amend (add-edge e_panels_browser) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.495Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_panels_browser","detail":"l3_panels -[depends_on]-> l4_browser_verification"}
+{"ts":"2026-09-08T15:26:53.501Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_panels_browser; auto_snapshot=2026-09-08t15-26-53-409z-1oqa8r"}
+{"ts":"2026-09-08T15:26:53.629Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-557z-9tvm6b message=\"auto: structural amend (add-edge e_module_browser) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.649Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_module_browser","detail":"l3_module_ui -[depends_on]-> l4_browser_verification"}
+{"ts":"2026-09-08T15:26:53.654Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_module_browser; auto_snapshot=2026-09-08t15-26-53-557z-9tvm6b"}
+{"ts":"2026-09-08T15:26:53.771Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-692z-2a63vr message=\"auto: structural amend (add-edge e_browser_human) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.804Z","actor":"codex-mcp-client","kind":"edge_created","edge":"e_browser_human","detail":"l4_browser_verification -[depends_on]-> l4_human_review"}
+{"ts":"2026-09-08T15:26:53.810Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=e_browser_human; auto_snapshot=2026-09-08t15-26-53-692z-2a63vr"}
+{"ts":"2026-09-08T15:26:53.920Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-53-842z-bvrtv6 message=\"auto: structural amend (add-edge d_adr_shell) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:53.939Z","actor":"codex-mcp-client","kind":"edge_created","edge":"d_adr_shell","detail":"adr_0001 -[decides]-> l1_web_shell"}
+{"ts":"2026-09-08T15:26:53.961Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=d_adr_shell; auto_snapshot=2026-09-08t15-26-53-842z-bvrtv6"}
+{"ts":"2026-09-08T15:26:54.093Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-54-006z-w35z0y message=\"auto: structural amend (add-edge rel_core_web) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:54.137Z","actor":"codex-mcp-client","kind":"edge_created","edge":"rel_core_web","detail":"ctx_core_gateway -[relates]-> ctx_web_surface"}
+{"ts":"2026-09-08T15:26:54.142Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=rel_core_web; auto_snapshot=2026-09-08t15-26-54-006z-w35z0y"}
+{"ts":"2026-09-08T15:26:54.259Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-54-179z-er1uf4 message=\"auto: structural amend (add-edge rel_core_module) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:54.281Z","actor":"codex-mcp-client","kind":"edge_created","edge":"rel_core_module","detail":"ctx_core_gateway -[relates]-> ctx_module_projection"}
+{"ts":"2026-09-08T15:26:54.285Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=rel_core_module; auto_snapshot=2026-09-08t15-26-54-179z-er1uf4"}
+{"ts":"2026-09-08T15:26:54.405Z","actor":"codex-mcp-client","kind":"snapshot_created","detail":"snapshot=2026-09-08t15-26-54-320z-f01vfq message=\"auto: structural amend (add-edge rel_module_web) by codex-mcp-client\" docs_export=skipped"}
+{"ts":"2026-09-08T15:26:54.425Z","actor":"codex-mcp-client","kind":"edge_created","edge":"rel_module_web","detail":"ctx_module_projection -[relates]-> ctx_web_surface"}
+{"ts":"2026-09-08T15:26:54.446Z","actor":"codex-mcp-client","kind":"graph_amended","detail":"action=add-edge target=rel_module_web; auto_snapshot=2026-09-08t15-26-54-320z-f01vfq"}
+{"ts":"2026-09-08T15:31:07.297Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"l1_web_shell","detail":"fields: plan"}
+{"ts":"2026-09-08T15:31:07.333Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"l2_canvas","detail":"fields: plan"}
+{"ts":"2026-09-08T15:31:13.184Z","actor":"user","kind":"design_approved","detail":"by=user, status=approved"}
+{"ts":"2026-09-08T15:31:25.018Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_shell","from":"pending","to":"ready"}
+{"ts":"2026-09-08T15:31:25.066Z","actor":"codex-root","kind":"node_status","node":"l1_web_shell","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T15:39:01.717Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l1_web_shell","from":"pending","to":"passed","detail":"checkpoint=shell_scaffold"}
+{"ts":"2026-09-08T15:39:01.740Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l1_web_shell","from":"pending","to":"passed","detail":"checkpoint=shell_boundary"}
+{"ts":"2026-09-08T15:39:21.463Z","actor":"codex-mcp-client","kind":"verdict","node":"l1_web_shell","detail":"verdict=passed"}
+{"ts":"2026-09-08T15:39:27.008Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_shell","from":"running","to":"passed"}
+{"ts":"2026-09-08T15:39:43.194Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_gateway","from":"pending","to":"ready"}
+{"ts":"2026-09-08T15:39:43.239Z","actor":"codex-root","kind":"node_status","node":"l1_web_gateway","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T15:46:37.177Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l1_web_gateway","from":"pending","to":"passed","detail":"checkpoint=gateway_contract"}
+{"ts":"2026-09-08T15:46:42.149Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l1_web_gateway","from":"pending","to":"passed","detail":"checkpoint=gateway_conflict"}
+{"ts":"2026-09-08T15:46:52.634Z","actor":"codex-mcp-client","kind":"verdict","node":"l1_web_gateway","detail":"verdict=passed"}
+{"ts":"2026-09-08T15:46:56.770Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_gateway","from":"running","to":"passed"}
+{"ts":"2026-09-08T15:47:10.556Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_canvas","from":"pending","to":"ready"}
+{"ts":"2026-09-08T15:47:10.608Z","actor":"codex-root","kind":"node_status","node":"l2_canvas","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T15:55:17.671Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l2_canvas","from":"pending","to":"passed","detail":"checkpoint=canvas_render"}
+{"ts":"2026-09-08T15:55:17.694Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l2_canvas","from":"pending","to":"passed","detail":"checkpoint=canvas_interaction"}
+{"ts":"2026-09-08T15:55:27.366Z","actor":"codex-mcp-client","kind":"verdict","node":"l2_canvas","detail":"verdict=passed"}
+{"ts":"2026-09-08T15:55:33.221Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_canvas","from":"running","to":"passed"}
+{"ts":"2026-09-08T15:55:52.089Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_inspector_editor","from":"pending","to":"ready"}
+{"ts":"2026-09-08T15:55:52.138Z","actor":"codex-root","kind":"node_status","node":"l2_inspector_editor","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T16:02:17.147Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l2_inspector_editor","from":"pending","to":"passed","detail":"checkpoint=inspector_view"}
+{"ts":"2026-09-08T16:02:17.178Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l2_inspector_editor","from":"pending","to":"passed","detail":"checkpoint=inspector_mutation"}
+{"ts":"2026-09-08T16:02:27.701Z","actor":"codex-mcp-client","kind":"verdict","node":"l2_inspector_editor","detail":"verdict=passed"}
+{"ts":"2026-09-08T16:02:32.739Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_inspector_editor","from":"running","to":"passed"}
+{"ts":"2026-09-08T16:02:56.542Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_panels","from":"pending","to":"ready"}
+{"ts":"2026-09-08T16:02:56.614Z","actor":"codex-root","kind":"node_status","node":"l3_panels","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T16:10:08.241Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_panels","from":"pending","to":"passed","detail":"checkpoint=panel_navigation"}
+{"ts":"2026-09-08T16:10:08.265Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_panels","from":"pending","to":"passed","detail":"checkpoint=panel_readonly"}
+{"ts":"2026-09-08T16:10:20.950Z","actor":"codex-mcp-client","kind":"verdict","node":"l3_panels","detail":"verdict=passed"}
+{"ts":"2026-09-08T16:10:27.197Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_panels","from":"running","to":"passed"}
+{"ts":"2026-09-08T16:10:41.382Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_module_ui","from":"pending","to":"ready"}
+{"ts":"2026-09-08T16:10:41.424Z","actor":"codex-root","kind":"node_status","node":"l3_module_ui","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T16:17:15.481Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_module_ui","from":"pending","to":"passed","detail":"checkpoint=module_declarations"}
+{"ts":"2026-09-08T16:17:15.504Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l3_module_ui","from":"pending","to":"passed","detail":"checkpoint=module_degraded"}
+{"ts":"2026-09-08T16:17:31.738Z","actor":"codex-mcp-client","kind":"verdict","node":"l3_module_ui","detail":"verdict=passed"}
+{"ts":"2026-09-08T16:17:43.211Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_module_ui","from":"running","to":"passed"}
+{"ts":"2026-09-08T16:18:06.391Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_verification","from":"pending","to":"ready"}
+{"ts":"2026-09-08T16:18:06.450Z","actor":"codex-root","kind":"node_status","node":"l4_browser_verification","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-08T16:23:03.525Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_verification","from":"pending","to":"passed","detail":"checkpoint=browser_smoke"}
+{"ts":"2026-09-08T16:23:03.549Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_verification","from":"pending","to":"passed","detail":"checkpoint=browser_regression"}
+{"ts":"2026-09-08T16:23:21.554Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_browser_verification","detail":"verdict=passed"}
+{"ts":"2026-09-08T16:24:45.697Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_verification","from":"running","to":"passed"}
+{"ts":"2026-09-08T23:18:15.394Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_shell","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.432Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_shell","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:15.460Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_gateway","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.493Z","actor":"codex-mcp-client","kind":"node_status","node":"l1_web_gateway","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:15.547Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_canvas","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.580Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_canvas","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:15.622Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_inspector_editor","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.658Z","actor":"codex-mcp-client","kind":"node_status","node":"l2_inspector_editor","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:15.682Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_module_ui","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.707Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_module_ui","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:15.740Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_panels","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.767Z","actor":"codex-mcp-client","kind":"node_status","node":"l3_panels","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:15.791Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_verification","from":"passed","to":"blocked"}
+{"ts":"2026-09-08T23:18:15.816Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_verification","from":"blocked","to":"failed"}
+{"ts":"2026-09-08T23:18:26.112Z","actor":"cli","kind":"force_override","node":"l4_human_review","from":"pending","to":"ready","detail":"绕过 ready 门禁/max_attempts/passed 硬门禁（原状态 pending → ready）"}
+{"ts":"2026-09-08T23:18:26.131Z","actor":"cli","kind":"node_status","node":"l4_human_review","from":"pending","to":"ready"}
+{"ts":"2026-09-08T23:18:42.386Z","actor":"cli","kind":"force_override","node":"l4_human_review","from":"ready","to":"running","detail":"绕过 ready 门禁/max_attempts/passed 硬门禁（原状态 ready → running）"}
+{"ts":"2026-09-08T23:18:42.389Z","actor":"cli","kind":"node_status","node":"l4_human_review","from":"ready","to":"running"}
+{"ts":"2026-09-08T23:18:48.326Z","actor":"cli","kind":"force_override","node":"l4_human_review","from":"running","to":"failed","detail":"绕过 ready 门禁/max_attempts/passed 硬门禁（原状态 running → failed）"}
+{"ts":"2026-09-08T23:18:48.331Z","actor":"cli","kind":"node_status","node":"l4_human_review","from":"running","to":"failed"}
+{"ts":"2026-09-08T23:19:41.374Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_human_review","detail":"verdict=failed"}

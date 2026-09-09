@@ -1,0 +1,50 @@
+id: l3_panels
+type: task
+label: 实现搜索筛选、历史与通用面板
+level: 3
+priority: 5
+context: ctx_web_surface
+status: failed
+plan:
+  description: >-
+    在 Web 应用壳中加入搜索、通用筛选、图切换、历史、撤销/重做、基础/完整校验、模块状态、原始快照和只读模式面板。所有筛选和布局只改变视图状态；历史按钮调用 Core 入口；图切换用显式图 ID 重新读取快照并清理旧选择。只修改
+    Web 面板、Server 的查询入口和面板测试。
+expected_outcome:
+  definition_of_done:
+    - 搜索与筛选能缩小画布和列表结果，并显示当前过滤条件；清除过滤后恢复同一快照内容。
+    - 图列表和图切换使用显式 graph ID；切换后 revision、选择、历史提示与新图快照一致。
+    - 撤销/重做按钮和键盘快捷键按 history 状态启用或禁用；基础校验与完整校验结果区分显示。
+    - 只读模式保留查看、搜索、校验和原始数据能力，并禁用新增、编辑、连接、删除及模块动作入口。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.717Z'
+updated_at: '2026-09-08T23:18:15.763Z'
+checkpoints:
+  - id: panel_navigation
+    label: 搜索筛选、图切换和历史面板已验证
+    status: passed
+    verifier: auto
+  - id: panel_readonly
+    label: 校验、模块状态和只读模式已验证
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: 补齐 Web 通用面板：显式图列表/切换、搜索与 kind 过滤、过滤状态、按 history 状态启用撤销/重做与 Ctrl/Cmd+Z/Y、基础/完整校验、模块状态、原始快照和只读模式；所有面板状态仅影响视图。
+  started_at: '2026-09-08T16:02:56.609Z'
+  artifacts:
+    - src/server/index.ts
+    - web-ui/src/lib/protocol.ts
+    - web-ui/src/lib/filter.ts
+    - web-ui/src/lib/filter.test.ts
+    - web-ui/src/lib/InspectorEditor.svelte
+    - web-ui/src/App.svelte
+    - tests/core-store.test.ts
+  blockers: []
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T16:10:20.941Z'
+    note: >-
+      npm run web:verify 通过（Web typecheck 0 errors/0 warnings、build、5 个测试文件 12 个测试通过）；npm run build 与 root npm test 通过（8
+      个测试文件 24 个测试通过）。HTTP 集成覆盖 /api/graphs、显式 /api/graph/switch、/api/modules、基础与 mode=complete 校验、历史和 mutation 冲突边界。
+  completed_at: '2026-09-08T23:18:15.763Z'

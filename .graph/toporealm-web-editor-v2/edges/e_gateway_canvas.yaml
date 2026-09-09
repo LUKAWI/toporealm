@@ -1,0 +1,11 @@
+id: e_gateway_canvas
+source: l1_gateway_ui
+target: l2_canvas_starfield
+type: depends_on
+contract:
+  produces: GraphSnapshot/GraphPatch 与连续 revision
+  consumed_by:
+    - artifact: canvas-state
+      used_as: 驱动星体、关系和选择投影
+  validation:
+    criteria: 画布只消费通用对象/关系，不依赖旧 NodeSchema

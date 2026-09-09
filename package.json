@@ -11,7 +11,12 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "verify": "npm run build && npm test"
+    "web:build": "npm --prefix web-ui run build",
+    "web:typecheck": "npm --prefix web-ui run typecheck",
+    "web:test": "npm --prefix web-ui run test",
+    "web:browser-smoke": "vitest run tests/browser-smoke.test.ts",
+    "web:verify": "npm run web:typecheck && npm run web:build && npm run web:test",
+    "verify": "npm run build && npm test && npm run web:verify"
   },
   "dependencies": {
     "yaml": "^2.7.0"

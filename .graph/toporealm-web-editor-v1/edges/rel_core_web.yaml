@@ -1,0 +1,5 @@
+id: rel_core_web
+source: ctx_core_gateway
+target: ctx_web_surface
+type: relates
+rel_kind: 稳定数据协议供 Web 交互消费

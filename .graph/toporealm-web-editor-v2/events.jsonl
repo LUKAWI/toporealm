@@ -1,0 +1,193 @@
+{"ts":"2026-09-08T23:38:41.527Z","actor":"agent","kind":"class_changed","to":"standard","by":"agent","detail":"class: (未设) → standard（by=agent）"}
+{"ts":"2026-09-08T23:39:02.978Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-02-969z-qojl6k message=\"auto: structural amend (add-node ctx_core_gateway) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:02.991Z","actor":"cli","kind":"node_created","node":"ctx_core_gateway","to":"pending"}
+{"ts":"2026-09-08T23:39:02.995Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=ctx_core_gateway; auto_snapshot=2026-09-08t23-39-02-969z-qojl6k"}
+{"ts":"2026-09-08T23:39:03.304Z","actor":"cli","kind":"node_content_updated","node":"ctx_core_gateway","detail":"fields: boundary, glossary, contracts"}
+{"ts":"2026-09-08T23:39:03.594Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-03-580z-hv96s4 message=\"auto: structural amend (add-node ctx_module_projection) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:03.633Z","actor":"cli","kind":"node_created","node":"ctx_module_projection","to":"pending"}
+{"ts":"2026-09-08T23:39:03.638Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=ctx_module_projection; auto_snapshot=2026-09-08t23-39-03-580z-hv96s4"}
+{"ts":"2026-09-08T23:39:03.957Z","actor":"cli","kind":"node_content_updated","node":"ctx_module_projection","detail":"fields: boundary, glossary, contracts"}
+{"ts":"2026-09-08T23:39:04.233Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-04-216z-1q9bc7 message=\"auto: structural amend (add-node ctx_web_surface) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:04.247Z","actor":"cli","kind":"node_created","node":"ctx_web_surface","to":"pending"}
+{"ts":"2026-09-08T23:39:04.252Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=ctx_web_surface; auto_snapshot=2026-09-08t23-39-04-216z-1q9bc7"}
+{"ts":"2026-09-08T23:39:04.560Z","actor":"cli","kind":"node_content_updated","node":"ctx_web_surface","detail":"fields: boundary, glossary"}
+{"ts":"2026-09-08T23:39:04.844Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-04-827z-s048w5 message=\"auto: structural amend (add-edge rel_core_web) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:04.857Z","actor":"cli","kind":"edge_created","edge":"rel_core_web","detail":"ctx_core_gateway -[relates]-> ctx_web_surface"}
+{"ts":"2026-09-08T23:39:04.862Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=rel_core_web; auto_snapshot=2026-09-08t23-39-04-827z-s048w5"}
+{"ts":"2026-09-08T23:39:05.150Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-05-129z-6gbops message=\"auto: structural amend (add-edge rel_core_module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:05.163Z","actor":"cli","kind":"edge_created","edge":"rel_core_module","detail":"ctx_core_gateway -[relates]-> ctx_module_projection"}
+{"ts":"2026-09-08T23:39:05.168Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=rel_core_module; auto_snapshot=2026-09-08t23-39-05-129z-6gbops"}
+{"ts":"2026-09-08T23:39:05.506Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-05-482z-cqfb5e message=\"auto: structural amend (add-edge rel_module_web) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:05.519Z","actor":"cli","kind":"edge_created","edge":"rel_module_web","detail":"ctx_module_projection -[relates]-> ctx_web_surface"}
+{"ts":"2026-09-08T23:39:05.523Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=rel_module_web; auto_snapshot=2026-09-08t23-39-05-482z-cqfb5e"}
+{"ts":"2026-09-08T23:39:27.400Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-39-27-372z-36uehm message=\"auto: structural amend (add-node adr_0001) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:39:27.415Z","actor":"cli","kind":"adr_created","node":"adr_0001","to":"proposed","detail":"Super Plumber 外壳与交互完全直译迁移，替代 v1 主题化近似"}
+{"ts":"2026-09-08T23:39:27.420Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=adr_0001; auto_snapshot=2026-09-08t23-39-27-372z-36uehm"}
+{"ts":"2026-09-08T23:40:02.635Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-02-602z-xneag9 message=\"auto: structural amend (add-node l1_shell_sky) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:02.651Z","actor":"cli","kind":"node_created","node":"l1_shell_sky","to":"pending"}
+{"ts":"2026-09-08T23:40:02.656Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l1_shell_sky; auto_snapshot=2026-09-08t23-40-02-602z-xneag9"}
+{"ts":"2026-09-08T23:40:03.011Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-02-976z-acu1qi message=\"auto: structural amend (add-node l1_gateway_ui) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:03.027Z","actor":"cli","kind":"node_created","node":"l1_gateway_ui","to":"pending"}
+{"ts":"2026-09-08T23:40:03.031Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l1_gateway_ui; auto_snapshot=2026-09-08t23-40-02-976z-acu1qi"}
+{"ts":"2026-09-08T23:40:03.384Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-03-344z-qlw6kf message=\"auto: structural amend (add-node l2_canvas_starfield) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:03.400Z","actor":"cli","kind":"node_created","node":"l2_canvas_starfield","to":"pending"}
+{"ts":"2026-09-08T23:40:03.404Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l2_canvas_starfield; auto_snapshot=2026-09-08t23-40-03-344z-qlw6kf"}
+{"ts":"2026-09-08T23:40:30.159Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-30-118z-luaz54 message=\"auto: structural amend (add-node l2_detail_chain) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:30.177Z","actor":"cli","kind":"node_created","node":"l2_detail_chain","to":"pending"}
+{"ts":"2026-09-08T23:40:30.181Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l2_detail_chain; auto_snapshot=2026-09-08t23-40-30-118z-luaz54"}
+{"ts":"2026-09-08T23:40:30.523Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-30-475z-voszdu message=\"auto: structural amend (add-node l3_editor_flows) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:30.542Z","actor":"cli","kind":"node_created","node":"l3_editor_flows","to":"pending"}
+{"ts":"2026-09-08T23:40:30.547Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3_editor_flows; auto_snapshot=2026-09-08t23-40-30-475z-voszdu"}
+{"ts":"2026-09-08T23:40:30.906Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-30-857z-mwligd message=\"auto: structural amend (add-node l3_panels_readonly) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:30.924Z","actor":"cli","kind":"node_created","node":"l3_panels_readonly","to":"pending"}
+{"ts":"2026-09-08T23:40:30.929Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3_panels_readonly; auto_snapshot=2026-09-08t23-40-30-857z-mwligd"}
+{"ts":"2026-09-08T23:40:54.647Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-54-595z-807mhk message=\"auto: structural amend (add-node l3_module_projection) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:54.666Z","actor":"cli","kind":"node_created","node":"l3_module_projection","to":"pending"}
+{"ts":"2026-09-08T23:40:54.670Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l3_module_projection; auto_snapshot=2026-09-08t23-40-54-595z-807mhk"}
+{"ts":"2026-09-08T23:40:55.034Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-54-980z-sfleu3 message=\"auto: structural amend (add-node l4_browser_acceptance) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:55.052Z","actor":"cli","kind":"node_created","node":"l4_browser_acceptance","to":"pending"}
+{"ts":"2026-09-08T23:40:55.057Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l4_browser_acceptance; auto_snapshot=2026-09-08t23-40-54-980z-sfleu3"}
+{"ts":"2026-09-08T23:40:55.410Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-40-55-355z-qpmihm message=\"auto: structural amend (add-node l4_human_review) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:40:55.449Z","actor":"cli","kind":"node_created","node":"l4_human_review","to":"pending"}
+{"ts":"2026-09-08T23:40:55.453Z","actor":"cli","kind":"graph_amended","detail":"action=add-node target=l4_human_review; auto_snapshot=2026-09-08t23-40-55-355z-qpmihm"}
+{"ts":"2026-09-08T23:41:15.645Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-15-591z-r7g8km message=\"auto: structural amend (add-edge d_adr_shell) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:15.665Z","actor":"cli","kind":"edge_created","edge":"d_adr_shell","detail":"adr_0001 -[decides]-> l1_shell_sky"}
+{"ts":"2026-09-08T23:41:15.669Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=d_adr_shell; auto_snapshot=2026-09-08t23-41-15-591z-r7g8km"}
+{"ts":"2026-09-08T23:41:16.013Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-15-957z-340clo message=\"auto: structural amend (add-edge d_adr_canvas) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:16.050Z","actor":"cli","kind":"edge_created","edge":"d_adr_canvas","detail":"adr_0001 -[decides]-> l2_canvas_starfield"}
+{"ts":"2026-09-08T23:41:16.055Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=d_adr_canvas; auto_snapshot=2026-09-08t23-41-15-957z-340clo"}
+{"ts":"2026-09-08T23:41:16.403Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-16-345z-oitows message=\"auto: structural amend (add-edge e_shell_gateway) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:16.422Z","actor":"cli","kind":"edge_created","edge":"e_shell_gateway","detail":"l1_shell_sky -[depends_on]-> l1_gateway_ui"}
+{"ts":"2026-09-08T23:41:16.427Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_shell_gateway; auto_snapshot=2026-09-08t23-41-16-345z-oitows"}
+{"ts":"2026-09-08T23:41:16.783Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-16-724z-e2uou6 message=\"auto: structural amend (add-edge e_shell_canvas) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:16.803Z","actor":"cli","kind":"edge_created","edge":"e_shell_canvas","detail":"l1_shell_sky -[depends_on]-> l2_canvas_starfield"}
+{"ts":"2026-09-08T23:41:16.807Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_shell_canvas; auto_snapshot=2026-09-08t23-41-16-724z-e2uou6"}
+{"ts":"2026-09-08T23:41:17.165Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-17-103z-cnfc2h message=\"auto: structural amend (add-edge e_gateway_canvas) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:17.186Z","actor":"cli","kind":"edge_created","edge":"e_gateway_canvas","detail":"l1_gateway_ui -[depends_on]-> l2_canvas_starfield"}
+{"ts":"2026-09-08T23:41:17.190Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_gateway_canvas; auto_snapshot=2026-09-08t23-41-17-103z-cnfc2h"}
+{"ts":"2026-09-08T23:41:17.557Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-17-491z-lulw9b message=\"auto: structural amend (add-edge e_gateway_detail) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:17.577Z","actor":"cli","kind":"edge_created","edge":"e_gateway_detail","detail":"l1_gateway_ui -[depends_on]-> l2_detail_chain"}
+{"ts":"2026-09-08T23:41:17.581Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_gateway_detail; auto_snapshot=2026-09-08t23-41-17-491z-lulw9b"}
+{"ts":"2026-09-08T23:41:17.995Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-17-928z-e53fer message=\"auto: structural amend (add-edge e_canvas_detail) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:18.033Z","actor":"cli","kind":"edge_created","edge":"e_canvas_detail","detail":"l2_canvas_starfield -[depends_on]-> l2_detail_chain"}
+{"ts":"2026-09-08T23:41:18.038Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_canvas_detail; auto_snapshot=2026-09-08t23-41-17-928z-e53fer"}
+{"ts":"2026-09-08T23:41:18.404Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-18-332z-pga344 message=\"auto: structural amend (add-edge e_gateway_editor) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:18.425Z","actor":"cli","kind":"edge_created","edge":"e_gateway_editor","detail":"l1_gateway_ui -[depends_on]-> l3_editor_flows"}
+{"ts":"2026-09-08T23:41:18.450Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_gateway_editor; auto_snapshot=2026-09-08t23-41-18-332z-pga344"}
+{"ts":"2026-09-08T23:41:18.841Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-18-767z-kmh4kt message=\"auto: structural amend (add-edge e_detail_editor) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:18.885Z","actor":"cli","kind":"edge_created","edge":"e_detail_editor","detail":"l2_detail_chain -[depends_on]-> l3_editor_flows"}
+{"ts":"2026-09-08T23:41:18.890Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_detail_editor; auto_snapshot=2026-09-08t23-41-18-767z-kmh4kt"}
+{"ts":"2026-09-08T23:41:19.289Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-19-210z-ibot4s message=\"auto: structural amend (add-edge e_gateway_panels) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:19.311Z","actor":"cli","kind":"edge_created","edge":"e_gateway_panels","detail":"l1_gateway_ui -[depends_on]-> l3_panels_readonly"}
+{"ts":"2026-09-08T23:41:19.316Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_gateway_panels; auto_snapshot=2026-09-08t23-41-19-210z-ibot4s"}
+{"ts":"2026-09-08T23:41:19.668Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-19-590z-p0qlng message=\"auto: structural amend (add-edge e_canvas_panels) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:19.712Z","actor":"cli","kind":"edge_created","edge":"e_canvas_panels","detail":"l2_canvas_starfield -[depends_on]-> l3_panels_readonly"}
+{"ts":"2026-09-08T23:41:19.717Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_canvas_panels; auto_snapshot=2026-09-08t23-41-19-590z-p0qlng"}
+{"ts":"2026-09-08T23:41:20.110Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-20-020z-0uk41q message=\"auto: structural amend (add-edge e_detail_panels) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:20.135Z","actor":"cli","kind":"edge_created","edge":"e_detail_panels","detail":"l2_detail_chain -[depends_on]-> l3_panels_readonly"}
+{"ts":"2026-09-08T23:41:20.140Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_detail_panels; auto_snapshot=2026-09-08t23-41-20-020z-0uk41q"}
+{"ts":"2026-09-08T23:41:20.518Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-20-434z-p7e1s5 message=\"auto: structural amend (add-edge e_gateway_module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:20.541Z","actor":"cli","kind":"edge_created","edge":"e_gateway_module","detail":"l1_gateway_ui -[depends_on]-> l3_module_projection"}
+{"ts":"2026-09-08T23:41:20.546Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_gateway_module; auto_snapshot=2026-09-08t23-41-20-434z-p7e1s5"}
+{"ts":"2026-09-08T23:41:20.927Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-20-842z-69x3vi message=\"auto: structural amend (add-edge e_detail_module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:20.952Z","actor":"cli","kind":"edge_created","edge":"e_detail_module","detail":"l2_detail_chain -[depends_on]-> l3_module_projection"}
+{"ts":"2026-09-08T23:41:20.957Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_detail_module; auto_snapshot=2026-09-08t23-41-20-842z-69x3vi"}
+{"ts":"2026-09-08T23:41:21.334Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-21-236z-xfedi7 message=\"auto: structural amend (add-edge e_editor_browser) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:21.359Z","actor":"cli","kind":"edge_created","edge":"e_editor_browser","detail":"l3_editor_flows -[depends_on]-> l4_browser_acceptance"}
+{"ts":"2026-09-08T23:41:21.364Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_editor_browser; auto_snapshot=2026-09-08t23-41-21-236z-xfedi7"}
+{"ts":"2026-09-08T23:41:21.748Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-21-661z-ccgl7w message=\"auto: structural amend (add-edge e_panels_browser) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:21.774Z","actor":"cli","kind":"edge_created","edge":"e_panels_browser","detail":"l3_panels_readonly -[depends_on]-> l4_browser_acceptance"}
+{"ts":"2026-09-08T23:41:21.778Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_panels_browser; auto_snapshot=2026-09-08t23-41-21-661z-ccgl7w"}
+{"ts":"2026-09-08T23:41:22.184Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-22-092z-jeh4lh message=\"auto: structural amend (add-edge e_module_browser) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:22.210Z","actor":"cli","kind":"edge_created","edge":"e_module_browser","detail":"l3_module_projection -[depends_on]-> l4_browser_acceptance"}
+{"ts":"2026-09-08T23:41:22.215Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_module_browser; auto_snapshot=2026-09-08t23-41-22-092z-jeh4lh"}
+{"ts":"2026-09-08T23:41:22.625Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-22-524z-fi84tl message=\"auto: structural amend (add-edge e_browser_human) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:22.654Z","actor":"cli","kind":"edge_created","edge":"e_browser_human","detail":"l4_browser_acceptance -[depends_on]-> l4_human_review"}
+{"ts":"2026-09-08T23:41:22.659Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_browser_human; auto_snapshot=2026-09-08t23-41-22-524z-fi84tl"}
+{"ts":"2026-09-08T23:41:34.316Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-34-207z-p3xv2r message=\"auto: structural amend (remove-edge e_detail_module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:34.343Z","actor":"cli","kind":"edge_deleted","edge":"e_detail_module"}
+{"ts":"2026-09-08T23:41:34.345Z","actor":"cli","kind":"graph_amended","detail":"action=remove-edge target=e_detail_module; auto_snapshot=2026-09-08t23-41-34-207z-p3xv2r"}
+{"ts":"2026-09-08T23:41:34.759Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-41-34-658z-4vkbjm message=\"auto: structural amend (add-edge e_detail_module) by cli\" docs_export=skipped"}
+{"ts":"2026-09-08T23:41:34.808Z","actor":"cli","kind":"edge_created","edge":"e_detail_module","detail":"l2_detail_chain -[depends_on]-> l3_module_projection"}
+{"ts":"2026-09-08T23:41:34.813Z","actor":"cli","kind":"graph_amended","detail":"action=add-edge target=e_detail_module; auto_snapshot=2026-09-08t23-41-34-658z-4vkbjm"}
+{"ts":"2026-09-08T23:42:03.600Z","actor":"用户会话指令（2026-09-09 /plumber-join）：明确要求从零推翻 v1、按 web-editor-v2 重新设计并完成开发；本凭据记录预授权，终审仍由 l4_human_review 人工把关","kind":"design_approved","detail":"by=用户会话指令（2026-09-09 /plumber-join）：明确要求从零推翻 v1、按 web-editor-v2 重新设计并完成开发；本凭据记录预授权，终审仍由 l4_human_review 人工把关, status=approved"}
+{"ts":"2026-09-08T23:42:03.997Z","actor":"cli","kind":"snapshot_created","detail":"snapshot=2026-09-08t23-42-03-878z-nn2n9b message=\"v2 设计定稿：3 ctx + adr_0001 + 8 task + 人审 gate，validate 0 错 0 警\" docs_exported=6"}
+{"ts":"2026-09-08T23:43:36.047Z","actor":"zcode","kind":"node_status","node":"l1_shell_sky","from":"pending","to":"ready"}
+{"ts":"2026-09-08T23:43:41.680Z","actor":"zcode-root","kind":"node_status","node":"l1_shell_sky","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T00:04:14.609Z","actor":"zcode","kind":"checkpoint_updated","node":"l1_shell_sky","from":"pending","to":"passed","detail":"checkpoint=shell_tokens"}
+{"ts":"2026-09-09T00:04:21.804Z","actor":"zcode","kind":"checkpoint_updated","node":"l1_shell_sky","from":"pending","to":"passed","detail":"checkpoint=shell_states"}
+{"ts":"2026-09-09T00:04:21.846Z","actor":"zcode","kind":"checkpoint_updated","node":"l1_shell_sky","from":"pending","to":"passed","detail":"checkpoint=shell_boundary"}
+{"ts":"2026-09-09T00:04:34.090Z","actor":"zcode","kind":"execution_report","node":"l1_shell_sky"}
+{"ts":"2026-09-09T00:04:44.252Z","actor":"zcode","kind":"node_status","node":"l1_shell_sky","from":"running","to":"passed"}
+{"ts":"2026-09-09T00:04:50.408Z","actor":"zcode","kind":"node_status","node":"l1_gateway_ui","from":"pending","to":"ready"}
+{"ts":"2026-09-09T00:04:54.285Z","actor":"zcode-root","kind":"node_status","node":"l1_gateway_ui","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T00:13:47.051Z","actor":"zcode","kind":"checkpoint_updated","node":"l1_gateway_ui","from":"pending","to":"passed","detail":"checkpoint=gateway_state"}
+{"ts":"2026-09-09T00:13:47.082Z","actor":"zcode","kind":"checkpoint_updated","node":"l1_gateway_ui","from":"pending","to":"passed","detail":"checkpoint=gateway_recovery"}
+{"ts":"2026-09-09T00:13:55.494Z","actor":"zcode","kind":"execution_report","node":"l1_gateway_ui"}
+{"ts":"2026-09-09T00:14:03.399Z","actor":"zcode","kind":"node_status","node":"l1_gateway_ui","from":"running","to":"passed"}
+{"ts":"2026-09-09T00:14:43.918Z","actor":"zcode","kind":"node_status","node":"l2_canvas_starfield","from":"pending","to":"ready"}
+{"ts":"2026-09-09T00:14:50.192Z","actor":"zcode-root","kind":"node_status","node":"l2_canvas_starfield","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T00:31:39.104Z","actor":"zcode","kind":"checkpoint_updated","node":"l2_canvas_starfield","from":"pending","to":"passed","detail":"checkpoint=canvas_visual"}
+{"ts":"2026-09-09T00:31:39.139Z","actor":"zcode","kind":"checkpoint_updated","node":"l2_canvas_starfield","from":"pending","to":"passed","detail":"checkpoint=canvas_pointer"}
+{"ts":"2026-09-09T00:31:39.177Z","actor":"zcode","kind":"checkpoint_updated","node":"l2_canvas_starfield","from":"pending","to":"passed","detail":"checkpoint=canvas_keyboard"}
+{"ts":"2026-09-09T00:31:55.683Z","actor":"zcode","kind":"execution_report","node":"l2_canvas_starfield"}
+{"ts":"2026-09-09T00:32:04.435Z","actor":"zcode","kind":"node_status","node":"l2_canvas_starfield","from":"running","to":"passed"}
+{"ts":"2026-09-09T00:32:20.162Z","actor":"zcode","kind":"node_status","node":"l2_detail_chain","from":"pending","to":"ready"}
+{"ts":"2026-09-09T00:32:24.798Z","actor":"zcode-root","kind":"node_status","node":"l2_detail_chain","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T00:36:27.115Z","actor":"zcode","kind":"checkpoint_updated","node":"l2_detail_chain","from":"pending","to":"passed","detail":"checkpoint=chain_selection"}
+{"ts":"2026-09-09T00:36:27.150Z","actor":"zcode","kind":"checkpoint_updated","node":"l2_detail_chain","from":"pending","to":"passed","detail":"checkpoint=chain_content"}
+{"ts":"2026-09-09T00:36:27.185Z","actor":"zcode","kind":"checkpoint_updated","node":"l2_detail_chain","from":"pending","to":"passed","detail":"checkpoint=chain_regression"}
+{"ts":"2026-09-09T00:36:41.229Z","actor":"zcode","kind":"execution_report","node":"l2_detail_chain"}
+{"ts":"2026-09-09T00:36:50.044Z","actor":"zcode","kind":"node_status","node":"l2_detail_chain","from":"running","to":"passed"}
+{"ts":"2026-09-09T00:37:22.537Z","actor":"zcode","kind":"node_status","node":"l3_editor_flows","from":"pending","to":"ready"}
+{"ts":"2026-09-09T00:37:27.933Z","actor":"zcode-root","kind":"node_status","node":"l3_editor_flows","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T00:44:21.047Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_editor_flows","from":"pending","to":"passed","detail":"checkpoint=editor_crud"}
+{"ts":"2026-09-09T00:44:21.080Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_editor_flows","from":"pending","to":"passed","detail":"checkpoint=editor_conflict"}
+{"ts":"2026-09-09T00:44:21.113Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_editor_flows","from":"pending","to":"passed","detail":"checkpoint=editor_readonly"}
+{"ts":"2026-09-09T00:44:35.951Z","actor":"zcode","kind":"execution_report","node":"l3_editor_flows"}
+{"ts":"2026-09-09T00:44:41.817Z","actor":"zcode","kind":"node_status","node":"l3_editor_flows","from":"running","to":"passed"}
+{"ts":"2026-09-09T00:44:41.860Z","actor":"zcode","kind":"node_status","node":"l3_panels_readonly","from":"pending","to":"ready"}
+{"ts":"2026-09-09T00:45:04.014Z","actor":"zcode-root","kind":"node_status","node":"l3_panels_readonly","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T00:47:23.708Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_panels_readonly","from":"pending","to":"passed","detail":"checkpoint=panels_filter"}
+{"ts":"2026-09-09T00:47:23.750Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_panels_readonly","from":"pending","to":"passed","detail":"checkpoint=panels_graphs"}
+{"ts":"2026-09-09T00:47:23.788Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_panels_readonly","from":"pending","to":"passed","detail":"checkpoint=panels_validation"}
+{"ts":"2026-09-09T00:47:39.088Z","actor":"zcode","kind":"execution_report","node":"l3_panels_readonly"}
+{"ts":"2026-09-09T00:47:45.822Z","actor":"zcode","kind":"node_status","node":"l3_panels_readonly","from":"running","to":"passed"}
+{"ts":"2026-09-09T00:47:45.905Z","actor":"zcode","kind":"node_status","node":"l3_module_projection","from":"pending","to":"ready"}
+{"ts":"2026-09-09T00:48:05.270Z","actor":"zcode-root","kind":"node_status","node":"l3_module_projection","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T01:00:53.663Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_module_projection","from":"pending","to":"passed","detail":"checkpoint=module_decl"}
+{"ts":"2026-09-09T01:00:53.715Z","actor":"zcode","kind":"checkpoint_updated","node":"l3_module_projection","from":"pending","to":"passed","detail":"checkpoint=module_degraded"}
+{"ts":"2026-09-09T01:01:10.649Z","actor":"zcode","kind":"execution_report","node":"l3_module_projection"}
+{"ts":"2026-09-09T01:01:18.655Z","actor":"zcode","kind":"node_status","node":"l3_module_projection","from":"running","to":"passed"}
+{"ts":"2026-09-09T01:01:44.994Z","actor":"zcode","kind":"node_status","node":"l4_browser_acceptance","from":"pending","to":"ready"}
+{"ts":"2026-09-09T01:01:52.000Z","actor":"zcode-root","kind":"node_status","node":"l4_browser_acceptance","from":"ready","to":"running","detail":"claim by zcode-root"}
+{"ts":"2026-09-09T01:07:44.801Z","actor":"zcode","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=browser_interactive"}
+{"ts":"2026-09-09T01:07:44.848Z","actor":"zcode","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=browser_regression"}
+{"ts":"2026-09-09T01:07:51.887Z","actor":"zcode","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=reference_untouched"}
+{"ts":"2026-09-09T01:08:04.895Z","actor":"zcode","kind":"execution_report","node":"l4_browser_acceptance"}
+{"ts":"2026-09-09T01:08:13.302Z","actor":"zcode","kind":"node_status","node":"l4_browser_acceptance","from":"running","to":"passed"}
+{"ts":"2026-09-09T08:54:31.825Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_acceptance","from":"passed","to":"blocked"}
+{"ts":"2026-09-09T08:54:48.597Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"l4_browser_acceptance","detail":"fields: expected_outcome, checkpoints"}
+{"ts":"2026-09-09T08:54:48.629Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"passed","to":"pending","detail":"checkpoint=browser_interactive"}
+{"ts":"2026-09-09T08:54:48.660Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"passed","to":"pending","detail":"checkpoint=browser_regression"}
+{"ts":"2026-09-09T08:54:58.039Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_acceptance","from":"blocked","to":"ready"}
+{"ts":"2026-09-09T08:54:58.085Z","actor":"codex-root","kind":"node_status","node":"l4_browser_acceptance","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-09T09:19:02.755Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=browser_interactive"}
+{"ts":"2026-09-09T09:19:02.800Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=browser_regression"}
+{"ts":"2026-09-09T09:19:02.836Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_browser_acceptance","detail":"verdict=pending"}
+{"ts":"2026-09-09T09:31:16.170Z","actor":"cli","kind":"node_content_updated","node":"l4_browser_acceptance","detail":"fields: expected_outcome"}
+{"ts":"2026-09-09T09:33:10.069Z","actor":"cli","kind":"node_content_updated","node":"l4_browser_acceptance","detail":"fields: expected_outcome"}
+{"ts":"2026-09-09T09:33:22.530Z","actor":"codex-mcp-client","kind":"node_content_updated","node":"l4_browser_acceptance","detail":"fields: expected_outcome"}
+{"ts":"2026-09-09T09:36:15.052Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_browser_acceptance","detail":"verdict=pending"}
+{"ts":"2026-09-09T09:43:18.537Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_browser_acceptance","detail":"verdict=pending"}
+{"ts":"2026-09-09T09:51:16.674Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_browser_acceptance","detail":"verdict=pending"}
+{"ts":"2026-09-09T09:57:02.379Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=rework_editor_isolation"}
+{"ts":"2026-09-09T09:57:05.793Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_browser_acceptance","from":"pending","to":"passed","detail":"checkpoint=rework_canvas_access"}
+{"ts":"2026-09-09T09:57:22.457Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_browser_acceptance","detail":"verdict=passed"}
+{"ts":"2026-09-09T09:57:25.434Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_browser_acceptance","from":"running","to":"passed"}
+{"ts":"2026-09-09T10:19:11.690Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_human_review","from":"pending","to":"ready"}
+{"ts":"2026-09-09T10:19:11.731Z","actor":"human-approved/codex-transcriber","kind":"node_status","node":"l4_human_review","from":"ready","to":"running","detail":"claim by human-approved/codex-transcriber"}
+{"ts":"2026-09-09T10:19:25.500Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_human_review","from":"pending","to":"passed","detail":"checkpoint=review"}
+{"ts":"2026-09-09T10:19:25.530Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_human_review","from":"pending","to":"passed","detail":"checkpoint=record"}
+{"ts":"2026-09-09T10:19:36.705Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_human_review","detail":"verdict=passed"}
+{"ts":"2026-09-09T10:19:36.729Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_human_review","from":"running","to":"passed"}

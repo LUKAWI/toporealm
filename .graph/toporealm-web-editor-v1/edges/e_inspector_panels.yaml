@@ -1,0 +1,4 @@
+id: e_inspector_panels
+source: l2_inspector_editor
+target: l3_panels
+type: depends_on

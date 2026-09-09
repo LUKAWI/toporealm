@@ -1,0 +1,11 @@
+id: e_inspector_module
+source: l2_inspector_editor
+target: l3_module_ui
+type: depends_on
+contract:
+  produces: 固定 inspector/canvas 插槽与通用 MutationPlan dispatcher
+  consumed_by:
+    - artifact: module-ui-host
+      used_as: 挂载模块表单和动作
+  validation:
+    criteria: 模块投影只能通过固定插槽请求修改，不能直接写存储

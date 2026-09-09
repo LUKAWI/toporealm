@@ -1,0 +1,5 @@
+id: rel_module_web
+source: ctx_module_projection
+target: ctx_web_surface
+type: relates
+rel_kind: 声明式 UI 贡献进入固定插槽

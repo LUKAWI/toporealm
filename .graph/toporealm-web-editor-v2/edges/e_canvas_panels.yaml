@@ -1,0 +1,4 @@
+id: e_canvas_panels
+source: l2_canvas_starfield
+target: l3_panels_readonly
+type: depends_on

@@ -1,0 +1,46 @@
+id: l1_gateway_ui
+type: task
+label: 协议接入新外壳与冲突恢复入口
+level: 1
+priority: 2
+context: ctx_core_gateway
+status: passed
+plan:
+  description: >-
+    保留 web-ui/src/lib/protocol.ts 的 Snapshot/Patch/MutationPlan/历史/图切换/模块/动作适配（v1 已验证资产），把 WebGraphState
+    接入新外壳的状态流（Svelte 5 runes）；409 REVISION_CONFLICT 与 PATCH_GAP 在 UI 呈现稳定错误码并提供重新读取入口，不静默覆盖本地快照；补协议与状态单元测试。只改 web-ui
+    协议接入与测试；不改 Core 与 Server 契约。
+expected_outcome:
+  definition_of_done:
+    - 协议单元测试覆盖 patch 连续应用、PATCH_GAP 时本地快照不被变更、409 错误对象携带稳定错误码；npm run web:test 通过。
+    - 新外壳从真实 Server 加载快照，对象/关系计数与 revision 可见；图切换、历史、模块状态查询可用。
+    - 组件或浏览器测试断言：409/patch gap 后保留旧快照并出现可点击的重载入口。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:03.016Z'
+updated_at: '2026-09-09T00:14:03.394Z'
+checkpoints:
+  - id: gateway_state
+    label: Snapshot/Patch/历史接入新外壳状态流
+    status: passed
+    verifier: auto
+  - id: gateway_recovery
+    label: 409/patch gap 可恢复入口已验证
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    新建 store.svelte.ts 状态流：WebGraphState + ToporealmApi 接入 Svelte 5
+    runes（快照/历史/图列表/模块/校验/选择/过滤/只读），commit/undo/redo/executeAction 统一带 expectedRevision；409 REVISION_CONFLICT 与
+    PATCH_GAP 进入 recovery 态（稳定错误码 + 重新读取入口），本地快照永不静默覆盖。App.svelte 切换到 store 并新增红框恢复徽章。测试：store 单测 6 个（含 409/patch gap
+    本地快照不变、reload 恢复、只读拦截）、App 组件测试 3 个（加载渲染、409 恢复链路、只读同步），web:test 25/25 通过；真实浏览器（IAB）复现 409：外部推进 revision
+    后点击撤销出现恢复徽章、点击重新读取回到 r4 且徽章消失。
+  started_at: '2026-09-09T00:04:54.279Z'
+  artifacts:
+    - web-ui/src/lib/store.svelte.ts
+    - web-ui/src/lib/store.test.ts
+    - web-ui/src/App.test.ts
+    - web-ui/src/App.svelte
+    - web-ui/src/lib/protocol.ts
+  completed_at: '2026-09-09T00:14:03.394Z'

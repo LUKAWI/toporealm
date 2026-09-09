@@ -1,0 +1,53 @@
+id: l3_panels_readonly
+type: task
+label: 搜索筛选、图切换、校验与状态面板
+level: 3
+priority: 6
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    以 Super Plumber 顶栏 chips + 左缘工具轨 flyout 模式实现通用面板：顶栏搜索（Enter 定位并居中命中）、kind 筛选（计数即图例风格 chips，点击过滤）、图库 flyout（显式 graph
+    ID 切换，切换后清空选择与过滤并重取景）、撤销/重做按钮与 Ctrl/Cmd+Z/Y 快捷键（按 history
+    状态启停）、基础/完整校验结果区分显示（错误/警告清单）、模块状态、原始快照查看、只读开关与状态徽标。全部面板只影响视图状态。玻璃样式与交互节奏对齐参考。
+expected_outcome:
+  definition_of_done:
+    - 浏览器验证：搜索定位命中、kind 过滤淡化画布、清除过滤恢复同一快照；图切换后 revision、选择、过滤与新图一致；撤销重做按钮按 history 状态启用禁用且快捷键生效。
+    - 基础与完整校验分别可触发并区分显示；模块缺失时显示不可用原因；只读模式保留查看/搜索/校验/原始数据能力。
+    - 组件测试覆盖过滤逻辑、图切换状态清理、校验结果显示；npm run web:verify 通过。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:30.911Z'
+updated_at: '2026-09-09T00:47:45.817Z'
+checkpoints:
+  - id: panels_filter
+    label: 搜索与 kind 过滤及定位已验证
+    status: passed
+    verifier: auto
+  - id: panels_graphs
+    label: 图切换与撤销重做快捷键已验证
+    status: passed
+    verifier: auto
+  - id: panels_validation
+    label: 校验区分、模块状态与只读面板已验证
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    完成通用面板行为验证与缺口修补：顶栏搜索 Enter 定位、kind chips 计数即图例过滤、图库显式 ID 切换（清空选择/过滤/校验）、撤销重做按钮与 Ctrl+Z/Y 快捷键按 history
+    启停、基础/完整校验区分显示（仅结构 vs 含模块注册）、模块状态浮层（含不可用原因）、原始快照 JSON、只读开关与徽标。新增校验结果显示组件测试。全部面板只影响视图状态。
+  started_at: '2026-09-09T00:45:04.008Z'
+  artifacts:
+    - web-ui/src/App.svelte
+    - web-ui/src/App.test.ts
+    - web-ui/src/lib/store.svelte.ts
+    - web-ui/src/lib/store.test.ts
+    - web-ui/src/lib/filter.test.ts
+  notes: >-
+    面板主体在 l1_shell_sky（顶栏/工具轨/浮层结构）与 l3_editor_flows（编辑入口）中已建成，本节点补齐行为验证与缺口：新增 App 组件测试「校验浮层区分显示错误与警告清单」（2 错误 → 「2 个错误 ·
+    仅结构校验」+ 错误清单）。浏览器证据（IAB + browser use）：搜索「补丁式更新」+ Enter → 选中 claim 星体；kind chip「plain」点击 → 4 个 research.* 星体淡化、plain
+    可见（截图与 DOM 断言）；清除过滤后 dimmed=0；Ctrl+Z 快捷键撤销 r13→r14；图库切换到 second-demo 后 graph-label=「第二张演示图 · r0」、选择清空、画布渲染 1
+    星体（截图）；完整校验显示「通过 · 含模块注册」与基础校验「仅结构校验」区分；只读徽标/新增/撤销禁用与查看/搜索/校验可用已在 l3_editor_flows 验证。模块不可用原因显示由 ObjectDetail
+    降级横幅组件测试与模块浮层 module-reason 渲染覆盖。web:verify 全绿（37/37）。
+  completed_at: '2026-09-09T00:47:45.817Z'

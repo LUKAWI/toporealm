@@ -2,3 +2,7 @@
 {"ts":"2026-09-08T06:20:24.685Z","actor":"cli","kind":"switch","detail":"active -> toporealm-foundation"}
 {"ts":"2026-09-08T14:17:11.453Z","actor":"cli","kind":"init","detail":"graph=toporealm-v1-implementation label=\"TopoRealm v1 基座实施\""}
 {"ts":"2026-09-08T14:17:11.461Z","actor":"cli","kind":"switch","detail":"active -> toporealm-v1-implementation"}
+{"ts":"2026-09-08T15:23:25.651Z","actor":"cli","kind":"init","detail":"graph=toporealm-web-editor-v1 label=\"TopoRealm Web 编辑器 v1\""}
+{"ts":"2026-09-08T15:23:25.660Z","actor":"cli","kind":"switch","detail":"active -> toporealm-web-editor-v1"}
+{"ts":"2026-09-08T23:38:41.200Z","actor":"cli","kind":"init","detail":"graph=toporealm-web-editor-v2 label=\"TopoRealm Web 编辑器 v2\""}
+{"ts":"2026-09-08T23:38:41.208Z","actor":"cli","kind":"switch","detail":"active -> toporealm-web-editor-v2"}

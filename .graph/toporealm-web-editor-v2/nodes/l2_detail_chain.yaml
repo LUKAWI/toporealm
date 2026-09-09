@@ -1,0 +1,55 @@
+id: l2_detail_chain
+type: task
+label: 选择链路与对象/关系详情抽屉（人审阻塞一）
+level: 2
+priority: 4
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    实现画布点击→选择状态→玻璃抽屉的完整链路：DetailDrawer 舱体 + 对象详情（稳定 ID、kind、label、data、capabilities、meta 逐字段呈现，原始 JSON
+    折叠视图与复制按钮，出入关系清单与端点跳转）+ 关系详情（kind、方向、source/target 跳转链接、label、data、capabilities、meta）。未知 kind
+    与缺失模块显示原始数据并可复制，未知结构不崩溃。抽屉节奏与参考一致：换选重播滑入、Esc 逐层退出、空白点击清除、关闭按钮。对事件传播、SVG hitbox、覆盖层 z-index、pointer-events、selected
+    ID 到对象解析每一段补组件测试与浏览器回归。只改 Web 详情组件与测试。
+expected_outcome:
+  definition_of_done:
+    - 真实浏览器点击任意对象与关系均稳定打开抽屉并显示全部字段；连续快速切换选择无残留、无空白；Esc、空白点击、关闭按钮三种退出都可用。
+    - 组件测试覆盖：画布点击事件→选择状态→抽屉内容渲染全链路；未知 kind 原始 JSON 可见；选中不存在的 ID 不崩溃且抽屉不显示脏数据。
+    - browser use 回归记录点击详情链路通过证据；npm run web:verify 通过。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:30.164Z'
+updated_at: '2026-09-09T00:36:50.039Z'
+checkpoints:
+  - id: chain_selection
+    label: 点击→选择→抽屉链路在浏览器稳定
+    status: passed
+    verifier: auto
+  - id: chain_content
+    label: 对象/关系字段与原始数据呈现完整
+    status: passed
+    verifier: auto
+  - id: chain_regression
+    label: 事件传播/hitbox/z-index 回归测试通过
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    实现画布点击→选择状态→玻璃抽屉完整链路：新建 ObjectDetail（稳定 ID/kind 色 chip/label/data/capabilities/meta 折叠 JSON +
+    复制/出入关系清单与跳转/模块降级提示）、RelationDetail（kind/方向/端点跳转链接/label/data）、JsonSection 共享折叠块；App 挂载两抽屉并把 Esc
+    优先级改为选中最先退出。抽屉节奏与参考一致（换选重播滑入、Esc/空白/关闭按钮三退出）。
+  started_at: '2026-09-09T00:32:24.793Z'
+  artifacts:
+    - web-ui/src/lib/components/ObjectDetail.svelte
+    - web-ui/src/lib/components/RelationDetail.svelte
+    - web-ui/src/lib/components/JsonSection.svelte
+    - web-ui/src/lib/components/detail-chain.test.ts
+    - web-ui/src/App.svelte
+  notes: >-
+    浏览器证据（IAB + browser use，截图存档）：点击 claim-1 星体后 .drawer.visible 打开，标题「对象详情」、实体标题「补丁式更新可保留修订链」、meta
+    chips（claim-1/research.claim 带 kind 色点/r6）、标签节、关系节 3 条（→/← 方向 + 端点 ID）、data/capabilities/meta 折叠 JSON
+    块；连续三次快速切换选择后抽屉标题正确跟随且 is-selected 计数为 1（无残留）；关系行点击切换到「关系详情」（rel-3/answers/有向 →/端点跳转链接）；Esc 关闭后 .drawer.visible 计数
+    0；重新打开后关闭按钮同样可退出。组件测试 4 个：画布点击→选择→抽屉渲染全链路（含 GraphCanvas 同挂载）、未知 kind（注册表在场判定降级 + 原始 JSON 展开）、幽灵 ID
+    不崩溃不渲染、关系端点跳转。web:verify 全绿（0 错 0 警、32/32 测试）。
+  completed_at: '2026-09-09T00:36:50.039Z'

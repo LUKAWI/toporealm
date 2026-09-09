@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { extname, join, normalize, relative } from "node:path";
 import { coreSurface } from "../core/index.js";
 import { CoreError } from "../core/index.js";
 import type { GraphPatch, GraphSnapshot, ObjectRecord, RelationRecord } from "../core/index.js";
@@ -60,11 +62,39 @@ export function withUiErrorBoundary<T>(extension: () => T, fallback: () => T): U
   }
 }
 
+const WEB_DIST = join(process.cwd(), "web-ui", "dist");
+
+const MIME_TYPES: Record<string, string> = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+};
+
+/** Reads a built Web UI asset without allowing paths outside web-ui/dist. */
+export function readWebAsset(pathname: string, webRoot = WEB_DIST): { body: Buffer; contentType: string } | undefined {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return undefined;
+  }
+  const assetPath = normalize(join(webRoot, decoded.replace(/^[/\\]+/, "")));
+  const rel = relative(webRoot, assetPath);
+  if (!rel || rel.startsWith("..") || rel.includes(`..${"/"}`) || rel.includes(`..${"\\"}`) || !existsSync(assetPath)) return undefined;
+  return { body: readFileSync(assetPath), contentType: MIME_TYPES[extname(assetPath).toLowerCase()] ?? "application/octet-stream" };
+}
+
 function byId(left: ObjectRecord | RelationRecord, right: ObjectRecord | RelationRecord): number {
   return left.id.localeCompare(right.id);
 }
 
-export function renderWebShell(): string {
+export function renderWebShell(webRoot = WEB_DIST): string {
+  const builtIndex = join(webRoot, "index.html");
+  if (existsSync(builtIndex)) return readFileSync(builtIndex, "utf8");
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TopoRealm</title><style>body{font:15px system-ui,sans-serif;max-width:960px;margin:2rem auto;padding:0 1rem}button{margin:.25rem;padding:.45rem .7rem}pre{background:#f5f5f5;padding:1rem;overflow:auto}</style></head>

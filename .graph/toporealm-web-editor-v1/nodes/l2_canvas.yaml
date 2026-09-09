@@ -1,0 +1,49 @@
+id: l2_canvas
+type: task
+label: 实现通用 D3 图画布与交互
+level: 2
+priority: 3
+context: ctx_web_surface
+status: failed
+plan:
+  description: >-
+    实现基于 TopoRealm 通用对象/关系的 SVG/D3 画布，承接 GraphSnapshot 投影，提供确定性的初始布局、关系方向呈现、缩放、平移、拖拽、选择和焦点定位。沿用当前 Super Plumber Web
+    的画布层次、状态色、交互反馈和轻量动效，并允许为通用对象/关系增加同主题的不同视觉表达。布局坐标、缩放、平移和选择属于浏览器视图状态，不新增 Core 字段，也不触发写入。只修改 Web 画布组件、视图状态和交互测试。
+expected_outcome:
+  definition_of_done:
+    - 加载 research 与 workflow fixture 时，画布显示对象标签、命名空间 kind 和关系端点/方向，数量与 GraphSnapshot 一致。
+    - 鼠标或键盘可完成缩放、平移、拖拽和选择；重复加载同一快照的初始布局不依赖随机时间，拖拽不会改变 Core revision。
+    - 选中对象或关系会把稳定 ID 交给检视器，画布在无模块样式时仍能使用通用外观。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.679Z'
+updated_at: '2026-09-08T23:18:15.575Z'
+checkpoints:
+  - id: canvas_render
+    label: 对象、关系和通用外观已渲染
+    status: passed
+    verifier: auto
+  - id: canvas_interaction
+    label: 缩放平移拖拽选择已验证
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: 实现通用 D3 SVG 画布：确定性网格布局、对象/关系投影、方向箭头、关系端点提示、滚轮缩放、空白平移、节点拖拽、键盘平移/缩放/节点移动与稳定 ID 选择回调；视图状态不写入 Core。
+  started_at: '2026-09-08T15:47:10.603Z'
+  artifacts:
+    - web-ui/src/lib/layout.ts
+    - web-ui/src/lib/layout.test.ts
+    - web-ui/src/lib/GraphCanvas.svelte
+    - web-ui/src/lib/GraphCanvas.test.ts
+    - web-ui/src/lib/protocol.ts
+    - web-ui/src/App.svelte
+  blockers: []
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T15:55:27.360Z'
+    note: >-
+      npm run web:typecheck 0 errors/0 warnings；npm run web:build 通过；npm run web:test 3 个测试文件 7
+      个测试通过，覆盖稳定布局、关系端点/方向、组件渲染和选择回调。另以 TopoRealm Server HTTP 8942 smoke 验证根页面与 /api/graph、/api/history、/api/validate
+      均可访问。
+  completed_at: '2026-09-08T23:18:15.575Z'

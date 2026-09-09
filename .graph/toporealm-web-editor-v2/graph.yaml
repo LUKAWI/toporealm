@@ -1,0 +1,67 @@
+id: graph_1788910721192_8ospi3
+label: TopoRealm Web 编辑器 v2
+entry:
+  description: >-
+    输入：v1 全 failed
+    图与返工交接（Temp/toporealm-web-editor-rework-handoff.md）；可保留资产：web-ui/src/lib/protocol.ts、src/server/index.ts、src/web/index.ts
+    与既有测试；只读参考 D:/LUKAWI/AI_project/projects/topological-tool/web-ui。约束：不修改
+    topological-tool；不引入模块市场/代码沙箱/复杂依赖系统；保留模块缺失时的无损读取并区分基础/完整校验；不把开发工作流字段写进 TopoRealm Core；所有可交互 UI/UX 必须通过真实浏览器（browser
+    use）交互测试，编辑功能必须通过核验。
+  defined_by: human
+  level: 0
+exit:
+  description: >-
+    交付：TopoRealm Web 编辑器 v2（Svelte 5 + Vite + D3），完全沿用 Super Plumber 深空玻璃设计语言；真实浏览器中对象/关系详情链路、指针交互、编辑
+    CRUD、撤销重做与冲突恢复全部可用且经 browser use 逐项验证；npm run verify 全绿；用户人审 gate 通过。
+  acceptance_criteria:
+    - 真实浏览器点击任意对象或关系都稳定打开右侧玻璃详情抽屉，至少显示稳定 ID、kind、label、data、capabilities、meta；连续切换无空白检视器、无旧选择残留；未知 kind 与缺失模块仍显示原始数据。
+    - >-
+      视觉与交互逐项对齐 topological-tool/web-ui：设计令牌（黑底玻璃、wash/ink
+      阶梯、状态色、字体、间距、圆角、动效）、单排顶栏、左缘工具轨、右缘抽屉层级、hover/selected/focus/disabled 反馈、加载/空/错误态，均有对照清单与浏览器证据。
+    - 左键选择、节点拖动、空白清除、中键平移、滚轮缩放、双击重置互不抢事件、连续流畅；browser use 逐项通过并留证据。
+    - 对象/关系新增、修改、删除、连接经 MutationPlan 提交成功；revision、undo/redo、刷新持久化可见；失败保留输入并显示稳定错误；只读模式禁用全部写入口。
+    - npm run verify 与 web:browser-smoke 退出码 0；D:/LUKAWI/AI_project/projects/topological-tool 工作区无新增改动；用户人审 gate 通过。
+  defined_by: human
+  level: 0
+nodes:
+  - file: nodes/ctx_core_gateway.yaml
+  - file: nodes/ctx_module_projection.yaml
+  - file: nodes/ctx_web_surface.yaml
+  - file: nodes/adr_0001.yaml
+  - file: nodes/l1_shell_sky.yaml
+  - file: nodes/l1_gateway_ui.yaml
+  - file: nodes/l2_canvas_starfield.yaml
+  - file: nodes/l2_detail_chain.yaml
+  - file: nodes/l3_editor_flows.yaml
+  - file: nodes/l3_panels_readonly.yaml
+  - file: nodes/l3_module_projection.yaml
+  - file: nodes/l4_browser_acceptance.yaml
+  - file: nodes/l4_human_review.yaml
+edges:
+  - file: edges/rel_core_web.yaml
+  - file: edges/rel_core_module.yaml
+  - file: edges/rel_module_web.yaml
+  - file: edges/d_adr_shell.yaml
+  - file: edges/d_adr_canvas.yaml
+  - file: edges/e_shell_gateway.yaml
+  - file: edges/e_shell_canvas.yaml
+  - file: edges/e_gateway_canvas.yaml
+  - file: edges/e_gateway_detail.yaml
+  - file: edges/e_canvas_detail.yaml
+  - file: edges/e_gateway_editor.yaml
+  - file: edges/e_detail_editor.yaml
+  - file: edges/e_gateway_panels.yaml
+  - file: edges/e_canvas_panels.yaml
+  - file: edges/e_detail_panels.yaml
+  - file: edges/e_gateway_module.yaml
+  - file: edges/e_editor_browser.yaml
+  - file: edges/e_panels_browser.yaml
+  - file: edges/e_module_browser.yaml
+  - file: edges/e_browser_human.yaml
+  - file: edges/e_detail_module.yaml
+version: 1.0.0
+class: standard
+review:
+  status: approved
+  by: 用户会话指令（2026-09-09 /plumber-join）：明确要求从零推翻 v1、按 web-editor-v2 重新设计并完成开发；本凭据记录预授权，终审仍由 l4_human_review 人工把关
+  at: '2026-09-08T23:42:03.579Z'

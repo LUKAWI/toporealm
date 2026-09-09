@@ -1,0 +1,11 @@
+id: e_module_browser
+source: l3_module_ui
+target: l4_browser_verification
+type: depends_on
+contract:
+  produces: research/exploration/workflow 模块投影与降级证据
+  consumed_by:
+    - artifact: browser-regression
+      used_as: 执行模块 UI 与缺失模块流程
+  validation:
+    criteria: 声明式样式/表单/动作与降级路径均可在浏览器观察

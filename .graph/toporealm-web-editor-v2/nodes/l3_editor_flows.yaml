@@ -1,0 +1,55 @@
+id: l3_editor_flows
+type: task
+label: 通用编辑流（增删改连接与冲突恢复）
+level: 3
+priority: 5
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    在抽屉与工具轨中实现通用编辑：新增/修改/删除对象与关系（表单提供通用字段 kind/label/data JSON 与方向选择，模块声明字段仅作提示不猜测语义）、从选中对象预填关系 source 的连接流；提交统一
+    MutationPlan 并带 expectedRevision；提交失败保留用户输入并显示 Core 稳定错误码与恢复入口；成功后 revision 递增、undo/redo
+    状态可见、刷新持久化。只读模式禁用全部写入口（表单、按钮、快捷键）。对齐参考的玻璃表单控件样式与反馈节奏。只改 Web 编辑组件与测试。
+expected_outcome:
+  definition_of_done:
+    - 浏览器完成对象新增→修改→关系连接→删除全流程：revision 递增、undo/redo 生效、刷新后数据仍在；删除对象后关联关系按 Core 语义消失。
+    - 端点非法或 409 冲突时表单保留输入并显示稳定错误码，提供恢复入口；只读模式下所有写入口禁用（浏览器验证）。
+    - 组件测试覆盖表单提交、失败保留、只读禁用；编辑器不直写文件、不绕过 Server；npm run web:verify 通过。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:30.529Z'
+updated_at: '2026-09-09T00:44:41.812Z'
+checkpoints:
+  - id: editor_crud
+    label: 对象/关系增删改连接全流程浏览器通过
+    status: passed
+    verifier: auto
+  - id: editor_conflict
+    label: 失败保留输入与冲突恢复已验证
+    status: passed
+    verifier: auto
+  - id: editor_readonly
+    label: 只读禁用写入口已验证
+    status: passed
+    verifier: auto
+assigned_to: zcode-root
+execution_report:
+  summary: >-
+    实现通用编辑流：新建 EditorPanel 玻璃编辑抽屉（对象/关系新增与修改，kind datalist/label/data
+    JSON/方向通用字段，模块声明字段仅作提示；删除需二次确认并提示级联语义）；详情抽屉加「编辑/以此为起点创建关系/编辑 source 对象」入口；工具轨加新增对象/关系按钮；store 增加 editor 状态与
+    openEditor/closeEditor（只读拦截）。提交统一 store.commit（expectedRevision 注入），失败保留输入并内联显示稳定错误码（409 附重新读取入口）。
+  started_at: '2026-09-09T00:37:27.926Z'
+  artifacts:
+    - web-ui/src/lib/components/EditorPanel.svelte
+    - web-ui/src/lib/components/editor-panel.test.ts
+    - web-ui/src/lib/components/ObjectDetail.svelte
+    - web-ui/src/lib/components/RelationDetail.svelte
+    - web-ui/src/lib/store.svelte.ts
+    - web-ui/src/App.svelte
+  notes: >-
+    浏览器证据（IAB + browser use）：新增 edited-obj r6→r7；详情抽屉「编辑」改名 r8；「以此为起点创建关系」source 预填 edited-obj，创建 rel-edited r9；撤销
+    r10（关系消失）重做 r11（关系回归）；删除对象确认后 edited-obj 与 rel-edited 级联消失 r12；刷新后 r12 状态持久。表单冲突：外部推进 revision 后提交显示内联
+    REVISION_CONFLICT 错误条 + 「重新读取」按钮，输入「冲突中的修改」保留、编辑器未关闭（截图存档）。只读：徽标「只读」、新增对象/新增关系/撤销
+    disabled、刷新与搜索可用、详情抽屉「编辑」disabled、openEditor 直接拦截。组件测试 4 个：新增提交计划、source 预填 + 非法 JSON 保留输入、冲突保留输入 +
+    重载入口、只读禁用。web:verify 全绿（36/36）。
+  completed_at: '2026-09-09T00:44:41.812Z'

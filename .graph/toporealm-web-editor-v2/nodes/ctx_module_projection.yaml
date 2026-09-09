@@ -1,0 +1,26 @@
+id: ctx_module_projection
+type: context
+label: 模块 UI 投影边界
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:39:03.626Z'
+updated_at: '2026-09-08T23:39:03.950Z'
+boundary: 负责模块声明的 presentation/forms/operations 在 Web 中的安全投影，以及缺失或不兼容模块的降级显示；不负责持久化、Core schema 或应用外壳。
+glossary:
+  - term: presentation
+    definition: 模块为对象或关系提供的颜色、图标等呈现提示。
+  - term: degraded
+    definition: 模块不可用时保留原始 kind/data 的可查看状态，并禁用依赖该模块的行为。
+  - term: operation
+    definition: 模块声明且经 Server/ActionExecutor 校验后可触发的领域动作。
+contracts:
+  - to: ctx_web_surface
+    contract:
+      produces: 按 namespace/kind 解析的样式、表单字段、动作可用性和降级原因
+      consumed_by:
+        - artifact: module-ui-host
+          used_as: 画布节点样式、检视器字段和动作入口
+      validation:
+        criteria: research/workflow fixture 的声明可见；未知模块显示通用原始编辑器

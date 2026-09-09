@@ -1,0 +1,5 @@
+id: rel_core_module
+source: ctx_core_gateway
+target: ctx_module_projection
+type: relates
+rel_kind: 模块注册与动作结果边界

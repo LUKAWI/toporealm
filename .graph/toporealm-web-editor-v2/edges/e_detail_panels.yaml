@@ -1,0 +1,4 @@
+id: e_detail_panels
+source: l2_detail_chain
+target: l3_panels_readonly
+type: depends_on

@@ -1,0 +1,50 @@
+id: l1_web_gateway
+type: task
+label: 建立浏览器状态与 Core/Server 协议适配
+level: 1
+priority: 2
+context: ctx_core_gateway
+status: failed
+plan:
+  description: >-
+    为浏览器提供有类型的 GraphSnapshot、GraphPatch、MutationPlan、历史和基础校验适配；扩展 HTTP Server 的浏览器读写入口，所有写入继续进入同一个
+    GraphStore。客户端只在收到结果后推进本地 revision，识别 patch gap 和 409 revision 冲突，不做静默覆盖。只修改 Server、Web 协议适配和契约测试；不把布局或领域规则放进 Core。
+expected_outcome:
+  definition_of_done:
+    - 浏览器读取 GraphSnapshot，并能把一次 MutationPlan、撤销或重做的返回 patch 连续应用到本地 revision。
+    - expectedRevision 不匹配时 Server 返回 409 与稳定错误码；客户端保留本地快照并给出重新读取入口。
+    - 基础校验、历史状态和错误响应有可调用的 HTTP 入口，CLI/MCP 的既有语义与测试不回归。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.667Z'
+updated_at: '2026-09-08T23:18:15.488Z'
+checkpoints:
+  - id: gateway_contract
+    label: Snapshot/Patch/MutationPlan HTTP 契约可调用
+    status: passed
+    verifier: auto
+  - id: gateway_conflict
+    label: revision 冲突与 patch gap 可恢复
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    建立浏览器协议适配：提供 GraphSnapshot、GraphPatch、MutationPlan、历史与基础校验 API；客户端严格按 revision 应用 patch，遇到 409 冲突或 patch gap
+    保留本地快照并提示刷新。
+  started_at: '2026-09-08T15:39:43.235Z'
+  artifacts:
+    - web-ui/src/lib/protocol.ts
+    - web-ui/src/lib/protocol.test.ts
+    - web-ui/src/App.svelte
+    - src/server/index.ts
+    - tests/core-store.test.ts
+    - package.json
+  blockers: []
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T15:46:52.628Z'
+    note: >-
+      npm run verify 通过；根目录 8 个测试文件 22 个测试通过，Web 协议测试 3 个通过，Web typecheck/build 通过；HTTP 集成覆盖
+      /api/graph、/api/mutations、/api/history、/api/validate 与 409 REVISION_CONFLICT。
+  completed_at: '2026-09-08T23:18:15.488Z'

@@ -1,0 +1,4 @@
+id: e_detail_editor
+source: l2_detail_chain
+target: l3_editor_flows
+type: depends_on

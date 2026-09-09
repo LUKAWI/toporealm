@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0b0e" />
+    <title>TopoRealm — 拓扑图工作空间</title>
+    <style>
+      /* ── Design tokens: deep-space instrument glass（与 Super Plumber 参考实现逐项一致，
+         见 D:/LUKAWI/AI_project/projects/topological-tool/web-ui/index.html；TopoRealm 侧
+         仅彩色语义不同：画布彩色表达对象 kind/模块，而非工作流状态）── */
+      :root {
+        /* Surfaces：画布纯黑舞台不变；chrome = 冷调近黑玻璃分层 */
+        --bg: #000000;
+        --bg-chrome: #0a0b0e;
+        --glass: rgba(13, 15, 20, 0.72); /* 浮层玻璃基（dock/图例/提示/胶囊） */
+        --glass-strong: rgba(15, 17, 22, 0.88); /* 抽屉玻璃（正文可读优先） */
+        --glass-line: rgba(255, 255, 255, 0.08); /* 玻璃边线 */
+        --hi-line: rgba(255, 255, 255, 0.06); /* 玻璃顶部内高光 */
+
+        /* Washes（白色洗刷阶梯：容器底/hover/active，替代不透明灰阶） */
+        --wash-1: rgba(255, 255, 255, 0.04);
+        --wash-2: rgba(255, 255, 255, 0.07);
+        --wash-3: rgba(255, 255, 255, 0.12);
+
+        /* Ink（白阶梯：文本最低档 0.52 ≈ 5.7:1，全部 ≥ AA） */
+        --ink: #ffffff;
+        --ink-muted: rgba(255, 255, 255, 0.72);
+        --ink-faint: rgba(255, 255, 255, 0.52);
+
+        /* Lines & borders */
+        --line: rgba(255, 255, 255, 0.08);
+        --line-strong: rgba(255, 255, 255, 0.16);
+
+        /* 交互色：白。focus/选中/开关一律明度表达 */
+        --interactive: #ffffff;
+
+        /* 浮层唯一投影档（玻璃深度）+ 模糊 */
+        --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+        --blur-panel: blur(20px) saturate(140%);
+        --blur-bar: blur(24px) saturate(140%);
+
+        /* 兼容别名（旧 surface 语义 → wash 映射，防止漏改处裸退） */
+        --surface-1: var(--wash-1);
+        --surface-2: var(--wash-2);
+        --surface-3: var(--wash-3);
+
+        /* Status colors — 校验/历史等状态语义沿用参考实现的 OKLCH 色档 */
+        --status-pending: #8a8f98;
+        --status-ready: #4a93e8;
+        --status-running: #f0a73a;
+        --status-passed: #16a34a;
+        --status-failed: #e5504f;
+        --status-blocked: #a574e6;
+        --status-cancelled: #7e848d;
+
+        /* Fonts */
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        --font-mono:
+          ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+        /* Type scale（--text-2xs 11px：废除 10px 功能文本）*/
+        --text-2xs: 0.6875rem; /* 11px */
+        --text-xs: 0.75rem; /* 12px */
+        --text-sm: 0.8125rem; /* 13px */
+        --text-base: 0.875rem; /* 14px */
+        --text-md: 1rem; /* 16px */
+        --text-lg: 1.25rem; /* 20px */
+        --text-xl: 1.75rem; /* 28px */
+
+        /* Letter-spacing scale */
+        --track-tight: -0.015em;
+        --track-body: 0.01em;
+        --track-label: 0.04em;
+        --track-caps: 0.08em;
+
+        /* Spacing (4pt base) */
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 20px;
+        --sp-6: 24px;
+        --sp-8: 32px;
+        --sp-10: 40px;
+        --sp-12: 48px;
+        --sp-16: 64px;
+
+        /* Radii（6/10/14/18 + pill：玻璃仪器的圆角阶梯）*/
+        --r-sm: 6px;
+        --r: 10px;
+        --r-lg: 14px;
+        --r-xl: 18px;
+
+        /* Easings */
+        --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+        --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+        /* z-index scale（工具轨/浮层 10 < 面板 100 < tooltip 1000）*/
+        --z-canvas: 1;
+        --z-overlay: 10;
+        --z-panel: 100;
+        --z-tooltip: 1000;
+
+        /* 布局常量 */
+        --header-h: 48px; /* 单排仪器条高度 */
+        --rail-w: 48px; /* 左缘浮动玻璃 dock 宽（含内衬） */
+
+        /* Touch targets */
+        --tap: 44px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg-chrome);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings:
+          "tnum" 1,
+          "lnum" 1;
+      }
+
+      /* 键盘焦点全局可见（白环；鼠标点击不触发）*/
+      :focus-visible {
+        outline: 2px solid var(--interactive);
+        outline-offset: 1px;
+      }
+
+      body {
+        letter-spacing: var(--track-body);
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--wash-3);
+        border-radius: 999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Selection */
+      ::selection {
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

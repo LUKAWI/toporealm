@@ -1,0 +1,75 @@
+id: l4_browser_acceptance
+type: task
+label: 真实浏览器端到端验收与回归
+level: 4
+priority: 8
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    用 browser use 驱动真实浏览器执行完整验收脚本：加载 fixture 图 → 逐个点击对象与关系验证详情链路 → 指针交互全套（左键选择/拖拽/空白清除/中键平移/滚轮缩放/双击重置）→ 编辑
+    CRUD（新增/修改/连接/删除/undo/redo/刷新持久化）→ 409 冲突与 patch gap 恢复 → 只读模式 → 模块降级；与 topological-tool/web-ui
+    参考页面并排截屏核对设计语言对照清单；扩展 tests/browser-smoke.test.ts 固化回归；npm run verify 全绿；git status 确认 topological-tool
+    无新增改动。产出中文验收报告（命令、观察结果、证据）。
+expected_outcome:
+  definition_of_done:
+    - browser use 交互记录覆盖全部可交互 UI 且逐项通过；选择链路、指针交互、编辑核验三类各有显式证据（观察描述或截图）。
+    - npm run verify 与 web:browser-smoke 退出码 0；设计语言对照清单逐项勾选留档。
+    - git -C D:/LUKAWI/AI_project/projects/topological-tool status 显示除既有 openai.yaml 未提交修改外无新增改动。
+    - 返工验证：切换图时旧编辑器必须关闭或失效，旧图表单绝不能提交到新图；409/patch gap 重新读取后不得残留误导性的旧错误。
+    - 返工验证：首次加载和 resize 后自动 fit 必须让全部节点处于可见视口；点击节点文字标签或星体均可稳定打开详情。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:55.039Z'
+updated_at: '2026-09-09T09:57:25.430Z'
+checkpoints:
+  - id: browser_interactive
+    label: browser use 全交互面逐项通过
+    status: passed
+    verifier: auto
+  - id: browser_regression
+    label: 自动化回归与 verify 全绿
+    status: passed
+    verifier: auto
+  - id: reference_untouched
+    label: 参考仓库未被修改已确认
+    status: passed
+    verifier: auto
+  - id: rework_editor_isolation
+    label: 切图编辑隔离与冲突恢复返工通过
+    status: passed
+    verifier: cross_review
+  - id: rework_canvas_access
+    label: 自动 fit 与节点命中区域返工通过
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    返工完成并经独立 reviewer 与 adjudicator 复核通过：编辑器切图隔离、冲突恢复、自动 fit 与节点标签命中均满足返工 DoD；Core 写入口 writing/switching
+    互斥有效；未修改现有前端样式、设计令牌或动效。
+  started_at: '2026-09-09T01:01:51.993Z'
+  artifacts:
+    - web-ui/src/lib/store.svelte.ts
+    - web-ui/src/lib/store.test.ts
+    - web-ui/src/lib/components/EditorPanel.svelte
+    - web-ui/src/lib/components/editor-panel.test.ts
+    - web-ui/src/lib/GraphCanvas.svelte
+    - web-ui/src/lib/GraphCanvas.test.ts
+    - web-ui/src/lib/layout.ts
+    - web-ui/src/lib/layout.test.ts
+    - docs/web-editor-v2-acceptance.md
+    - web-ui/dist/index.html
+    - web-ui/dist/assets/index-DtKFY9Hh.css
+  notes: >-
+    独立 reviewer 规格轴与惯例轴均无 blocker，并确认 rework_editor_isolation、rework_canvas_access 无阻塞；真实 Chromium 证据覆盖
+    writing/switching 双向互斥、409 恢复后保留输入并清除旧错误、1440x900 与 600x800 自动 fit 7/7 节点可见、标签命中打开详情。独立命令复核：npm run verify 根测试
+    26/26、Web 测试 42/42、Svelte 0/0；graph_validate 0 error/0 warning；CSS 仍为 index-DtKFY9Hh.css。l4_human_review 仍由用户审核。
+  completed_at: '2026-09-09T09:57:25.430Z'
+  blockers: []
+  verification:
+    verdict: passed
+    checked_at: '2026-09-09T09:57:22.450Z'
+    note: >-
+      独立 reviewer 无规格/惯例 blocker；两个返工 cross_review checkpoint 已 passed；制品存在性、graph_validate 与 npm run verify 均通过，满足
+      passed 门禁。

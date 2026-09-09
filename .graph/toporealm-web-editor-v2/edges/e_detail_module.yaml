@@ -1,0 +1,11 @@
+id: e_detail_module
+source: l2_detail_chain
+target: l3_module_projection
+type: depends_on
+contract:
+  produces: 详情抽屉插槽与通用 MutationPlan dispatcher
+  consumed_by:
+    - artifact: module-ui-host
+      used_as: 挂载模块表单提示与动作按钮
+  validation:
+    criteria: 模块投影只能通过固定插槽请求修改，不能直接写存储

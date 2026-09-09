@@ -1,0 +1,57 @@
+id: l1_web_shell
+type: task
+label: 建立 Svelte/D3 Web 应用壳
+level: 1
+priority: 1
+context: ctx_web_surface
+status: failed
+plan:
+  description: >-
+    在 TopoRealm 内建立独立的 Svelte 5 + Vite Web UI 包和宿主入口，承接当前 Server 的根路由，提供可运行的应用壳、基础布局、错误边界和固定 UI 插槽。视觉样式与动效沿用当前 Super
+    Plumber Web 的深色玻璃面板、状态色、画布层次和轻量渐入/抽屉节奏；新功能可以使用同主题的不同 UI/UX。复用 reference Web UI 的通用交互结构，但不复制 NodeSchema 或工作流专用面板。只修改
+    TopoRealm Web UI、Server 静态资源接入、构建配置和相关测试；不修改 Core 类型与 D:/LUKAWI/AI_project/projects/topological-tool。若本环境存在
+    plumber-tdd 技能，按其约定先为入口和错误边界立测试 seam。
+expected_outcome:
+  definition_of_done:
+    - 执行 npm run web:build 退出码为 0，并生成被 Server 根路由引用的 Web 资源。
+    - 启动 TopoRealm Server 后访问根路由能加载应用壳；静态资源缺失或扩展抛错时显示可读错误边界。
+    - Web 包不导入旧 NodeSchema、不写入 Super Plumber .graph，npm run verify 保持通过。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.657Z'
+updated_at: '2026-09-08T23:18:15.427Z'
+checkpoints:
+  - id: shell_scaffold
+    label: Web 包、构建入口和根路由已贯通
+    status: passed
+    verifier: auto
+  - id: shell_boundary
+    label: 错误边界与独立项目边界已验证
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: 建立独立 Svelte 5 + Vite Web 应用壳，接通 Server 根路由与静态资源服务，并加入同主题的深色玻璃面板、状态色和轻量渐入动效。
+  started_at: '2026-09-08T15:31:25.061Z'
+  artifacts:
+    - web-ui/package.json
+    - web-ui/package-lock.json
+    - web-ui/index.html
+    - web-ui/vite.config.ts
+    - web-ui/svelte.config.js
+    - web-ui/tsconfig.json
+    - web-ui/src/main.ts
+    - web-ui/src/App.svelte
+    - src/web/index.ts
+    - src/server/index.ts
+    - tests/web-shell.test.ts
+    - package.json
+  blockers: []
+  notes: >-
+    按 plumber-tdd 约定以 Web surface、根路由和静态资源读取作为 seam。npm run web:typecheck、npm run web:build、npm test 均通过；真实 Server smoke
+    验证根路由 200、构建 JS 资源 200。保留无构建资源 fallback；未修改 topological-tool。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T15:39:21.457Z'
+    note: Shell 构建和 Server 静态资源边界均有可复核命令与真实 HTTP 结果。
+  completed_at: '2026-09-08T23:18:15.427Z'

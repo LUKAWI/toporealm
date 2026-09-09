@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { GraphStore } from "../src/core/index.js";
+import { listenToporealmServer } from "../src/server/index.js";
 import { createMcpHandlers } from "../src/mcp/index.js";
 import { createExplorationRuntime, createResearchRuntime } from "../src/modules/index.js";
 import { ActionExecutor, GraphActivator, WorkspaceModuleResolver, applyRegisteredPlan, discoverActions } from "../src/module-sdk/index.js";
@@ -78,5 +79,36 @@ describe("offline research/exploration vertical slice", () => {
     expect(store.read().objects[0]?.data).toEqual({ status: "open" });
     cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/modules/exploration"), explorationPath, { recursive: true });
     expect(new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read()).modules.find((module) => module.id === "exploration")?.status).toBe("available");
+  });
+
+  it("Server 从模块声明发现动作，并在运行时失败时返回稳定错误边界", async () => {
+    const { store } = copiedFixture();
+    const server = await listenToporealmServer(store);
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
+    const base = `http://127.0.0.1:${address.port}`;
+    try {
+      const modules = await fetch(`${base}/api/modules`).then((response) => response.json()) as { operations: Array<{ fullId: string }>; ui: Record<string, unknown> };
+      expect(modules.operations.map((operation) => operation.fullId)).toContain("research.expand-question");
+      expect(modules.ui).toHaveProperty("research");
+      const action = await fetch(`${base}/api/actions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ operation: "research.expand-question", target: "question-1", input: { depth: 1 } }),
+      }).then((response) => response.json()) as { kind: string; mutation?: { snapshot: { revision: number } } };
+      expect(action.kind).toBe("mutation");
+      expect(action.mutation?.snapshot.revision).toBe(1);
+
+      const failedResponse = await fetch(`${base}/api/actions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ operation: "research.expand-question", target: "question-1", input: { depth: 9 } }),
+      });
+      expect(failedResponse.status).toBe(400);
+      expect(await failedResponse.json()).toMatchObject({ error: { code: "RUNTIME_FAILED" } });
+      expect(store.read().revision).toBe(1);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
   });
 });

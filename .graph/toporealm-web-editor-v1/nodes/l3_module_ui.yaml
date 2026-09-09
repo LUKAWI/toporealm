@@ -1,0 +1,55 @@
+id: l3_module_ui
+type: task
+label: 接入模块样式、表单与动作投影
+level: 3
+priority: 6
+context: ctx_module_projection
+status: failed
+plan:
+  description: >-
+    把 Module Registry 的 presentation、forms、operations 和可用性投影到 Web 固定插槽；为 research、exploration、workflow fixture
+    显示声明式样式、表单字段和适用动作。模块缺失或不兼容时退回通用原始检视器，标注降级原因并禁用依赖模块的动作。只修改 Web 模块宿主、声明解析和模块投影测试，不把领域枚举加入 Core。
+expected_outcome:
+  definition_of_done:
+    - research、exploration、workflow fixture 的对象样式、表单字段和适用动作来自模块声明，而不是 Web 内硬编码领域分支。
+    - 缺失或不兼容模块时，原始 kind/data/capabilities 可查看和往返保存；模块动作、专用表单和专用样式显示不可用原因。
+    - 模块动作通过 Server/ActionExecutor 的稳定错误边界执行；动作失败不会破坏画布状态或覆盖未提交表单。
+    - 新增模块 UI 声明不会要求修改 Core 类型或旧 Super Plumber 仓库。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T15:26:17.728Z'
+updated_at: '2026-09-08T23:18:15.703Z'
+checkpoints:
+  - id: module_declarations
+    label: 模块样式、表单和动作投影已验证
+    status: passed
+    verifier: auto
+  - id: module_degraded
+    label: 缺失模块降级与错误边界已验证
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    接入模块注册投影：从 Module Registry 的 ui.presentation/forms/operations 声明生成 Web 样式、专用字段提示和动作入口；GraphCanvas
+    使用声明颜色/图标；research、exploration、workflow 可用动作经 Server ActionExecutor 执行，模块缺失时保留通用原始界面并显示降级原因。
+  started_at: '2026-09-08T16:10:41.420Z'
+  artifacts:
+    - src/server/index.ts
+    - web-ui/src/lib/protocol.ts
+    - web-ui/src/lib/moduleProjection.ts
+    - web-ui/src/lib/moduleProjection.test.ts
+    - web-ui/src/lib/GraphCanvas.svelte
+    - web-ui/src/lib/InspectorEditor.svelte
+    - web-ui/src/lib/InspectorEditor.test.ts
+    - web-ui/src/App.svelte
+    - tests/research-vertical.test.ts
+  blockers: []
+  verification:
+    verdict: passed
+    checked_at: '2026-09-08T16:17:31.731Z'
+    note: >-
+      npm run web:verify 通过（typecheck 0 errors/0 warnings、build、6 个测试文件 15 个测试通过）；npm run build 与 root npm test 通过（8
+      个测试文件 25 个测试通过）。研究纵向 HTTP 集成覆盖 /api/modules 声明投影、research.expand-question 动作成功及 depth 错误的 RUNTIME_FAILED，确认失败不推进
+      revision；缺失模块投影单测确认降级。
+  completed_at: '2026-09-08T23:18:15.703Z'

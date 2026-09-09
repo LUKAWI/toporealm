@@ -1,0 +1,11 @@
+id: e_shell_gateway
+source: l1_web_shell
+target: l1_web_gateway
+type: depends_on
+contract:
+  produces: 可挂载的 Web 应用入口与 API 注入点
+  consumed_by:
+    - artifact: web-state-adapter
+      used_as: 把浏览器请求接入 Server
+  validation:
+    criteria: 构建产物由 Server 根路由加载，API base URL 可配置且不写死旧仓库路径

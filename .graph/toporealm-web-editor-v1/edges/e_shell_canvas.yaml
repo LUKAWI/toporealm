@@ -1,0 +1,4 @@
+id: e_shell_canvas
+source: l1_web_shell
+target: l2_canvas
+type: depends_on

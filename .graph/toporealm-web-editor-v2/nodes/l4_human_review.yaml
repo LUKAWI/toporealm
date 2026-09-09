@@ -1,0 +1,41 @@
+id: l4_human_review
+type: gate
+label: 用户人审 Web 编辑器 v2
+level: 4
+priority: 9
+context: ctx_web_surface
+status: passed
+plan:
+  description: >-
+    用户在真实浏览器（graph serve 预览或本地 8944）审核 v2：点击节点确实显示内容、视觉与动效与 Super Plumber
+    参考一致、鼠标操作连续流畅、编辑可用。用户批准后整图交付完成；未批准前的修改意见回到对应节点返工。本 gate 由用户亲自关闭，执行者不得代签。
+expected_outcome:
+  definition_of_done:
+    - 用户明确批准 v2 或提出下一轮修改意见。
+    - 审核结论（批准凭据或修改意见）已记录在图中。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-08T23:40:55.434Z'
+updated_at: '2026-09-09T10:19:36.724Z'
+checkpoints:
+  - id: review
+    label: 用户完成 v2 浏览器审核
+    status: passed
+    verifier: human
+  - id: record
+    label: 审核结论已记录
+    status: passed
+    verifier: human
+assigned_to: human-approved/codex-transcriber
+execution_report:
+  summary: 用户已完成 TopoRealm Web 编辑器 v2 的真实浏览器人审，并明确批准通过。
+  started_at: '2026-09-09T10:19:11.725Z'
+  artifacts:
+    - docs/web-editor-v2-acceptance.md
+  blockers: []
+  notes: 人审凭据：用户于当前会话明确回复“人审核通过。”；本记录仅转录用户裁决，不由代理代签。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-09T10:19:36.698Z'
+    note: verifier=human；用户明确批准，两个 human checkpoint 均已据此记录为 passed。
+  completed_at: '2026-09-09T10:19:36.724Z'

@@ -1,0 +1,4 @@
+id: e_panels_browser
+source: l3_panels
+target: l4_browser_verification
+type: depends_on

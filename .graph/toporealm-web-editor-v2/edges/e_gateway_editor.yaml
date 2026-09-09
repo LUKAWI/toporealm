@@ -1,0 +1,11 @@
+id: e_gateway_editor
+source: l1_gateway_ui
+target: l3_editor_flows
+type: depends_on
+contract:
+  produces: MutationPlan 提交、历史结果和稳定 Core 错误
+  consumed_by:
+    - artifact: generic-editor
+      used_as: 提交对象/关系增删改
+  validation:
+    criteria: 提交携带 expectedRevision，409 错误不覆盖表单输入
