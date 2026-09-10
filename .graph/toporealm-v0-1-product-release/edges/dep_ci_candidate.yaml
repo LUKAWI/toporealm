@@ -1,0 +1,4 @@
+id: dep_ci_candidate
+source: l3_cross_platform_ci
+target: l4_release_candidate
+type: depends_on

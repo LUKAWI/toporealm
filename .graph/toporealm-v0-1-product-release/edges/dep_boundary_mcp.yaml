@@ -1,0 +1,4 @@
+id: dep_boundary_mcp
+source: l1_release_boundary
+target: l1_mcp_stdio
+type: depends_on

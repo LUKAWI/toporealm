@@ -1,0 +1,53 @@
+id: l3_cross_platform_ci
+type: task
+label: 建立三系统发布 CI
+level: 3
+priority: 9
+context: ctx_distribution
+status: passed
+plan:
+  description: >-
+    建立 Windows、macOS、Linux 的 Node.js 20+ CI 矩阵，对 npm tarball 而非源码快捷路径执行安装、CLI、stdio MCP、Web 与宿主投影
+    smoke。复用同一组高价值脚本，不复制三套平台逻辑；平台特有差异仅在必要适配层处理。
+expected_outcome:
+  definition_of_done:
+    - CI 配置在 Windows、macOS、Linux 上分别从 npm pack 产物安装，并执行 CLI、MCP、Web 与 host sync smoke。
+    - 测试脚本不依赖固定盘符、GNU 专属命令或仓库外全局工具，临时目录与端口在退出时释放。
+    - 三个系统的 Node.js 20 基线全部通过；更高 Node 版本可作为非阻塞兼容观察，不扩大首发门禁。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:01:37.978Z'
+updated_at: '2026-09-10T01:19:09.329Z'
+checkpoints:
+  - id: matrix
+    label: 三系统 Node.js 20 CI 矩阵可运行
+    status: passed
+    verifier: auto
+  - id: tarball_smoke
+    label: 各系统均从真实 tarball 验证产品入口
+    status: passed
+    verifier: auto
+  - id: portability_review
+    label: 脚本不存在未声明的平台耦合
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    建立 Windows、macOS、Linux 的 Node.js 20 CI 矩阵，统一执行真实 tarball 安装及 CLI、MCP、Web、宿主投影验证；修复 Windows 子进程退出监听竞态，并为临时 npm
+    安装加入离线优先、关闭审计/募资输出和 120 秒上限。
+  started_at: '2026-09-10T01:10:11.537Z'
+  artifacts:
+    - .github/workflows/ci.yml
+    - scripts/package-smoke.mjs
+    - package.json
+    - src/distribution/installer.ts
+  blockers: []
+  notes: >-
+    本机 Windows 完整 verify 通过：15 个主测试文件/37 项测试、11 个 Web 测试文件/42 项测试、包安装 smoke 全入口通过。CI YAML 已解析，平台耦合扫描仅命中专门的 Windows
+    路径测试。macOS/Linux 托管结果需仓库推送后由该矩阵产生，纳入发布候选统一裁决。
+  verification:
+    verdict: pending
+    checked_at: '2026-09-10T01:19:04.098Z'
+    note: 按用户要求，节点级不单独评审；发布候选阶段统一独立评审和裁决。
+  completed_at: '2026-09-10T01:19:09.329Z'

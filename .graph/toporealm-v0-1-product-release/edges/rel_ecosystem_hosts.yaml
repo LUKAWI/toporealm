@@ -1,0 +1,5 @@
+id: rel_ecosystem_hosts
+source: ctx_module_ecosystem
+target: ctx_host_integration
+type: relates
+rel_kind: 模块 Skills 投影到宿主

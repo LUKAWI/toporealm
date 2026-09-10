@@ -117,7 +117,13 @@ function unpackPackage(spec: string, options: InstallOptions): { root: string; c
     if (npm) {
       execFileSync(npm, npmArgs, { cwd: options.workspaceRoot, stdio: ["ignore", "pipe", "inherit"], shell: process.platform === "win32" });
     } else {
-      const npmCli = join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+      const candidates = [
+        process.env.npm_execpath,
+        join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js"),
+        resolve(dirname(process.execPath), "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+      ].filter((candidate): candidate is string => Boolean(candidate));
+      const npmCli = candidates.find((candidate) => existsSync(candidate));
+      if (!npmCli) throw new Error("找不到 npm CLI；请通过 npm 运行 TopoRealm 或显式提供 npmCommand。");
       execFileSync(process.execPath, [npmCli, ...npmArgs], { cwd: options.workspaceRoot, stdio: ["ignore", "pipe", "inherit"] });
     }
     const tarball = readdirSync(staging).find((file) => file.endsWith(".tgz"));

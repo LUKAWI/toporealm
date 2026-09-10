@@ -1,0 +1,4 @@
+id: dep_candidate_human
+source: l4_release_candidate
+target: l4_human_publish_gate
+type: depends_on

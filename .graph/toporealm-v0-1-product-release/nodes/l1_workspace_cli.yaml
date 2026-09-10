@@ -1,0 +1,49 @@
+id: l1_workspace_cli
+type: task
+label: 完成工作区解析与正式 CLI
+level: 1
+priority: 2
+context: ctx_runtime
+status: passed
+plan:
+  description: >-
+    若本环境存在 plumber-tdd 技能，按其约定执行本节点。实现与 Super Plumber 同范式的工作区发现、--root/--graph、环境变量与当前图解析，并交付已确认的
+    init、list、switch、status、read、apply、undo、redo、validate、serve、mcp、module 和 host 命令面。保持领域无关，不复制 workflow 命令。
+expected_outcome:
+  definition_of_done:
+    - 从任意子目录运行 CLI 时可按显式参数、环境变量、工作区当前图和默认图的约定定位目标，非法显式目标直接报错且不静默回退。
+    - 已确认的 CLI 命令均有帮助文本、稳定退出码和机器可消费输出，现有图读写继续共用 GraphStore。
+    - CLI 测试覆盖初始化、多图切换、基础与完整校验、模块管理和宿主同步的成功及稳定失败路径。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:59:29.231Z'
+updated_at: '2026-09-10T00:39:18.335Z'
+checkpoints:
+  - id: resolver
+    label: 工作区与目标图解析契约通过测试
+    status: passed
+    verifier: auto
+  - id: command_surface
+    label: 首发 CLI 命令面与帮助输出通过测试
+    status: passed
+    verifier: auto
+  - id: domain_neutral
+    label: CLI 未引入领域命令或字段
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: 完成正式 CLI 与目标解析：支持向上发现工作区、--root/--graph、TOPOREALM_ROOT/TOPOREALM_GRAPH、当前图和默认图解析，并提供已确认的领域无关命令面、JSON 输出和稳定退出码。
+  started_at: '2026-09-10T00:31:41.001Z'
+  artifacts:
+    - src/cli/index.ts
+    - src/cli/main.ts
+    - tests/cli.test.ts
+  notes: >-
+    按 plumber-tdd 在 runCli/executeCli 公共 seam 完成红绿循环；npx vitest run tests/cli.test.ts 4/4，通过；npm test 10 files/30
+    tests，通过；npm run typecheck 与 npm run build 通过；真实 dist CLI help 通过。按用户要求，中间节点不逐节点独立 review，最终发布候选统一裁决。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T00:39:18.305Z'
+    note: 自动证据满足 resolver、command_surface 与领域中立检查；统一独立裁决延后至发布候选总审。
+  completed_at: '2026-09-10T00:39:18.335Z'

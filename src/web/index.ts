@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join, normalize, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { coreSurface } from "../core/index.js";
 import { CoreError } from "../core/index.js";
 import type { GraphPatch, GraphSnapshot, ObjectRecord, RelationRecord } from "../core/index.js";
@@ -62,7 +63,12 @@ export function withUiErrorBoundary<T>(extension: () => T, fallback: () => T): U
   }
 }
 
-const WEB_DIST = join(process.cwd(), "web-ui", "dist");
+const PACKAGED_WEB_DIST = fileURLToPath(new URL("../web-assets/", import.meta.url));
+const DEVELOPMENT_WEB_DIST = join(process.cwd(), "web-ui", "dist");
+
+function defaultWebRoot(): string {
+  return existsSync(join(PACKAGED_WEB_DIST, "index.html")) ? PACKAGED_WEB_DIST : DEVELOPMENT_WEB_DIST;
+}
 
 const MIME_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -75,7 +81,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 /** Reads a built Web UI asset without allowing paths outside web-ui/dist. */
-export function readWebAsset(pathname: string, webRoot = WEB_DIST): { body: Buffer; contentType: string } | undefined {
+export function readWebAsset(pathname: string, webRoot = defaultWebRoot()): { body: Buffer; contentType: string } | undefined {
   let decoded: string;
   try {
     decoded = decodeURIComponent(pathname);
@@ -92,7 +98,7 @@ function byId(left: ObjectRecord | RelationRecord, right: ObjectRecord | Relatio
   return left.id.localeCompare(right.id);
 }
 
-export function renderWebShell(webRoot = WEB_DIST): string {
+export function renderWebShell(webRoot = defaultWebRoot()): string {
   const builtIndex = join(webRoot, "index.html");
   if (existsSync(builtIndex)) return readFileSync(builtIndex, "utf8");
   return `<!doctype html>

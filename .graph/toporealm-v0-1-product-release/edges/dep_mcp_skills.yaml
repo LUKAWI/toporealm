@@ -1,0 +1,4 @@
+id: dep_mcp_skills
+source: l1_mcp_stdio
+target: l2_base_skills
+type: depends_on

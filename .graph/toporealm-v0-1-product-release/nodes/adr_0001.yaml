@@ -1,0 +1,18 @@
+id: adr_0001
+type: adr
+label: v0.1 发布不含领域模块的完整基座产品
+level: 1
+status: accepted
+attempts: 0
+max_attempts: 0
+created_at: '2026-09-09T15:57:44.197Z'
+updated_at: '2026-09-10T00:04:32.865Z'
+decision: >-
+  @lukawi/toporealm v0.1 作为公开 Preview 发布领域无关的完整基座产品，包含 Core、CLI、stdio MCP、Server、Web UI、模块生态能力、四个基础 Skills 与
+  Codex/Claude/Pi 集成；不包含 research、exploration、workflow 或其他领域模块。现有领域模块原型仅保留为非发布测试 fixture，后续独立开发并完成单模块连接与多模块组合测试后再分别发布。
+background: Core v1、模块协议和 Web 编辑器已形成可运行基线，但当前根包会编译并导出验证切片，容易把协议样例误认为出厂模块；同时只发布 Core 库又无法提供完整本地产品体验。
+considered_options: 只发布 Core 库→安装后仍需自行组装 CLI/MCP/Web，不构成完整产品; 主包捆绑三个领域模块→降低首用门槛但混淆基座与模块边界并让模块成熟度绑死主包; 完整基座产品且领域模块后置←采用，产品可独立使用且模块生态保持真实独立
+why: 保持 Core 的领域中立和单包安装体验，同时让后续模块以真实外部消费者身份验证协议，而不是依赖同仓特权。
+consequences: >-
+  发行工程必须把现有领域模块实现移出公开导出和 npm 文件集；模块生态门禁改用外部 fixture；README、冻结清单和发布说明需区分已验证原型与随包能力。本决定补充
+  ADR-0004、ADR-0028、ADR-0030，不废弃其原则。

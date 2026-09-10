@@ -1,0 +1,4 @@
+id: d_adr_release_distribution
+source: adr_0001
+target: ctx_distribution
+type: decides

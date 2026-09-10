@@ -1,0 +1,55 @@
+id: l2_base_skills
+type: task
+label: 交付四个基础 Skills
+level: 2
+priority: 5
+context: ctx_host_integration
+status: passed
+plan:
+  description: >-
+    使用 skill-creator 规范建立唯一正本并生成 toporealm、toporealm-design、toporealm-join、toporealm-grilling 四个完整 Skill。toporealm
+    负责意图识别与路由；grilling 采用显式优先、关键歧义时自动触发，一次一问、事实自查、决策归人、共识前不施工；其余两个分别负责通用图设计和只读入场。不加入领域执行、复核或 TDD 纪律。
+expected_outcome:
+  definition_of_done:
+    - 四个 Skill 均通过 quick_validate，name、description、触发边界和 agents/openai.yaml 可被独立核对。
+    - 行为测试证明普通明确请求不会误触发 grilling，而产品边界存在关键未决选择时会进入逐问对齐并输出共识摘要。
+    - 各 Skill 只依赖 TopoRealm v0.1 已发布的 CLI/MCP 能力，内容不引用本仓库测试 fixture 或 Super Plumber 运行时。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:00:26.870Z'
+updated_at: '2026-09-10T00:55:17.472Z'
+checkpoints:
+  - id: skill_validation
+    label: 四个基础 Skill 结构校验通过
+    status: passed
+    verifier: auto
+  - id: grilling_behavior
+    label: 意图识别与 grilling 触发边界通过行为复核
+    status: passed
+    verifier: cross_review
+  - id: domain_boundary
+    label: 基础 Skills 不含领域工作流纪律
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    建立 integrations/src/skills 唯一正本，交付 toporealm、toporealm-design、toporealm-join、toporealm-grilling，并由 host sync 完整投影到
+    Codex、Claude、Pi。
+  started_at: '2026-09-10T00:51:42.190Z'
+  artifacts:
+    - integrations/src/skills/toporealm/SKILL.md
+    - integrations/src/skills/toporealm-design/SKILL.md
+    - integrations/src/skills/toporealm-join/SKILL.md
+    - integrations/src/skills/toporealm-grilling/SKILL.md
+    - src/distribution/skills.ts
+    - src/distribution/hosts.ts
+    - tests/base-skills.test.ts
+  notes: >-
+    python -X utf8 quick_validate 四项全部有效；路由与三宿主投影 2/2，通过；构建与 npm pack dry-run 确认四个 Skills 进入
+    dist/integrations/skills。grilling 为显式优先，关键产品/协议歧义才自动触发。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T00:55:17.439Z'
+    note: 结构、触发边界、唯一正本投影和领域中立边界均有自动证据；最终统一独立裁决待发布候选。
+  completed_at: '2026-09-10T00:55:17.472Z'

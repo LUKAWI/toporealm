@@ -18,7 +18,7 @@ function tempPackage(): { base: string; workspace: string; packageRoot: string }
   const workspace = join(base, "workspace");
   const packageRoot = join(base, "package");
   mkdirSync(workspace, { recursive: true });
-  const source = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/modules/exploration");
+  const source = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/modules/exploration");
   cpSync(source, packageRoot, { recursive: true });
   writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ name: "@toporealm/exploration", version: "0.1.0", type: "module", toporealm: "./module.yaml", files: ["module.yaml", "schemas", "operations", "ui"] }, null, 2), "utf8");
   return { base, workspace, packageRoot };
@@ -40,9 +40,9 @@ describe("module distribution", () => {
 
   it("按工作区绑定生成 Codex、Claude、Pi 投影，并保护无归属目录", () => {
     const { base, workspace } = tempPackage();
-    const fixture = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/workflow-slice");
+    const fixture = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/workflow-slice");
     cpSync(fixture, workspace, { recursive: true });
-    cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/modules"), join(base, "modules"), { recursive: true });
+    cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/modules"), join(base, "modules"), { recursive: true });
     const results = syncHosts({
       workspaceRoot: workspace,
       hostRoots: { codex: join(base, "codex"), claude: join(base, "claude"), pi: join(base, "pi") },

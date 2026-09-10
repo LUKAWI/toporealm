@@ -1,0 +1,7 @@
+{
+  "name": "@toporealm/example-module",
+  "version": "0.1.0",
+  "type": "module",
+  "toporealm": "./module.yaml",
+  "files": ["module.yaml", "schemas", "operations", "runtime", "ui", "skills"]
+}

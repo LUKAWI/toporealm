@@ -4,9 +4,7 @@ import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { CoreError, GraphStore, validateGraph } from "../core/index.js";
 import { ActionExecutor, GraphActivator, WorkspaceModuleResolver } from "../module-sdk/index.js";
-import { createExplorationRuntime } from "../modules/exploration.js";
-import { createResearchRuntime } from "../modules/research.js";
-import { createWorkflowRuntime } from "../modules/workflow.js";
+import type { ModuleActionRuntime } from "../module-sdk/index.js";
 import { readWebAsset, renderWebShell } from "../web/index.js";
 import type { MutationPlan } from "../core/index.js";
 
@@ -14,6 +12,10 @@ export const serverSurface = {
   name: "server",
   coreFormat: coreSurface.graphFormat,
 } as const;
+
+export interface ToporealmServerOptions {
+  runtimes?: Readonly<Record<string, ModuleActionRuntime>>;
+}
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
   const body = JSON.stringify(value);
@@ -36,7 +38,7 @@ function readBody(request: IncomingMessage): Promise<string> {
 }
 
 /** A small HTTP adapter for the same Core store used by CLI and MCP. */
-export function createToporealmServer(store: GraphStore): Server {
+export function createToporealmServer(store: GraphStore, options: ToporealmServerOptions = {}): Server {
   let activeStore = store;
   const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
   const graphSummary = (candidate: GraphStore) => {
@@ -64,11 +66,7 @@ export function createToporealmServer(store: GraphStore): Server {
     }
   };
   const activeRegistry = () => new GraphActivator(new WorkspaceModuleResolver(workspaceRoot)).activate(activeStore.read());
-  const runtimes = {
-    research: createResearchRuntime(),
-    exploration: createExplorationRuntime(),
-    workflow: createWorkflowRuntime(),
-  };
+  const runtimes = options.runtimes ?? {};
   return createHttpServer(async (request, response) => {
     try {
       const url = new URL(request.url ?? "/", "http://toporealm.local");
@@ -158,8 +156,8 @@ export function createToporealmServer(store: GraphStore): Server {
   });
 }
 
-export function listenToporealmServer(store: GraphStore, port = 0, host = "127.0.0.1"): Promise<Server> {
-  const server = createToporealmServer(store);
+export function listenToporealmServer(store: GraphStore, port = 0, host = "127.0.0.1", options: ToporealmServerOptions = {}): Promise<Server> {
+  const server = createToporealmServer(store, options);
   return new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, () => {

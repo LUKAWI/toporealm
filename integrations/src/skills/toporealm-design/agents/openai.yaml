@@ -1,0 +1,6 @@
+interface:
+  display_name: "TopoRealm Design"
+  short_description: "设计并审核领域无关的图结构变更"
+  default_prompt: "使用 $toporealm-design 把这个需求设计成可审核的图变更。"
+policy:
+  allow_implicit_invocation: true

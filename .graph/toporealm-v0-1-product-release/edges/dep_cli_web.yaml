@@ -1,0 +1,4 @@
+id: dep_cli_web
+source: l1_workspace_cli
+target: l2_web_product
+type: depends_on

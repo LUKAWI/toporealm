@@ -1,0 +1,23 @@
+id: ctx_runtime
+type: context
+label: 基座运行时
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:57:42.582Z'
+updated_at: '2026-09-09T15:57:42.780Z'
+boundary: 负责领域无关的图存储、工作区与图解析、CLI、stdio MCP、Server 和 Web UI 运行时；不负责领域模块实现与发布平台运维。
+glossary:
+  - term: 基座产品
+    definition: '基座及其 CLI、MCP、Web UI、基础 Skills 和宿主集成组成的独立产品；不包含领域模块。 Avoid: 内置模块套装'
+contracts:
+  - to: ctx_distribution
+    contract:
+      produces: 可打包的运行时、CLI 与 Web 产物
+  - to: ctx_host_integration
+    contract:
+      produces: 稳定 CLI/MCP 启动入口与工作区解析协议
+  - to: ctx_module_ecosystem
+    contract:
+      produces: 模块注册、动作调用与 MutationPlan 提交协议

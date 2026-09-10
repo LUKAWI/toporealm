@@ -1,0 +1,53 @@
+id: l3_package_artifact
+type: task
+label: 构建可公开安装的 npm 包
+level: 3
+priority: 7
+context: ctx_distribution
+status: passed
+plan:
+  description: >-
+    将根包收敛为 @lukawi/toporealm@0.1.0 Preview：移除 private，补齐 bin、main/exports、types、files、engines、license、repository、prepack
+    与 Web 构建；加入 MIT LICENSE。使用 npm pack 检查实际 tarball，而不是仅从源码目录运行。
+expected_outcome:
+  definition_of_done:
+    - npm pack 产生可安装 tarball，package.json 声明 @lukawi/toporealm@0.1.0、Node.js 20+、MIT、公开仓库、CLI bin 和稳定导出入口。
+    - tarball 包含运行所需的 dist、生产 Web 资源、四个基础 Skills 和三宿主集成源，不包含源码测试、.graph、开发依赖、领域模块或测试 fixture。
+    - 从临时目录安装 tarball 后 toporealm --help、初始化、serve 和 mcp 均不依赖原仓库路径。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:01:37.027Z'
+updated_at: '2026-09-10T01:03:21.326Z'
+checkpoints:
+  - id: metadata
+    label: npm 元数据、许可与导出边界完整
+    status: passed
+    verifier: cross_review
+  - id: pack_contents
+    label: 实际 tarball 内容符合白名单与排除项
+    status: passed
+    verifier: auto
+  - id: clean_install
+    label: 临时目录安装后核心入口可启动
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    将根包收敛为公开 Preview 元数据 @lukawi/toporealm@0.1.0，补齐 MIT、Node 20+、repository、bin、main/types/exports、prepack，并建立真实 tarball
+    干净安装 smoke。
+  started_at: '2026-09-10T01:01:40.604Z'
+  artifacts:
+    - package.json
+    - package-lock.json
+    - LICENSE
+    - src/cli/main.ts
+    - scripts/package-smoke.mjs
+  notes: >-
+    npm run test:package 输出 package=@lukawi/toporealm version=0.1.0 entries=86 help/serve/mcp=true；临时安装后根导出、core 与
+    module-sdk 子路径导入成功。全量 14 files/36 tests 及 typecheck 通过。tarball 白名单包含生产 Web、四 Skills 和集成生成器，排除源码、.graph 与领域 fixtures。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T01:03:21.300Z'
+    note: 元数据、内容清单与干净安装运行均有实际 tarball 证据；最终统一独立裁决待发布候选。
+  completed_at: '2026-09-10T01:03:21.326Z'

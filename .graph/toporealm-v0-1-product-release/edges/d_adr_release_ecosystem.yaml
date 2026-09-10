@@ -1,0 +1,4 @@
+id: d_adr_release_ecosystem
+source: adr_0001
+target: ctx_module_ecosystem
+type: decides

@@ -1,0 +1,4 @@
+id: dep_boundary_cli
+source: l1_release_boundary
+target: l1_workspace_cli
+type: depends_on

@@ -1,0 +1,49 @@
+id: l3_host_integrations
+type: task
+label: 完成 Codex、Claude、Pi 直接集成
+level: 3
+priority: 8
+context: ctx_host_integration
+status: passed
+plan:
+  description: >-
+    以共享语义正本生成但不混用 Codex、Claude、Pi 三套宿主资产：每套提供宿主认可的 manifest、入口、四个基础 Skills、toporealm mcp 配置和只读入场钩子；host sync
+    按工作区模块绑定增删带所有权标记的投影。使用各宿主当前格式做直接导入或等价连接 smoke。
+expected_outcome:
+  definition_of_done:
+    - Codex、Claude、Pi 各自的 manifest、入口、MCP 配置和 hook 通过对应格式校验，不能用单一通用 manifest 冒充三宿主兼容。
+    - 三个宿主从干净生成目录均能发现四个基础 Skills，并通过 toporealm mcp 完成一次图列表或读取调用。
+    - host sync 重复执行幂等；模块卸载后只清理 TopoRealm 所有权匹配的生成资产，不触碰用户手写文件。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:01:37.483Z'
+updated_at: '2026-09-10T01:09:01.143Z'
+checkpoints:
+  - id: native_manifests
+    label: 三宿主原生资产分别通过格式校验
+    status: passed
+    verifier: cross_review
+  - id: host_mcp_smoke
+    label: 三宿主投影均能发现 Skills 并连接 MCP
+    status: passed
+    verifier: auto
+  - id: ownership
+    label: 同步幂等与所有权清理边界通过
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: host sync 现分别生成 Codex 插件、Claude Code 插件与 Pi package 三套原生资产；共享四 Skills 语义正本，但 manifest、入口、MCP 配置和只读入场 hook 按宿主格式独立布线。
+  started_at: '2026-09-10T01:08:04.471Z'
+  artifacts:
+    - src/distribution/hosts.ts
+    - tests/host-integrations.test.ts
+    - integrations/src/skills
+  notes: >-
+    参考 Codex 插件校验规范、Claude 官方 plugin 结构与 Pi 官方 package/skills 结构实现。三宿主集成测试 1/1：三份 native manifest、四 Skills、三次 graph_list
+    MCP 实连、重复同步幂等和用户手写文件保留均通过；相关 3 files/5 tests 与 typecheck/build 通过。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T01:09:01.114Z'
+    note: 三宿主格式、MCP smoke 与所有权边界已有自动证据；最终统一独立裁决待发布候选。
+  completed_at: '2026-09-10T01:09:01.143Z'

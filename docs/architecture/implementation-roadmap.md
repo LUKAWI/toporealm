@@ -1,6 +1,6 @@
 # TopoRealm 基座实施路线图
 
-状态：已实施并冻结 v1。本文保留路线图与实际交付边界。
+状态：已实施并冻结 v1 协议基线。M3/M4 是非发布验证切片，不代表领域模块随 Core 产品发行。
 
 ## 交付原则
 
@@ -69,6 +69,8 @@
 
 验收：模块安装、动作发现、跨模块编辑、MCP MutationPlan、Web 增量显示、模块缺失降级和恢复全部通过。
 
+发行边界：本阶段产物仅保留为测试 fixture；research 与 exploration 产品模块在 Core v0.1 发布后另行开发和连接验收。
+
 ### M4：workflow 代表性切片
 
 目标：证明同一基座也能承载开发工作流，而不是只适合知识图。
@@ -78,6 +80,8 @@
 实现范围：从 Super Plumber 选择性移植任务状态、依赖门禁、checkpoint、execution report 和下一行动；domain-modeling 与 exploration 只在切片真实需要时接入。不读取旧 `.graph/`，不追求旧命令同名兼容。
 
 验收：一条最小任务链可通过模块操作完成状态流转和门禁，Core 仍无七态、DAG、checkpoint 或 ADR 枚举。
+
+发行边界：本阶段产物仅保留为测试 fixture；workflow 产品模块在 Core v0.1 发布后独立开发，并与其他模块完成组合测试。
 
 ### M5：模块安装器与三宿主投影
 

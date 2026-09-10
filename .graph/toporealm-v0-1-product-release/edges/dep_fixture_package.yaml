@@ -1,0 +1,4 @@
+id: dep_fixture_package
+source: l2_module_fixture
+target: l3_package_artifact
+type: depends_on

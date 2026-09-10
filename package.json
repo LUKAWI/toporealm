@@ -1,25 +1,61 @@
 {
-  "name": "toporealm",
+  "name": "@lukawi/toporealm",
   "version": "0.1.0",
-  "private": true,
+  "description": "Domain-neutral graph foundation with CLI, MCP, Web UI, module SDK, and agent integrations",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LUKAWI/toporealm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LUKAWI/toporealm/issues"
+  },
+  "homepage": "https://github.com/LUKAWI/toporealm#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./core": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },
+    "./module-sdk": { "types": "./dist/module-sdk/index.d.ts", "import": "./dist/module-sdk/index.js" },
+    "./cli": { "types": "./dist/cli/index.d.ts", "import": "./dist/cli/index.js" },
+    "./mcp": { "types": "./dist/mcp/index.d.ts", "import": "./dist/mcp/index.js" },
+    "./server": { "types": "./dist/server/index.d.ts", "import": "./dist/server/index.js" },
+    "./web": { "types": "./dist/web/index.d.ts", "import": "./dist/web/index.js" },
+    "./distribution": { "types": "./dist/distribution/index.d.ts", "import": "./dist/distribution/index.js" },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "bin": {
     "toporealm": "dist/cli/main.js"
   },
-  "description": "TopoRealm modular graph foundation",
+  "publishConfig": {
+    "access": "public",
+    "tag": "preview"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && npm run web:build && node scripts/copy-web-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run build",
     "test": "vitest run",
     "web:build": "npm --prefix web-ui run build",
     "web:typecheck": "npm --prefix web-ui run typecheck",
     "web:test": "npm --prefix web-ui run test",
     "web:browser-smoke": "vitest run tests/browser-smoke.test.ts",
     "web:verify": "npm run web:typecheck && npm run web:build && npm run web:test",
-    "verify": "npm run build && npm test && npm run web:verify"
+    "verify": "npm run typecheck && npm test && npm run web:typecheck && npm run web:test && npm run test:package",
+    "prepack": "npm run build",
+    "test:package": "node scripts/package-smoke.mjs"
   },
   "dependencies": {
-    "yaml": "^2.7.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

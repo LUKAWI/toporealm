@@ -1,0 +1,5 @@
+id: rel_runtime_distribution
+source: ctx_runtime
+target: ctx_distribution
+type: relates
+rel_kind: 运行时产物进入公开发行

@@ -1,4 +1,4 @@
-import type { ActionContext, ActionOutput, ModuleActionRuntime } from "../module-sdk/index.js";
+import type { ActionContext, ActionOutput, ModuleActionRuntime } from "../../../src/module-sdk/index.js";
 
 export const researchFixtureSources = [
   {
@@ -40,4 +40,3 @@ export function createResearchRuntime(): ModuleActionRuntime {
     },
   };
 }
-

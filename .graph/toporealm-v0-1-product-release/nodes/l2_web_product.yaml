@@ -1,0 +1,52 @@
+id: l2_web_product
+type: task
+label: 把 Web UI 纳入产品运行时
+level: 2
+priority: 4
+context: ctx_runtime
+status: passed
+plan:
+  description: >-
+    若本环境存在 plumber-tdd 技能，按其约定执行本节点。让 toporealm serve 从安装包直接提供生产 Web 资源并按需打开浏览器，复用 Web 编辑器 v2
+    的画布、编辑、patch、冲突恢复和只读能力；统一使用工作区与当前图解析，不要求源码仓库或 web-ui 开发依赖存在。
+expected_outcome:
+  definition_of_done:
+    - 从 npm tarball 干净安装后执行 toporealm serve 可加载生产页面，且不依赖仓库中的 web-ui/src 或开发服务器。
+    - 浏览器 smoke 覆盖图选择、对象与关系 CRUD、undo/redo、revision 冲突恢复、patch gap 和只读模式。
+    - Web UI 对缺失领域模块保持无损读取与通用展示，不内置 research、exploration 或 workflow 专属界面。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:00:26.448Z'
+updated_at: '2026-09-10T00:50:44.070Z'
+checkpoints:
+  - id: packaged_assets
+    label: 安装包内生产 Web 资源可由 serve 加载
+    status: passed
+    verifier: auto
+  - id: editor_regression
+    label: Web v2 核心交互回归通过
+    status: passed
+    verifier: auto
+  - id: generic_surface
+    label: Web 产品面保持领域无关
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: 将 Svelte Web 编辑器生产构建纳入主包 dist/web-assets，并让 toporealm serve 从任意目录启动同一 Core/Server 和可选浏览器打开；运行时不依赖 web-ui 源码或 Vite。
+  started_at: '2026-09-10T00:46:59.260Z'
+  artifacts:
+    - src/web/index.ts
+    - src/cli/index.ts
+    - src/cli/main.ts
+    - scripts/copy-web-assets.mjs
+    - package.json
+    - tests/web-product.test.ts
+  notes: >-
+    打包 Web 运行时测试 1/1；Web typecheck 0 错误/警告、生产构建通过、Web 11 files/42 tests、浏览器 smoke 1/1、主包 12 files/33 tests。npm pack
+    dry-run 73 文件包含 dist/web-assets，未包含领域模块。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T00:50:44.016Z'
+    note: 生产资源、serve 进程、编辑器回归与领域无关界面均有自动证据；最终统一独立裁决待发布候选。
+  completed_at: '2026-09-10T00:50:44.070Z'

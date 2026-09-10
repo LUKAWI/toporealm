@@ -1,0 +1,71 @@
+id: graph_1788969405861_t3s8v8
+label: TopoRealm v0.1 产品发布
+entry:
+  description: 从已冻结的 TopoRealm v1 基座与通过人审的 Web 编辑器 v2 出发，将领域无关的完整产品收敛为可公开安装的 @lukawi/toporealm v0.1 Preview。
+  defined_by: human
+  level: 0
+exit:
+  description: >-
+    公开用户可在 Windows、macOS、Linux 的干净 Node.js 20+ 环境安装 @lukawi/toporealm，初始化工作区、启动 Web、连接 MCP、使用基础 Skills，并通过外部 fixture
+    验证模块生态；npm、Git tag 与 GitHub Release 证据一致。
+  acceptance_criteria:
+    - npm 安装包不含 research、exploration、workflow 或其他领域模块，根导出面也不暴露其实现。
+    - CLI、stdio MCP、Web UI 与工作区/图解析共用 Core，并完成干净安装 smoke。
+    - Codex、Claude、Pi 三套直接可识别资产均能连接同一 MCP 并加载四个基础 Skills。
+    - Windows、macOS、Linux 的 Node.js 20+ CI 安装、CLI、MCP 与 Web smoke 全部通过。
+    - 用户批准发布后，npm 包、远端提交、v0.1.0 tag 和 GitHub Release 均可核验。
+  defined_by: human
+  level: 0
+nodes:
+  - file: nodes/ctx_runtime.yaml
+  - file: nodes/ctx_module_ecosystem.yaml
+  - file: nodes/ctx_host_integration.yaml
+  - file: nodes/ctx_distribution.yaml
+  - file: nodes/adr_0001.yaml
+  - file: nodes/l1_release_boundary.yaml
+  - file: nodes/l1_workspace_cli.yaml
+  - file: nodes/l1_mcp_stdio.yaml
+  - file: nodes/l2_web_product.yaml
+  - file: nodes/l2_base_skills.yaml
+  - file: nodes/l2_module_fixture.yaml
+  - file: nodes/l3_package_artifact.yaml
+  - file: nodes/l3_host_integrations.yaml
+  - file: nodes/l3_cross_platform_ci.yaml
+  - file: nodes/l3_release_docs.yaml
+  - file: nodes/l4_release_candidate.yaml
+  - file: nodes/l4_human_publish_gate.yaml
+  - file: nodes/l4_publish_preview.yaml
+  - file: nodes/l4_postrelease_evidence.yaml
+edges:
+  - file: edges/rel_runtime_distribution.yaml
+  - file: edges/rel_runtime_ecosystem.yaml
+  - file: edges/rel_runtime_hosts.yaml
+  - file: edges/rel_ecosystem_hosts.yaml
+  - file: edges/rel_hosts_distribution.yaml
+  - file: edges/d_adr_release_distribution.yaml
+  - file: edges/d_adr_release_ecosystem.yaml
+  - file: edges/dep_cli_web.yaml
+  - file: edges/dep_package_hosts.yaml
+  - file: edges/dep_hosts_ci.yaml
+  - file: edges/dep_candidate_human.yaml
+  - file: edges/dep_human_publish.yaml
+  - file: edges/dep_publish_verify.yaml
+  - file: edges/dep_boundary_cli.yaml
+  - file: edges/dep_boundary_mcp.yaml
+  - file: edges/dep_cli_skills.yaml
+  - file: edges/dep_mcp_skills.yaml
+  - file: edges/dep_web_fixture.yaml
+  - file: edges/dep_mcp_fixture.yaml
+  - file: edges/dep_web_package.yaml
+  - file: edges/dep_skills_package.yaml
+  - file: edges/dep_fixture_package.yaml
+  - file: edges/dep_package_docs.yaml
+  - file: edges/dep_hosts_docs.yaml
+  - file: edges/dep_ci_candidate.yaml
+  - file: edges/dep_docs_candidate.yaml
+version: 1.0.0
+class: standard
+review:
+  status: approved
+  by: user
+  at: '2026-09-10T00:04:33.028Z'

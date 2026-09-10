@@ -1,0 +1,23 @@
+id: ctx_distribution
+type: context
+label: 公开发行
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:57:43.786Z'
+updated_at: '2026-09-09T15:58:34.247Z'
+boundary: 负责 @lukawi/toporealm 的 npm 包边界、跨平台 CI、MIT 许可、GitHub 仓库、版本发布与发布后证据；不改变 Core 或模块机器协议。
+glossary:
+  - term: 公开预览版
+    definition: '可供公众安装使用、承诺 toporealm.graph/v1 与 toporealm.module/v1 数据格式稳定，但 1.0 前允许调整 CLI 和 Web 交互的发行级别。 Avoid: 稳定版, 内部原型'
+contracts:
+  - to: ctx_runtime
+    contract:
+      produces: 发行组成、公开 API 与安装体验边界
+  - to: ctx_module_ecosystem
+    contract:
+      produces: 主包排除领域模块与 fixture 非发布约束
+  - to: ctx_host_integration
+    contract:
+      produces: 公开包名、版本和三宿主发行门禁

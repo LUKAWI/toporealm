@@ -1,0 +1,19 @@
+format: toporealm.module/v1
+id: example
+namespace: example
+version: 0.1.0
+supports:
+  schemas: [1]
+contributes:
+  object_kinds:
+    - id: card
+      declaration: schemas/card.yaml
+  operations:
+    - id: create-card
+      declaration: operations/create-card.yaml
+runtime:
+  entry: runtime/index.js
+ui:
+  contribution: ui/contribution.yaml
+skills:
+  directory: skills

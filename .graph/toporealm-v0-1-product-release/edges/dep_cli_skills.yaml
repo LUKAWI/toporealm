@@ -1,0 +1,4 @@
+id: dep_cli_skills
+source: l1_workspace_cli
+target: l2_base_skills
+type: depends_on

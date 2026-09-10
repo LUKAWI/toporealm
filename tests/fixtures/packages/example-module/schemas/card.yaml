@@ -1,0 +1,6 @@
+kind: example.card
+type: object
+required: [id, label]
+properties:
+  id: { type: string }
+  label: { type: string }

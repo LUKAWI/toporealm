@@ -1,0 +1,4 @@
+id: dep_docs_candidate
+source: l3_release_docs
+target: l4_release_candidate
+type: depends_on

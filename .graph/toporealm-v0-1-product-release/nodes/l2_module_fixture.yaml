@@ -1,0 +1,52 @@
+id: l2_module_fixture
+type: task
+label: 用外部 fixture 验证模块生态
+level: 2
+priority: 6
+context: ctx_module_ecosystem
+status: passed
+plan:
+  description: >-
+    若本环境存在 plumber-tdd 技能，按其约定执行本节点。把现有领域切片降为 tests/fixtures 验证资产，并新增一个不随主包发布的最小 example 模块 npm tarball，贯通安装、绑定、激活、声明式
+    Web、动作发现、Core 调用领域实现、MutationPlan 提交、宿主 Skill 投影、卸载和缺失模块无损读取。
+expected_outcome:
+  definition_of_done:
+    - npm 包内容清单不包含 example fixture，但测试能从独立 tarball 安装它并完成工作区绑定与注册快照激活。
+    - Web 和 MCP 可发现 example 模块的声明与动作；领域实现无图存储写权限，变更仅通过 MutationPlan 由 Core 提交。
+    - 卸载后 TopoRealm 只清理所有权匹配资产，模块数据仍可由 Core 无损读取且完整校验明确报告模块缺失。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:00:27.302Z'
+updated_at: '2026-09-10T00:59:35.291Z'
+checkpoints:
+  - id: external_package
+    label: 非发布 fixture 独立打包安装并激活
+    status: passed
+    verifier: auto
+  - id: full_path
+    label: Web、MCP、领域实现和 MutationPlan 全链路通过
+    status: passed
+    verifier: cross_review
+  - id: uninstall_degrade
+    label: 卸载清理与无损降级读取通过
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    新增不随主包发布的 @toporealm/example-module fixture，以独立 npm tarball 完成安装绑定、注册激活、Web/MCP 发现、领域运行时返回 MutationPlan、Core 提交、三宿主
+    Skill 投影、卸载和缺失模块无损降级。
+  started_at: '2026-09-10T00:56:42.900Z'
+  artifacts:
+    - tests/fixtures/packages/example-module/package.json
+    - tests/fixtures/packages/example-module/module.yaml
+    - tests/fixtures/packages/example-module/runtime/index.js
+    - tests/module-ecosystem.test.ts
+  notes: >-
+    生态端到端 1/1，通过；全量 14 files/36 tests，通过。主包 npm pack dry-run 85 文件，tests/fixtures、example-module、dist/modules 及
+    research/exploration/workflow 命中 0。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T00:59:35.239Z'
+    note: 外部包、全链路 MutationPlan 边界、所有权清理与降级读取均由端到端测试证明；最终统一独立裁决待发布候选。
+  completed_at: '2026-09-10T00:59:35.291Z'

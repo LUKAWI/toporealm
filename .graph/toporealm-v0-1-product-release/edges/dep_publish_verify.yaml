@@ -1,0 +1,4 @@
+id: dep_publish_verify
+source: l4_publish_preview
+target: l4_postrelease_evidence
+type: depends_on

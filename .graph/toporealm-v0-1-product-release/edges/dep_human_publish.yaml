@@ -1,0 +1,4 @@
+id: dep_human_publish
+source: l4_human_publish_gate
+target: l4_publish_preview
+type: depends_on

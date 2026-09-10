@@ -10,7 +10,7 @@ Skills 教 agent 如何使用 TopoRealm 与已安装模块。Schema、操作输�
 
 ## 基座 Skills
 
-TopoRealm 基座固定提供三个 Skills：
+TopoRealm 基座固定提供四个 Skills：
 
 ### `toporealm`
 
@@ -23,6 +23,10 @@ TopoRealm 基座固定提供三个 Skills：
 ### `toporealm-join`
 
 以只读方式读取图的范围、已启用模块、主要对象、近期变化和当前关注区域，再将后续工作路由给适用模块。它不改变状态、不认领对象，也不启动模块执行。
+
+### `toporealm-grilling`
+
+在用户显式要求拷问设计，或关键产品/协议歧义阻止可信行动时，对齐需求与真实意图。它先核对已有事实，再一次只问一个高价值问题；共识形成前不执行图、模块或宿主变更。
 
 ## 模块 Skill 粒度
 
@@ -62,19 +66,17 @@ TopoRealm 正式维护 Codex、Claude 和 Pi 三套可直接导入的完整投�
 
 ```text
 integrations/
-├─ src/                 # 共享规范源、模板和宿主差异源
-├─ codex/               # 可直接导入的 Codex 插件
-├─ claude/              # 可直接导入的 Claude 插件
-└─ pi/                  # 可直接导入的 Pi 扩展
+├─ src/                 # 共享规范源和四个基座 Skill 正本
+└─ ...                  # host sync 按宿主生成独立投影
 ```
 
-三个发布投影分别维护宿主所需的真实文件，包括：
+三个运行时投影分别生成宿主所需的真实文件，包括：
 
 - Codex 的 `.codex-plugin/plugin.json`、marketplace 条目、Skills、MCP 配置和 hooks；
 - Claude 的 `.claude-plugin/plugin.json`、marketplace 条目、Skills、MCP 配置和 hooks；
 - Pi 的 `index.js`、Skills、扩展注册与其支持的生命周期接入。
 
-共享规则只在 `integrations/src/` 保留一份规范源；构建器按宿主条件模板生成三套完整正文。路径、入口、调用方式、清单字段和生命周期事件可以因宿主而不同，不能为了文本一致而牺牲可直接导入性。三套生成产物都进入发布校验，禁止把其中一套当作其他宿主的隐式兼容层。
+共享规则只在 `integrations/src/` 保留一份规范源；`toporealm host sync` 按宿主条件生成三套完整正文。路径、入口、调用方式、清单字段和生命周期事件可以因宿主而不同，不能为了文本一致而牺牲可直接导入性。三套生成产物都进入验证，禁止把其中一套当作其他宿主的隐式兼容层。
 
 基座的固定 TopoRealm MCP 连接进入三套宿主投影。模块仍只贡献自身的 Skills 和模块资产，不另起 MCP Server；模块 Skills 由安装流程加入三套投影能够发现的位置。
 
@@ -89,7 +91,7 @@ integrations/
 
 每个生成目录包含一个轻量所有权标记，记录模块身份、版本、来源和生成器身份。安装与更新只创建或替换 TopoRealm 所有的投影；卸载只删除所有权完全匹配的目录，不删除、合并或覆盖用户手写 Skills。全局投影的期望状态来自全局模块安装记录，项目投影的期望状态来自工作区绑定。
 
-npm 只用于获取模块 tarball。`toporealm module add` 校验并把模块解包到用户级或工作区 `modules/` 目录，然后更新绑定并调用同一套 `host sync`；安装后的模块不依赖 `node_modules`。npm 模块与用户手写模块具有相同的 Skills 投影能力，区别仅在于受管模块带有可供更新和卸载使用的来源记录。
+npm 只用于获取模块 tarball。`toporealm module add` 校验并把模块解包到用户级或工作区 `modules/` 目录，然后更新绑定；用户显式运行 `toporealm host sync` 生成宿主投影。安装后的模块不依赖 `node_modules`。npm 模块与用户手写模块具有相同的 Skills 投影能力，区别仅在于受管模块带有可供更新和卸载使用的来源记录。
 
 ## 首版基座钩子
 

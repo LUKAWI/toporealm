@@ -1,0 +1,19 @@
+id: ctx_host_integration
+type: context
+label: Agent 与宿主集成
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:57:43.362Z'
+updated_at: '2026-09-09T15:57:43.548Z'
+boundary: >-
+  负责 toporealm、toporealm-design、toporealm-join、toporealm-grilling 四个基础 Skills 及 Codex、Claude、Pi 的直接可识别投影；不负责领域执行纪律和模块业务
+  Skills。
+glossary:
+  - term: 意图对齐
+    definition: 'Agent 通过事实自查和逐项用户决策消除需求歧义，形成可供设计与 ADR 使用的共识。 Avoid: 自动替用户决策'
+contracts:
+  - to: ctx_distribution
+    contract:
+      produces: 三宿主可打包资产与连接 smoke

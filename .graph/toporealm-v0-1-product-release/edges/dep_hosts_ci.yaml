@@ -1,0 +1,4 @@
+id: dep_hosts_ci
+source: l3_host_integrations
+target: l3_cross_platform_ci
+type: depends_on

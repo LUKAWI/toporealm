@@ -1,0 +1,4 @@
+id: dep_package_hosts
+source: l3_package_artifact
+target: l3_host_integrations
+type: depends_on

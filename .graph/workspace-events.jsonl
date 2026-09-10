@@ -6,3 +6,5 @@
 {"ts":"2026-09-08T15:23:25.660Z","actor":"cli","kind":"switch","detail":"active -> toporealm-web-editor-v1"}
 {"ts":"2026-09-08T23:38:41.200Z","actor":"cli","kind":"init","detail":"graph=toporealm-web-editor-v2 label=\"TopoRealm Web 编辑器 v2\""}
 {"ts":"2026-09-08T23:38:41.208Z","actor":"cli","kind":"switch","detail":"active -> toporealm-web-editor-v2"}
+{"ts":"2026-09-09T15:56:45.867Z","actor":"cli","kind":"init","detail":"graph=toporealm-v0-1-product-release label=\"TopoRealm v0.1 产品发布\""}
+{"ts":"2026-09-09T15:56:45.875Z","actor":"cli","kind":"switch","detail":"active -> toporealm-v0-1-product-release"}

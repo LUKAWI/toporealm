@@ -1,0 +1,33 @@
+id: l4_publish_preview
+type: task
+label: 发布 @lukawi/toporealm v0.1.0
+level: 4
+priority: 13
+context: ctx_distribution
+status: pending
+plan:
+  description: >-
+    仅在人审 gate 通过后执行外部发布：创建或连接 LUKAWI/toporealm 公开仓库，提交并推送获批候选，发布 @lukawi/toporealm@0.1.0 public 包，创建带注释 v0.1.0 tag 和对应
+    GitHub Release。发布内容必须来自同一获批提交，不夹带后续模块开发。
+expected_outcome:
+  definition_of_done:
+    - npm registry 显示 @lukawi/toporealm@0.1.0 为 public，包摘要与候选 tarball 一致。
+    - GitHub 默认分支包含获批提交，远端 v0.1.0 tag 与 GitHub Release 均指向该提交。
+    - GitHub Release 说明准确标注 Preview、Node.js 20+、三系统支持、主包不含领域模块及已知限制。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:02:45.697Z'
+updated_at: '2026-09-09T16:02:45.878Z'
+checkpoints:
+  - id: npm_publish
+    label: 公开 npm 包发布成功
+    status: pending
+    verifier: auto
+  - id: git_release
+    label: 远端提交、tag 与 GitHub Release 一致
+    status: pending
+    verifier: auto
+  - id: release_notes
+    label: 公开发布说明与获批边界一致
+    status: pending
+    verifier: cross_review

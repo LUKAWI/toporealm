@@ -1,0 +1,4 @@
+id: dep_skills_package
+source: l2_base_skills
+target: l3_package_artifact
+type: depends_on

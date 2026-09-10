@@ -1,0 +1,5 @@
+id: rel_runtime_ecosystem
+source: ctx_runtime
+target: ctx_module_ecosystem
+type: relates
+rel_kind: Core 协议承载模块生态

@@ -1,0 +1,51 @@
+id: l3_release_docs
+type: task
+label: 完成双语产品与发布文档
+level: 3
+priority: 10
+context: ctx_distribution
+status: passed
+plan:
+  description: >-
+    按公开产品标准重写 README.md 与 README.en.md，说明问题、适用对象、Core 能力、Web、CLI、MCP、四个基础 Skills、模块生态、三宿主接入和可运行示例；同步架构状态、Preview
+    兼容承诺、模块信任边界与不含领域模块的发行边界。只记录真实实现，不把后续模块计划写成现成功能。
+expected_outcome:
+  definition_of_done:
+    - 中英文 README 都包含从 npm 安装到 init、serve、mcp、host sync 的可复制最短路径，并明确 v0.1 不含领域模块。
+    - 文档明确模块是用户主动安装的可信本地代码，领域实现无图存储写权限，图变更必须经 MutationPlan 交给 Core。
+    - 发布清单、架构文档、CONTEXT.md、ADR 导出与实际 CLI/package 内容无相互矛盾的状态描述。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:01:38.449Z'
+updated_at: '2026-09-10T01:25:24.801Z'
+checkpoints:
+  - id: bilingual_product_guide
+    label: 中英文产品指南覆盖完整首用路径
+    status: passed
+    verifier: cross_review
+  - id: trust_boundary
+    label: 模块信任与 Core 写权限表述准确
+    status: passed
+    verifier: cross_review
+  - id: docs_truth
+    label: 文档与实际发行内容一致
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: 完成中英文产品指南、首用路径、MCP 与宿主接入说明、四个基础 Skills、模块生态和信任边界；新增 v0.1.0 Preview 发布清单，并同步已接受 ADR 与架构文档。
+  started_at: '2026-09-10T01:19:23.244Z'
+  artifacts:
+    - README.md
+    - README.en.md
+    - docs/releases/v0.1.0-preview.md
+    - docs/architecture/FOUNDATION.md
+    - docs/toporealm-v0-1-product-release/adr/0001-v0-1-发布不含领域模块的完整基座产品.md
+    - docs/toporealm-v0-1-product-release/DECISIONS.md
+  blockers: []
+  notes: 双语文档关键路径自动核对通过，未发现“三个基础 Skills”、待裁决 ADR 或空决议索引等残留矛盾；git diff --check 通过，仅有 Windows 行尾提示。节点级主观复核按用户要求并入发布候选统一评审。
+  verification:
+    verdict: pending
+    checked_at: '2026-09-10T01:25:21.566Z'
+    note: 等待发布候选统一独立评审与裁决。
+  completed_at: '2026-09-10T01:25:24.801Z'

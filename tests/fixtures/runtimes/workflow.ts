@@ -1,4 +1,4 @@
-import type { ActionContext, ActionOutput, ModuleActionRuntime } from "../module-sdk/index.js";
+import type { ActionContext, ActionOutput, ModuleActionRuntime } from "../../../src/module-sdk/index.js";
 
 type WorkflowStatus = "pending" | "ready" | "running" | "passed" | "failed" | "blocked" | "cancelled";
 
@@ -87,4 +87,3 @@ export function createWorkflowRuntime(): ModuleActionRuntime {
     },
   };
 }
-

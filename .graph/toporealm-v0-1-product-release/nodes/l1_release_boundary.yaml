@@ -1,0 +1,59 @@
+id: l1_release_boundary
+type: task
+label: 落实无领域模块的发行边界
+level: 1
+priority: 1
+context: ctx_distribution
+status: passed
+plan:
+  description: >-
+    按 adr_0001 收敛主包边界：把 research、exploration、workflow 实现从 src/modules 与根公开导出迁出，仅保留为 tests/fixtures 下的协议验证资产；同步
+    README、冻结清单和架构文档，明确它们不是 v0.1 出厂能力。只处理发行归属，不开发领域模块。
+expected_outcome:
+  definition_of_done:
+    - npm 包文件清单不包含领域模块运行时、领域 Skills 或业务 fixture，根入口不导出领域模块实现。
+    - 现有协议与切片测试改从非发布 fixture 取样并通过，Core 源码中没有 workflow、research 或 exploration 领域枚举。
+    - README、v1 冻结清单与架构文档一致写明 v0.1 主包不含领域模块，后续模块需独立开发和组合验收。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:59:28.773Z'
+updated_at: '2026-09-10T00:29:52.437Z'
+checkpoints:
+  - id: package_boundary
+    label: 主包导出与文件集排除全部领域模块
+    status: passed
+    verifier: cross_review
+  - id: fixture_continuity
+    label: 协议验证 fixture 与既有回归保持可运行
+    status: passed
+    verifier: auto
+  - id: docs_alignment
+    label: 发行边界文档与 ADR 一致
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: 已落实无领域模块的发行边界：领域运行时与数据迁至 tests/fixtures，根导出和通用 Server 移除内置领域实现，npm pack 文件集仅含通用 dist，发行文档与 ADR 对齐。
+  started_at: '2026-09-10T00:05:20.013Z'
+  artifacts:
+    - src/index.ts
+    - src/server/index.ts
+    - tests/fixtures/runtimes/index.ts
+    - tests/fixtures/data/modules/research/module.yaml
+    - package.json
+    - README.md
+    - CONTEXT.md
+    - docs/architecture/FOUNDATION.md
+    - docs/architecture/implementation-roadmap.md
+    - docs/architecture/v1-freeze.md
+    - docs/architecture/web-contributions.md
+  notes: >-
+    构建通过；根测试 9 files/26 tests passed；npm pack --dry-run 为 70 个通用文件且无领域模块/fixture；独立 reviewer 双 双双轴斧均无 blocker，等待
+    adjudication。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T00:29:52.257Z'
+    note: >-
+      独立 reviewer 双轴无 blocker；逐条核对 DoD：根入口不导出领域实现，Server 通过注入 runtime 保持通用，领域运行时与数据仅在 tests/fixtures；npm pack dry-run 70
+      文件无领域模块，build 与 npm test 9 files/26 tests 通过，文档明确 v0.1 不含 research/exploration/workflow 并与 adr_0001 决策一致。
+  completed_at: '2026-09-10T00:29:52.437Z'

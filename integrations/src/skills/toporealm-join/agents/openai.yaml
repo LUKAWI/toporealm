@@ -1,0 +1,6 @@
+interface:
+  display_name: "TopoRealm Join"
+  short_description: "只读恢复图、模块与可用动作上下文"
+  default_prompt: "使用 $toporealm-join 只读加入当前工作区并告诉我下一步。"
+policy:
+  allow_implicit_invocation: true

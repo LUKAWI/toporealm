@@ -1,0 +1,4 @@
+id: dep_hosts_docs
+source: l3_host_integrations
+target: l3_release_docs
+type: depends_on

@@ -1,0 +1,51 @@
+id: l1_mcp_stdio
+type: task
+label: 实现真实 stdio MCP Server
+level: 1
+priority: 3
+context: ctx_runtime
+status: passed
+plan:
+  description: >-
+    若本环境存在 plumber-tdd 技能，按其约定执行本节点。基于现有 transport-neutral handlers 建立 toporealm mcp 的真实 stdio
+    入口，固定暴露图发现/读取/创建/选择、基础与完整校验、MutationPlan、undo/redo、模块状态、动作发现与执行；复用 CLI 的工作区解析，不暴露 module add/remove 或 host sync。
+expected_outcome:
+  definition_of_done:
+    - 使用官方 MCP SDK 的 StdioClientTransport 可连接安装包中的 toporealm mcp，listTools 与最小调用返回结构化成功结果。
+    - MCP 图写入和模块动作最终进入同一 GraphStore/MutationPlan 提交路径，旧 revision 返回稳定冲突错误。
+    - MCP 工具列表不包含模块安装、卸载、宿主同步或其他环境管理入口。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:59:29.695Z'
+updated_at: '2026-09-10T00:45:27.920Z'
+checkpoints:
+  - id: transport
+    label: 真实 stdio MCP 握手与工具调用通过
+    status: passed
+    verifier: auto
+  - id: write_boundary
+    label: MCP 写入统一进入 Core MutationPlan 路径
+    status: passed
+    verifier: cross_review
+  - id: admin_boundary
+    label: MCP 不暴露环境管理动作
+    status: passed
+    verifier: auto
+assigned_to: codex-root
+execution_report:
+  summary: 基于官方 MCP TypeScript SDK 交付真实 stdio Server；固定 11 个图、校验、模块状态与动作工具，CLI mcp 入口可被官方客户端握手，所有图写入复用 GraphStore/MutationPlan。
+  started_at: '2026-09-10T00:40:03.810Z'
+  artifacts:
+    - src/mcp/index.ts
+    - src/cli/main.ts
+    - tests/mcp-stdio.test.ts
+    - package.json
+    - package-lock.json
+  notes: >-
+    官方 StdioClientTransport 端到端 2/2，通过；全量 11 files/32 tests、typecheck、build 通过。工具列表不含
+    module_add/module_remove/host_sync。中间节点按用户要求不单独 review，最终统一裁决。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T00:45:27.918Z'
+    note: stdio 握手、结构化调用、revision 冲突和管理边界均有自动测试证据。
+  completed_at: '2026-09-10T00:45:17.957Z'

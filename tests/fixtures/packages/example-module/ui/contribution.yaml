@@ -1,0 +1,5 @@
+object_kinds:
+  example.card:
+    icon: square
+    color: "#67e8f9"
+    summary_fields: [label]

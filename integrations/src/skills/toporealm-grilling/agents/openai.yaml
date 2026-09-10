@@ -1,0 +1,6 @@
+interface:
+  display_name: "TopoRealm Grilling"
+  short_description: "逐问识别真实意图并闭合关键产品决策"
+  default_prompt: "使用 $toporealm-grilling 逐问拷问并对齐这个 TopoRealm 方案。"
+policy:
+  allow_implicit_invocation: true

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { GraphStore } from "../src/core/index.js";
 import { listenToporealmServer } from "../src/server/index.js";
 import { createMcpHandlers } from "../src/mcp/index.js";
-import { createExplorationRuntime, createResearchRuntime } from "../src/modules/index.js";
+import { createExplorationRuntime, createResearchRuntime } from "./fixtures/runtimes/index.js";
 import { ActionExecutor, GraphActivator, WorkspaceModuleResolver, applyRegisteredPlan, discoverActions } from "../src/module-sdk/index.js";
 import { WebGraphModel } from "../src/web/index.js";
 
@@ -20,9 +20,9 @@ function copiedFixture(): { root: string; store: GraphStore } {
   roots.push(base);
   const root = join(base, "workspace");
   mkdirSync(root, { recursive: true });
-  const fixture = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/research-vertical");
+  const fixture = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/research-vertical");
   cpSync(fixture, root, { recursive: true });
-  cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/modules"), join(base, "modules"), { recursive: true });
+  cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/modules"), join(base, "modules"), { recursive: true });
   return { root, store: GraphStore.fromWorkspace(root, "research-demo") };
 }
 
@@ -77,13 +77,13 @@ describe("offline research/exploration vertical slice", () => {
     expect(degraded.modules.find((module) => module.id === "research")?.status).toBe("available");
     expect(degraded.modules.find((module) => module.id === "exploration")?.status).toBe("unavailable");
     expect(store.read().objects[0]?.data).toEqual({ status: "open" });
-    cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/modules/exploration"), explorationPath, { recursive: true });
+    cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/modules/exploration"), explorationPath, { recursive: true });
     expect(new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read()).modules.find((module) => module.id === "exploration")?.status).toBe("available");
   });
 
   it("Server 从模块声明发现动作，并在运行时失败时返回稳定错误边界", async () => {
     const { store } = copiedFixture();
-    const server = await listenToporealmServer(store);
+    const server = await listenToporealmServer(store, 0, "127.0.0.1", { runtimes: { research: createResearchRuntime(), exploration: createExplorationRuntime() } });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     const base = `http://127.0.0.1:${address.port}`;

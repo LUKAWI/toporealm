@@ -1,0 +1,5 @@
+id: rel_runtime_hosts
+source: ctx_runtime
+target: ctx_host_integration
+type: relates
+rel_kind: 统一入口供宿主连接

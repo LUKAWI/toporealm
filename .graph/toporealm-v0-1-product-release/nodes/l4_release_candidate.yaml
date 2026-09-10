@@ -1,0 +1,71 @@
+id: l4_release_candidate
+type: task
+label: 验收 v0.1 发布候选
+level: 4
+priority: 11
+context: ctx_distribution
+status: pending
+plan:
+  description: >-
+    若本环境存在 plumber-review 技能，按其约定对候选产物做规格轴与惯例轴复核。集中执行构建、单元/集成测试、图协议回归、Web 浏览器 smoke、外部模块生命周期、stdio MCP 握手、三宿主投影、三系统 CI
+    结果和 npm tarball 内容审计；核对主包无领域模块。只形成候选与证据，不发布外部版本。
+expected_outcome:
+  definition_of_done:
+    - 本地全量 verify、git diff --check、npm pack 内容审计和 tarball 干净安装 smoke 均退出码 0。
+    - Windows、macOS、Linux CI 全绿，Codex、Claude、Pi 的 Skills 发现与 MCP 连接证据齐全。
+    - 独立复核确认发行物不含领域模块、MCP 不含环境管理工具、文档没有把测试 fixture 宣称为出厂能力。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:02:44.577Z'
+updated_at: '2026-09-10T01:55:15.580Z'
+checkpoints:
+  - id: verification_suite
+    label: 全量验证与 tarball 干净安装通过
+    status: passed
+    verifier: auto
+  - id: matrix_hosts
+    label: 三系统与三宿主证据齐全
+    status: pending
+    verifier: auto
+  - id: release_review
+    label: 发行边界与产品惯例独立复核通过
+    status: passed
+    verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    发布候选本地质量与发行边界已完成核验：Windows 本地 npm run verify 通过，根测试 15 files/37 tests、Web 11 files/42 tests；真实 npm tarball 87
+    entries 的干净安装、CLI、stdio MCP、Web 与公开入口 smoke 通过；git diff --check 无空白错误；图校验 19 nodes/26 edges 且 0 errors/0 warnings。独立
+    reviewer 已完成规格轴与惯例轴复核，确认四个基础 Skills、无领域模块发行边界、Core 唯一提交图变更和 MCP 无环境管理工具。由于当前无 Git remote，目标 GitHub 仓库不存在，macOS/Linux
+    尚无托管 CI 实际绿灯，候选 DoD 未全部满足。
+  started_at: '2026-09-10T01:25:56.192Z'
+  artifacts:
+    - package.json
+    - package-lock.json
+    - .github/workflows/ci.yml
+    - scripts/package-smoke.mjs
+    - README.md
+    - README.en.md
+    - docs/releases/v0.1.0-preview.md
+    - docs/architecture/skill-plugin-contract.md
+    - src/index.ts
+    - src/server/index.ts
+    - src/mcp/index.ts
+    - src/module-sdk/actions.ts
+    - src/module-sdk/registry.ts
+    - src/core/store.ts
+    - src/distribution/hosts.ts
+    - src/distribution/skills.ts
+    - tests/mcp-stdio.test.ts
+    - tests/host-integrations.test.ts
+    - tests/module-ecosystem.test.ts
+  blockers:
+    - 缺少 macOS 与 Linux 托管 CI 的真实 Node.js 20 全绿结果；当前只有 CI 矩阵配置和 Windows 本地证据。
+    - 当前 git remote 为空，gh repo view LUKAWI/toporealm 无可用仓库；本回合不创建仓库、不推送、不发布。
+  notes: >-
+    统一最终裁决，按用户要求不逐节点 review。独立 reviewer Hilbert 的规格轴与惯例轴报告确认文档冲突已修复，并保留三系统托管 CI blocker；本地 tarball、宿主投影和 Core
+    MutationPlan 写入边界的真实实现与测试均已核对。matrix_hosts 保持 pending；release_review 已通过。候选不得因本地质量通过而宣称可公开发布。
+  verification:
+    verdict: pending
+    checked_at: '2026-09-10T01:55:06.996Z'
+    note: 本地质量与发行边界证据充分，独立复核通过；三系统托管 CI 实际结果缺失，故候选整体保持 pending，暂不进入公开发布。

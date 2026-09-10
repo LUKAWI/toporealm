@@ -1,0 +1,3 @@
+title: Create example card
+effects: none
+input_schema: schemas/card.yaml

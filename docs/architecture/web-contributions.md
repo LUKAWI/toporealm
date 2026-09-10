@@ -1,6 +1,6 @@
 # TopoRealm Web UI 与模块贡献契约
 
-状态：核心边界已确认，待用最小 research 模块验证。
+状态：核心边界已确认，并由非发布的最小 research fixture 完成协议验证。
 
 ## 目标
 

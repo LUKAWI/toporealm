@@ -6,6 +6,8 @@
 
 TopoRealm 是包含核心库、CLI、MCP 和 Web UI 的独立产品。它以可扩展图为共同数据模型，通过模块覆盖开发工作流、深度研究、个人学习及其他领域。
 
+`@lukawi/toporealm` v0.1 只发行领域无关的基座产品及其基础 Skills 和三宿主集成，不内置任何领域模块。本文中的 research、exploration 与 workflow 用于验证模块边界；其产品实现须在 Core 发布后独立开发和验收。
+
 现有 Super Plumber 不在原仓库内原地改造。TopoRealm 在独立工作区建立新格式和模块协议，选择性吸收成熟行为与实现经验；v1 不承诺读取旧图。
 
 ## 已确认原则
@@ -17,7 +19,7 @@ TopoRealm 是包含核心库、CLI、MCP 和 Web UI 的独立产品。它以可�
 5. 模块采用声明优先、受信任代码扩展的混合方式。第一阶段只加载本地明确安装的可信模块。
 6. Web UI 是基座正式组成部分。模块可以贡献外观、详情面板、编辑表单、图层、操作、统计和推荐列表。
 7. TopoRealm 不依赖或整仓复制 Super Plumber；按新职责选择性移植成熟机制，旧项目继续独立可用。
-8. 基座提供 `toporealm`、`toporealm-design` 与 `toporealm-join` 三个基础 Skills：分别负责路由、通用建图和只读图入场，均不添加具体模块的领域内容。
+8. 基座提供 `toporealm`、`toporealm-design`、`toporealm-join` 与 `toporealm-grilling` 四个基础 Skills：分别负责路由、通用建图、只读图入场以及需求/意图对齐，均不添加具体模块的领域内容。
 9. 模块安装决定其 Skill 是否存在；图级启用只决定该 Skill 能否在当前图运行。已安装模块可以继续服务其他启用它的图。
 
 ## 最小基座职责
@@ -32,6 +34,7 @@ TopoRealm 是包含核心库、CLI、MCP 和 Web UI 的独立产品。它以可�
 - `toporealm` 基座路由 Skill；
 - `toporealm-design` 通用建图 Skill。
 - `toporealm-join` 只读图入场 Skill。
+- `toporealm-grilling` 需求与意图对齐 Skill。
 
 基座不强制任务状态、重试、执行报告、入口、出口、验收终点、无环图或设计审批。
 
@@ -42,6 +45,8 @@ TopoRealm 是包含核心库、CLI、MCP 和 Web UI 的独立产品。它以可�
 `toporealm-design` 指导图的范围、对象身份、能力组合、关系方向、分组、图层和可读性，调用基础校验并通过 Web UI 组织图级审核。它不自行添加任务、研究、学习或探索领域的内容，也不假设整张图必须是 DAG。需要领域判断时，它读取已启用模块的声明并转交对应模块 Skill。
 
 `toporealm-join` 供新会话读取图的范围、已启用模块、主要对象、近期变化和当前关注区域，然后路由到适用的模块能力。它全程只读，不设置 ready、不认领对象，也不启动领域执行。
+
+`toporealm-grilling` 在用户显式要求拷问设计，或关键产品/协议歧义阻止可信行动时使用；它先自查已有事实，再一次只问一个高价值问题，记录用户决定并在共识形成前不执行变更。
 
 ## 模块职责
 

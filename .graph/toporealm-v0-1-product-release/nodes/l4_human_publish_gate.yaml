@@ -1,0 +1,28 @@
+id: l4_human_publish_gate
+type: gate
+label: 用户审核并批准公开发布
+level: 4
+priority: 12
+context: ctx_distribution
+status: pending
+plan:
+  description: >-
+    向用户呈现 v0.1 候选包、安装命令、核心功能、Preview 兼容承诺、模块信任边界、三宿主与跨平台证据、已知限制和拟发布版本。只有用户明确批准后才允许执行 npm publish、创建公开 GitHub 仓库、推送 tag
+    或创建 GitHub Release。
+expected_outcome:
+  definition_of_done:
+    - 用户已审阅发布候选证据并明确批准或拒绝 @lukawi/toporealm@0.1.0 对外发布。
+    - 审核结论和任何附加条件已记录；未批准时下游发布节点保持不可执行。
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T16:02:45.127Z'
+updated_at: '2026-09-09T16:02:45.373Z'
+checkpoints:
+  - id: candidate_review
+    label: 用户完成候选功能、边界与限制审核
+    status: pending
+    verifier: human
+  - id: publish_authorization
+    label: 用户明确授权或拒绝外部发布动作
+    status: pending
+    verifier: human

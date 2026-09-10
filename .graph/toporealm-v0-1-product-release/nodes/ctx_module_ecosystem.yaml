@@ -1,0 +1,22 @@
+id: ctx_module_ecosystem
+type: context
+label: 模块生态
+level: 1
+status: pending
+attempts: 0
+max_attempts: 3
+created_at: '2026-09-09T15:57:42.993Z'
+updated_at: '2026-09-09T15:57:43.166Z'
+boundary: 负责模块安装生命周期、可信运行边界和非发布 fixture 的生态验证；不负责 research、exploration、workflow 等领域模块产品。
+glossary:
+  - term: 生态验证模块
+    definition: '仅用于验证安装、激活、动作、宿主投影和卸载协议的外部 fixture；不进入产品安装包。 Avoid: 内置模块, 官方业务模块'
+  - term: 领域操作实现
+    definition: 模块提供且由 Core 调用的领域行为实现；没有图存储写权限，图变更只能以 MutationPlan 交给 Core 提交。
+contracts:
+  - to: ctx_distribution
+    contract:
+      produces: 可在干净安装环境执行的外部模块生命周期 smoke
+  - to: ctx_host_integration
+    contract:
+      produces: 模块 Skill 与宿主投影的 fixture 输入

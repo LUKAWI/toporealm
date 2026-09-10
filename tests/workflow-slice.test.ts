@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { GraphStore } from "../src/core/index.js";
-import { createWorkflowRuntime } from "../src/modules/index.js";
+import { createWorkflowRuntime } from "./fixtures/runtimes/index.js";
 import { ActionExecutor, GraphActivator, WorkspaceModuleResolver, discoverActions } from "../src/module-sdk/index.js";
 
 const roots: string[] = [];
@@ -18,8 +18,8 @@ function copiedFixture(): { root: string; store: GraphStore } {
   const root = join(base, "workspace");
   mkdirSync(root, { recursive: true });
   const here = dirname(fileURLToPath(import.meta.url));
-  cpSync(resolve(here, "../fixtures/workflow-slice"), root, { recursive: true });
-  cpSync(resolve(here, "../fixtures/modules"), join(base, "modules"), { recursive: true });
+  cpSync(resolve(here, "fixtures/data/workflow-slice"), root, { recursive: true });
+  cpSync(resolve(here, "fixtures/data/modules"), join(base, "modules"), { recursive: true });
   return { root, store: GraphStore.fromWorkspace(root, "workflow-demo") };
 }
 

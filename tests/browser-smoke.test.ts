@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { GraphStore } from "../src/core/index.js";
 import { listenToporealmServer } from "../src/server/index.js";
+import { createExplorationRuntime, createResearchRuntime } from "./fixtures/runtimes/index.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -15,15 +16,15 @@ function copiedFixture(): GraphStore {
   const base = mkdtempSync(join(tmpdir(), "toporealm-browser-"));
   roots.push(base);
   const workspace = join(base, "workspace");
-  cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/research-vertical"), workspace, { recursive: true });
-  cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/modules"), join(base, "modules"), { recursive: true });
+  cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/research-vertical"), workspace, { recursive: true });
+  cpSync(resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/data/modules"), join(base, "modules"), { recursive: true });
   return GraphStore.fromWorkspace(workspace, "research-demo");
 }
 
 describe("real Server browser protocol smoke", () => {
   it("从 Web 根页面走到编辑、历史、动作、冲突和刷新持久化", async () => {
     const store = copiedFixture();
-    const server = await listenToporealmServer(store);
+    const server = await listenToporealmServer(store, 0, "127.0.0.1", { runtimes: { research: createResearchRuntime(), exploration: createExplorationRuntime() } });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     const base = `http://127.0.0.1:${address.port}`;

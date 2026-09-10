@@ -1,0 +1,6 @@
+interface:
+  display_name: "TopoRealm"
+  short_description: "识别意图并路由通用图与模块能力"
+  default_prompt: "使用 $toporealm 读取当前图并完成这个请求。"
+policy:
+  allow_implicit_invocation: true

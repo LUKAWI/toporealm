@@ -1,0 +1,5 @@
+id: rel_hosts_distribution
+source: ctx_host_integration
+target: ctx_distribution
+type: relates
+rel_kind: 宿主资产纳入发行

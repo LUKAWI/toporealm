@@ -4,5 +4,4 @@ export * from "./cli/index.js";
 export * from "./mcp/index.js";
 export * from "./server/index.js";
 export * from "./web/index.js";
-export * from "./modules/index.js";
 export * from "./distribution/index.js";
