@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   CoreError,
   GRAPH_FORMAT,
@@ -17,7 +18,14 @@ import {
   type HostSyncOptions,
   type InstallOptions,
 } from "../distribution/index.js";
-import { GraphActivator, WorkspaceModuleResolver } from "../module-sdk/index.js";
+import {
+  ActionExecutor,
+  GraphActivator,
+  WorkspaceModuleResolver,
+  discoverActions,
+  type ActionReference,
+  type ModuleActionRuntime,
+} from "../module-sdk/index.js";
 
 export const cliSurface = { name: "cli", coreFormat: coreSurface.graphFormat } as const;
 
@@ -54,6 +62,7 @@ const HELP = `TopoRealm CLI
   serve                     启动 Web Server
   mcp                       启动 stdio MCP Server
   module add|remove|list    管理模块
+  action list|execute       发现或执行模块领域操作
   host sync                 同步 Codex、Claude、Pi 宿主资产
   help                      显示帮助
 
@@ -220,7 +229,7 @@ export function runCli(argv: readonly string[], cwd = process.cwd(), env: Resolv
   const parsed = parseCli(argv);
   const [command, first, second] = parsed.args;
   if (!command || command === "help" || command === "--help" || command === "-h") return HELP;
-  const commands = new Set(["init", "list", "switch", "status", "read", "apply", "undo", "redo", "validate", "serve", "mcp", "module", "host"]);
+  const commands = new Set(["init", "list", "switch", "status", "read", "apply", "undo", "redo", "validate", "serve", "mcp", "module", "host", "action"]);
   if (!commands.has(command)) throw new CliUsageError(`未知命令：${command}`);
 
   if (command === "init") {
@@ -267,6 +276,11 @@ export function runCli(argv: readonly string[], cwd = process.cwd(), env: Resolv
       hostRoots: { codex: join(root, ".codex"), claude: join(root, ".claude"), pi: join(root, ".pi") },
     }));
   }
+  if (command === "action") {
+    const action = required(first, "toporealm action list|execute");
+    if (action !== "list" && action !== "execute") throw new CliUsageError(`未知 action 子命令：${action}`);
+    return JSON.stringify({ command: "action", action, workspaceRoot: root, graphId: resolveGraphTarget(root, { explicitGraph: parsed.graph, env }), payload: second });
+  }
   if (command === "serve" || command === "mcp") {
     return JSON.stringify({ command, workspaceRoot: root, graphId: resolveGraphTarget(root, { explicitGraph: parsed.graph, env }), host: parsed.host ?? "127.0.0.1", port: parsed.port ?? 0, open: parsed.open });
   }
@@ -293,6 +307,49 @@ export function runCli(argv: readonly string[], cwd = process.cwd(), env: Resolv
     return JSON.stringify(validateGraph(snapshot, registry));
   }
   throw new CliUsageError(`未知命令：${command}`);
+}
+
+async function loadActionRuntimes(workspaceRoot: string, graphId: string): Promise<Record<string, ModuleActionRuntime>> {
+  const snapshot = GraphStore.fromWorkspace(workspaceRoot, graphId).read();
+  const resolver = new WorkspaceModuleResolver(workspaceRoot);
+  const loaded: Record<string, ModuleActionRuntime> = {};
+  for (const ref of snapshot.manifest.modules ?? []) {
+    const module = resolver.resolve(ref.id);
+    if (module.status !== "available" || !module.manifest.runtime?.entry) continue;
+    const imported = await import(pathToFileURL(resolve(module.root, module.manifest.runtime.entry)).href) as {
+      default?: ModuleActionRuntime;
+      runtime?: ModuleActionRuntime;
+    };
+    const runtime = imported.default ?? imported.runtime;
+    if (runtime && typeof runtime.execute === "function") loaded[ref.id] = runtime;
+  }
+  return loaded;
+}
+
+/** Async CLI seam for the same ActionReference protocol exposed by MCP. */
+export async function runActionCli(
+  argv: readonly string[],
+  cwd = process.cwd(),
+  env: ResolverEnvironment = process.env,
+): Promise<string> {
+  const descriptor = JSON.parse(runCli(argv, cwd, env)) as {
+    command: string;
+    action: "list" | "execute";
+    workspaceRoot: string;
+    graphId: string;
+    payload?: string;
+  };
+  if (descriptor.command !== "action") throw new CliUsageError("runActionCli 只接受 action 命令。");
+  const store = GraphStore.fromWorkspace(descriptor.workspaceRoot, descriptor.graphId);
+  const registry = new GraphActivator(new WorkspaceModuleResolver(descriptor.workspaceRoot)).activate(store.read());
+  if (descriptor.action === "list") return JSON.stringify(discoverActions(registry));
+  const payload = JSON.parse(required(descriptor.payload, "toporealm action execute '<JSON>'")) as {
+    reference?: ActionReference;
+    input?: Record<string, unknown>;
+  };
+  if (!payload.reference) throw new CliUsageError("action execute 缺少 reference。");
+  const executor = new ActionExecutor(store, registry, await loadActionRuntimes(descriptor.workspaceRoot, descriptor.graphId));
+  return JSON.stringify(await executor.execute(payload.reference, payload.input));
 }
 
 export function executeCli(argv: readonly string[], options: { cwd?: string; env?: ResolverEnvironment } = {}): CliExecutionResult {

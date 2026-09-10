@@ -1,13 +1,16 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   executeCli,
   resolveGraphTarget,
   resolveWorkspaceRoot,
   runCli,
+  runActionCli,
 } from "../src/cli/index.js";
+import { GraphStore } from "../src/core/index.js";
+import { installModule } from "../src/distribution/index.js";
 
 const roots: string[] = [];
 
@@ -59,12 +62,32 @@ describe("TopoRealm CLI 命令面", () => {
 
   it("公开已确认命令帮助，并为用法错误与运行错误返回稳定退出码", () => {
     const help = runCli(["help"], tempRoot());
-    for (const command of ["init", "list", "switch", "status", "read", "apply", "undo", "redo", "validate", "serve", "mcp", "module add|remove|list", "host sync"]) {
+    for (const command of ["init", "list", "switch", "status", "read", "apply", "undo", "redo", "validate", "serve", "mcp", "module add|remove|list", "action list|execute", "host sync"]) {
       expect(help).toContain(command);
     }
     expect(executeCli(["unknown"], { cwd: tempRoot() })).toMatchObject({ exitCode: 2, stdout: "" });
     const missing = tempRoot();
     expect(executeCli(["--root", missing, "read"], { cwd: missing })).toMatchObject({ exitCode: 1, stdout: "" });
+  });
+
+  it("CLI action list/execute 与 MCP 共用 ActionReference 和 Core 提交边界", async () => {
+    const root = tempRoot();
+    runCli(["init", "demo"], root);
+    installModule(resolve("tests/fixtures/packages/example-module"), { workspaceRoot: root });
+    const store = GraphStore.fromWorkspace(root, "demo");
+    store.apply({ expectedRevision: 0, mutations: [{
+      op: "patch_manifest",
+      patch: { modules: [{ id: "example", namespace: "example", schema: 1 }] },
+    }] });
+
+    const actions = JSON.parse(await runActionCli(["action", "list"], root)) as Array<{ operation: string; registryRevision: number }>;
+    expect(actions.map((item) => item.operation)).toEqual(["example.create-card"]);
+    const result = JSON.parse(await runActionCli(["action", "execute", JSON.stringify({
+      reference: actions[0],
+      input: { id: "card-cli", label: "CLI card" },
+    })], root));
+    expect(result).toMatchObject({ kind: "mutation", mutation: { snapshot: { revision: 2 } } });
+    expect(store.read().objects).toMatchObject([{ id: "card-cli", kind: "example.card" }]);
   });
 
   it("提供模块管理与三宿主同步的机器可消费入口", () => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { executeCli, runCli } from "./index.js";
+import { executeCli, runActionCli, runCli } from "./index.js";
 import { startToporealmMcpStdio } from "../mcp/index.js";
 import { GraphStore } from "../core/index.js";
 import { listenToporealmServer } from "../server/index.js";
@@ -12,7 +12,17 @@ function openBrowser(url: string): void {
 }
 
 const argv = process.argv.slice(2);
-if (argv.includes("mcp")) {
+if (argv.includes("action")) {
+  try {
+    process.stdout.write(`${await runActionCli(argv)}\n`);
+  } catch (error) {
+    const value = error && typeof error === "object" && "code" in error
+      ? { code: String(error.code), message: error instanceof Error ? error.message : String(error) }
+      : { code: "CLI_ERROR", message: error instanceof Error ? error.message : String(error) };
+    process.stderr.write(`${JSON.stringify({ error: value })}\n`);
+    process.exitCode = 1;
+  }
+} else if (argv.includes("mcp")) {
   try {
     const target = JSON.parse(runCli(argv)) as { workspaceRoot: string; graphId: string };
     await startToporealmMcpStdio(target);
