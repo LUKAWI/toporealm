@@ -311,3 +311,29 @@
 {"ts":"2026-09-10T01:55:07.005Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_release_candidate","detail":"verdict=pending"}
 {"ts":"2026-09-10T01:55:10.807Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_release_candidate","from":"running","to":"pending"}
 {"ts":"2026-09-10T01:55:15.586Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_release_candidate","from":"pending","to":"pending","detail":"checkpoint=matrix_hosts"}
+{"ts":"2026-09-10T06:57:27.245Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_release_candidate","from":"pending","to":"ready"}
+{"ts":"2026-09-10T06:57:27.315Z","actor":"codex-root","kind":"node_status","node":"l4_release_candidate","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-10T06:57:27.427Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_release_candidate","from":"pending","to":"passed","detail":"checkpoint=matrix_hosts"}
+{"ts":"2026-09-10T07:01:10.226Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_release_candidate","detail":"verdict=passed"}
+{"ts":"2026-09-10T07:01:14.919Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_release_candidate","from":"passed","to":"passed","detail":"checkpoint=matrix_hosts"}
+{"ts":"2026-09-10T07:01:17.392Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_release_candidate","from":"passed","to":"passed","detail":"checkpoint=release_review"}
+{"ts":"2026-09-10T07:01:20.680Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_release_candidate","from":"running","to":"passed"}
+{"ts":"2026-09-10T07:02:00.450Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_human_publish_gate","from":"pending","to":"ready"}
+{"ts":"2026-09-10T07:02:04.753Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_human_publish_gate","from":"pending","to":"passed","detail":"checkpoint=candidate_review"}
+{"ts":"2026-09-10T07:02:04.784Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_human_publish_gate","from":"pending","to":"passed","detail":"checkpoint=publish_authorization"}
+{"ts":"2026-09-10T07:02:13.971Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_human_publish_gate","detail":"verdict=passed"}
+{"ts":"2026-09-10T07:02:22.285Z","actor":"codex-root","kind":"node_status","node":"l4_human_publish_gate","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-10T07:02:22.346Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_human_publish_gate","from":"running","to":"passed"}
+{"ts":"2026-09-10T07:02:55.359Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_publish_preview","from":"pending","to":"ready"}
+{"ts":"2026-09-10T07:02:55.420Z","actor":"codex-root","kind":"node_status","node":"l4_publish_preview","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-10T07:09:23.054Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_publish_preview","from":"pending","to":"passed","detail":"checkpoint=npm_publish"}
+{"ts":"2026-09-10T07:09:23.086Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_publish_preview","from":"pending","to":"passed","detail":"checkpoint=git_release"}
+{"ts":"2026-09-10T07:09:32.106Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_publish_preview","detail":"verdict=pending"}
+{"ts":"2026-09-10T07:09:45.440Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_publish_preview","detail":"verdict=pending"}
+{"ts":"2026-09-10T07:15:53.585Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_publish_preview","from":"pending","to":"passed","detail":"checkpoint=release_notes"}
+{"ts":"2026-09-10T07:16:08.126Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_publish_preview","detail":"verdict=passed"}
+{"ts":"2026-09-10T07:16:11.407Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_publish_preview","from":"running","to":"passed"}
+{"ts":"2026-09-10T07:17:12.951Z","actor":"codex-mcp-client","kind":"node_status","node":"l4_postrelease_evidence","from":"pending","to":"ready"}
+{"ts":"2026-09-10T07:17:13.014Z","actor":"codex-root","kind":"node_status","node":"l4_postrelease_evidence","from":"ready","to":"running","detail":"claim by codex-root"}
+{"ts":"2026-09-10T07:17:25.642Z","actor":"codex-mcp-client","kind":"checkpoint_updated","node":"l4_postrelease_evidence","from":"pending","to":"passed","detail":"checkpoint=remote_consistency"}
+{"ts":"2026-09-10T07:17:47.736Z","actor":"codex-mcp-client","kind":"verdict","node":"l4_postrelease_evidence","detail":"verdict=pending"}

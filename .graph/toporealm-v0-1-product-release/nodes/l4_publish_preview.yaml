@@ -4,7 +4,7 @@ label: 发布 @lukawi/toporealm v0.1.0
 level: 4
 priority: 13
 context: ctx_distribution
-status: pending
+status: passed
 plan:
   description: >-
     仅在人审 gate 通过后执行外部发布：创建或连接 LUKAWI/toporealm 公开仓库，提交并推送获批候选，发布 @lukawi/toporealm@0.1.0 public 包，创建带注释 v0.1.0 tag 和对应
@@ -17,17 +17,49 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-09T16:02:45.697Z'
-updated_at: '2026-09-09T16:02:45.878Z'
+updated_at: '2026-09-10T07:16:11.402Z'
 checkpoints:
   - id: npm_publish
     label: 公开 npm 包发布成功
-    status: pending
+    status: passed
     verifier: auto
   - id: git_release
     label: 远端提交、tag 与 GitHub Release 一致
-    status: pending
+    status: passed
     verifier: auto
   - id: release_notes
     label: 公开发布说明与获批边界一致
-    status: pending
+    status: passed
     verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    公开发布事实已闭合：@lukawi/toporealm@0.1.0 已在 npm registry 可见，preview 与 latest 均指向 0.1.0；GitHub main、远端 v0.1.0 tag 解引用提交和
+    GitHub Release 均对应获批发布提交 7e1ec21fe86abc3cd5157067a418c9a3d2215847；Release 为非 draft 的 prerelease，说明准确标注
+    Preview、Node.js 20+、Linux/macOS/Windows 支持、无 research/exploration/workflow 领域模块及 MutationPlan 写入边界。
+  started_at: '2026-09-10T07:02:55.414Z'
+  artifacts:
+    - package.json
+    - README.md
+    - README.en.md
+    - docs/releases/v0.1.0-preview.md
+    - scripts/registry-smoke.mjs
+    - dist/cli/main.js
+    - dist/mcp/index.js
+    - dist/web-assets/index.html
+    - integrations/src/skills/toporealm/SKILL.md
+    - integrations/src/skills/toporealm-design/SKILL.md
+    - integrations/src/skills/toporealm-join/SKILL.md
+    - integrations/src/skills/toporealm-grilling/SKILL.md
+  blockers: []
+  notes: >-
+    独立统一裁决证据：npm view @lukawi/toporealm@0.1.0 返回 name/version=0.1.0，dist-tags.preview=0.1.0、latest=0.1.0；gh release view
+    v0.1.0 返回 isDraft=false、isPrerelease=true、targetCommitish=7e1ec21fe86abc3cd5157067a418c9a3d2215847，Release
+    URL=https://github.com/LUKAWI/toporealm/releases/tag/v0.1.0；git ls-remote origin 显示 refs/heads/main 与
+    refs/tags/v0.1.0^{} 均为 7e1ec21fe86abc3cd5157067a418c9a3d2215847，annotated tag 对象为
+    d8a7d41ee82dd7ed79b174ce9361c48f175af6d9。已核对发布清单与 Release notes；不重复执行发布动作。
+  verification:
+    verdict: passed
+    checked_at: '2026-09-10T07:16:08.120Z'
+    note: npm registry、远端 main/tag、GitHub Release 和 Release notes 均与获批提交及 v0.1.0 发行边界一致；三个发布 checkpoint 全部 passed。
+  completed_at: '2026-09-10T07:16:11.402Z'

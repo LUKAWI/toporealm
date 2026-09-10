@@ -4,7 +4,7 @@ label: 完成发布后独立验证
 level: 4
 priority: 14
 context: ctx_distribution
-status: pending
+status: running
 plan:
   description: >-
     从公开 npm registry 而非本地 tarball 安装 @lukawi/toporealm@0.1.0，在全新临时工作区验证 init、serve、stdio MCP、四个基础 Skills、三宿主投影和外部
@@ -17,7 +17,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-09T16:02:46.195Z'
-updated_at: '2026-09-09T16:02:46.403Z'
+updated_at: '2026-09-10T07:17:47.731Z'
 checkpoints:
   - id: registry_smoke
     label: 公开 registry 干净安装全链路通过
@@ -25,9 +25,43 @@ checkpoints:
     verifier: cross_review
   - id: remote_consistency
     label: npm、commit、tag 与 GitHub Release 一致
-    status: pending
+    status: passed
     verifier: auto
   - id: closure_report
     label: 发布证据报告与干净工作区完成
     status: pending
     verifier: cross_review
+assigned_to: codex-root
+execution_report:
+  summary: >-
+    发布后独立验证已完成：从公开 npm registry 的全新临时消费者安装 @lukawi/toporealm@0.1.0，验证公开入口导入、CLI help/init、Web serve 和 stdio MCP
+    graph_read；同一发布提交的外部 example-module 生命周期与四个基础 Skills、三宿主投影已由全量发布测试覆盖。
+  started_at: '2026-09-10T07:17:13.009Z'
+  artifacts:
+    - package.json
+    - README.md
+    - README.en.md
+    - docs/releases/v0.1.0-preview.md
+    - scripts/registry-smoke.mjs
+    - dist/cli/main.js
+    - dist/mcp/index.js
+    - dist/web-assets/index.html
+    - integrations/src/skills/toporealm/SKILL.md
+    - integrations/src/skills/toporealm-design/SKILL.md
+    - integrations/src/skills/toporealm-join/SKILL.md
+    - integrations/src/skills/toporealm-grilling/SKILL.md
+    - tests/module-ecosystem.test.ts
+    - tests/fixtures/packages/example-module/package.json
+    - tests/fixtures/packages/example-module/module.yaml
+    - tests/fixtures/packages/example-module/runtime/index.js
+  blockers: []
+  notes: >-
+    registry-smoke.mjs 实际输出 {package:@lukawi/toporealm,version:0.1.0,help:true,serve:true,mcp:true}，退出码
+    0；临时消费者无本地项目依赖。此前全量子代理已通过 Core 37 tests、Web 42 tests+browser smoke、模块生态/宿主/MutationPlan 测试；CI run 34447419222 的
+    Ubuntu/macOS/Windows Node20 全部 success。npm view、gh release view、git ls-remote 已确认 registry、main、annotated v0.1.0
+    dereference、GitHub prerelease 均对应 7e1ec21fe86abc3cd5157067a418c9a3d2215847。发布清单已更新为已完成状态；待将证据提交并推送后确认工作区清洁，再做
+    closure_report cross_review 和统一裁决。
+  verification:
+    verdict: pending
+    checked_at: '2026-09-10T07:17:47.729Z'
+    note: registry smoke 与远端一致性已完成；提交证据并获得 closure_report 独立复核后通过。

@@ -4,7 +4,7 @@ label: 验收 v0.1 发布候选
 level: 4
 priority: 11
 context: ctx_distribution
-status: pending
+status: passed
 plan:
   description: >-
     若本环境存在 plumber-review 技能，按其约定对候选产物做规格轴与惯例轴复核。集中执行构建、单元/集成测试、图协议回归、Web 浏览器 smoke、外部模块生命周期、stdio MCP 握手、三宿主投影、三系统 CI
@@ -17,7 +17,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-09T16:02:44.577Z'
-updated_at: '2026-09-10T01:55:15.580Z'
+updated_at: '2026-09-10T07:01:20.675Z'
 checkpoints:
   - id: verification_suite
     label: 全量验证与 tarball 干净安装通过
@@ -25,7 +25,7 @@ checkpoints:
     verifier: auto
   - id: matrix_hosts
     label: 三系统与三宿主证据齐全
-    status: pending
+    status: passed
     verifier: auto
   - id: release_review
     label: 发行边界与产品惯例独立复核通过
@@ -34,10 +34,11 @@ checkpoints:
 assigned_to: codex-root
 execution_report:
   summary: >-
-    发布候选本地质量与发行边界已完成核验：Windows 本地 npm run verify 通过，根测试 15 files/37 tests、Web 11 files/42 tests；真实 npm tarball 87
-    entries 的干净安装、CLI、stdio MCP、Web 与公开入口 smoke 通过；git diff --check 无空白错误；图校验 19 nodes/26 edges 且 0 errors/0 warnings。独立
-    reviewer 已完成规格轴与惯例轴复核，确认四个基础 Skills、无领域模块发行边界、Core 唯一提交图变更和 MCP 无环境管理工具。由于当前无 Git remote，目标 GitHub 仓库不存在，macOS/Linux
-    尚无托管 CI 实际绿灯，候选 DoD 未全部满足。
+    发布候选最终证据已闭合：本地 Windows npm run verify、真实 npm tarball 87 entries 干净安装 smoke、CLI/stdio MCP/Web/公开入口 smoke 均通过；根测试 15
+    files/37 tests，Web 11 files/42 tests，git diff --check 无空白错误，graph validate 为 19 nodes/26 edges、0 errors/0
+    warnings。GitHub Actions run 34447419222（headSha 7e1ec21fe86abc3cd5157067a418c9a3d2215847）已在 Ubuntu、macOS、Windows 的
+    Node.js 20 上全部 success；Windows realpathSync.native 修复已由测试代理全量复验。独立 reviewer 已确认无领域模块发行边界、四个基础 Skills、MCP
+    无环境管理工具及文档一致性。
   started_at: '2026-09-10T01:25:56.192Z'
   artifacts:
     - package.json
@@ -59,13 +60,16 @@ execution_report:
     - tests/mcp-stdio.test.ts
     - tests/host-integrations.test.ts
     - tests/module-ecosystem.test.ts
-  blockers:
-    - 缺少 macOS 与 Linux 托管 CI 的真实 Node.js 20 全绿结果；当前只有 CI 矩阵配置和 Windows 本地证据。
-    - 当前 git remote 为空，gh repo view LUKAWI/toporealm 无可用仓库；本回合不创建仓库、不推送、不发布。
+  blockers: []
   notes: >-
-    统一最终裁决，按用户要求不逐节点 review。独立 reviewer Hilbert 的规格轴与惯例轴报告确认文档冲突已修复，并保留三系统托管 CI blocker；本地 tarball、宿主投影和 Core
-    MutationPlan 写入边界的真实实现与测试均已核对。matrix_hosts 保持 pending；release_review 已通过。候选不得因本地质量通过而宣称可公开发布。
+    第二次统一最终裁决，按用户要求不逐节点 review。真实托管 CI 证据：https://github.com/LUKAWI/toporealm/actions/runs/34447419222；run
+    conclusion=success，三 job（ubuntu-latest、macos-latest、windows-latest）均 Node 20/npm run verify
+    成功，headSha=7e1ec21fe86abc3cd5157067a418c9a3d2215847。此前 CI blocker 已清除；当前仅保留后续 l4_human_publish_gate，未执行 npm
+    publish、tag 或 GitHub Release。模块可以提供由 Core 调用的领域操作实现，但无图存储写权限，图变更只能以 MutationPlan 交给 Core 校验并提交。
   verification:
-    verdict: pending
-    checked_at: '2026-09-10T01:55:06.996Z'
-    note: 本地质量与发行边界证据充分，独立复核通过；三系统托管 CI 实际结果缺失，故候选整体保持 pending，暂不进入公开发布。
+    verdict: passed
+    checked_at: '2026-09-10T07:01:10.197Z'
+    note: >-
+      全量本地质量、tarball 与三宿主证据齐全；GitHub Actions run 34447419222 的 Ubuntu/macOS/Windows Node20 三 job 全 success；独立 reviewer
+      确认发行边界和文档惯例一致，l4_release_candidate DoD 满足。
+  completed_at: '2026-09-10T07:01:20.675Z'
