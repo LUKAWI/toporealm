@@ -17,7 +17,7 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-09T16:02:46.195Z'
-updated_at: '2026-09-10T07:28:02.255Z'
+updated_at: '2026-09-10T07:30:27.138Z'
 checkpoints:
   - id: registry_smoke
     label: 公开 registry 干净安装全链路通过
@@ -33,7 +33,11 @@ checkpoints:
     verifier: cross_review
 assigned_to: codex-root
 execution_report:
-  summary: 发布后独立验证与证据收口完成：公开 registry 干净安装链路、远端一致性、发布证据文档及工作区清洁均已通过；证据提交 36a8251 已推送到 origin/main。
+  summary: >-
+    发布后独立证据已闭合：公开 npm registry 的全新临时消费者 registry-smoke 输出
+    package=@lukawi/toporealm、version=0.1.0、help=true、serve=true、mcp=true，退出码 0；公开入口导入、CLI help/init、Web serve、stdio MCP
+    graph_read、四个基础 Skills、三宿主投影与外部 example-module 生命周期证据齐全。npm registry、远端 main、v0.1.0 tag 解引用和 GitHub Release
+    已核对；当前工作区无未提交发行残留，证据提交 36a8251 及图收口提交 1d61182 已推送 origin/main。
   started_at: '2026-09-10T07:17:13.009Z'
   artifacts:
     - package.json
@@ -54,14 +58,17 @@ execution_report:
     - tests/fixtures/packages/example-module/runtime/index.js
   blockers: []
   notes: >-
-    registry-smoke.mjs 从 npm registry 全新临时消费者安装 @lukawi/toporealm@0.1.0，实际输出
-    {package:@lukawi/toporealm,version:0.1.0,help:true,serve:true,mcp:true}，退出码 0；验证公开入口 import、CLI help/init、Web
-    serve、stdio MCP graph_read。模块生态/MutationPlan、四基础 Skills、Codex/Claude/Pi 宿主投影由全量子代理测试覆盖。CI run 34447419222 在获批发布提交
-    7e1ec21fe86abc3cd5157067a418c9a3d2215847 的 Ubuntu/macOS/Windows Node20 全部 success。npm view、gh release view、git
-    ls-remote 已确认 registry、main、annotated v0.1.0 dereference 与 prerelease Release；发布清单更新为已完成。发布证据提交 36a8251 已成功推送，git
-    status --short --branch 显示工作树 clean；GitHub Actions 对该证据提交的后续运行不影响已发布源的三系统 green 证据。
+    第二次发布后统一裁决，按用户要求不逐节点 review。registry-smoke
+    实际结果：{package:@lukawi/toporealm,version:0.1.0,help:true,serve:true,mcp:true}，退出码 0，安装源为公开 npm
+    registry，临时消费者不引用本地项目。npm view @lukawi/toporealm@0.1.0：version=0.1.0，preview/latest 均指向 0.1.0；gh release view
+    v0.1.0：isDraft=false、isPrerelease=true、targetCommitish=7e1ec21fe86abc3cd5157067a418c9a3d2215847；git
+    ls-remote：refs/heads/main=1d611828c6955366739edf974353d86922e87620，refs/tags/v0.1.0^{}=7e1ec21fe86abc3cd5157067a418c9a3d2215847，annotated
+    tag object=d8a7d41ee82dd7ed79b174ce9361c48f175af6d9。HEAD 与 origin/main 均为 1d61182，git status --porcelain 为空；1d61182
+    相比 release source 7e1ec21 仅增加发布后图证据、发布清单和 registry-smoke，不改变发行代码。README 当前明确 0.1.0 Preview、npm 安装方式、四个基础 Skills
+    和不含领域模块边界。发布后 CI run 34449968612（36a8251）为 success；release source CI run 34447419222 同样为三系统 success。模块无图存储写权限，图变更只能以
+    MutationPlan 交给 Core 校验并提交。
   verification:
     verdict: passed
-    checked_at: '2026-09-10T07:27:55.398Z'
-    note: registry clean install、远端一致性、证据提交推送与 clean worktree 均已确认；cross_review checkpoint 已通过。
+    checked_at: '2026-09-10T07:30:27.136Z'
+    note: registry clean install、npm/远端一致性、README/发布清单与工作区闭合证据均满足；所有 postrelease checkpoints 已 passed。
   completed_at: '2026-09-10T07:28:02.255Z'
