@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import * as YAML from "yaml";
@@ -186,6 +186,7 @@ export class WorkspaceModuleResolver {
     } catch (error) {
       return { status: "unavailable", id: moduleId, source: binding.source, reason: error instanceof Error ? error.message : String(error) };
     }
+    root = existsSync(root) ? realpathSync.native(root) : root;
     const manifestPath = join(root, "module.yaml");
     if (!existsSync(manifestPath)) return { status: "unavailable", id: moduleId, source: binding.source, root, reason: `找不到 module.yaml：${manifestPath}` };
     try {

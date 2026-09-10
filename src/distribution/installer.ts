@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
@@ -56,6 +56,10 @@ function ensureInside(root: string, path: string): string {
   const escaped = relative(resolve(root), resolved).startsWith("..") || resolve(relative(resolve(root), resolved)) === ".";
   if (escaped) throw new CoreError({ code: "MODULE_PATH_ESCAPE", message: `模块包路径越出包目录：${path}` });
   return resolved;
+}
+
+function canonicalPath(path: string): string {
+  return existsSync(path) ? realpathSync.native(path) : path;
 }
 
 function validatePackage(packageRoot: string): ModuleManifest {
@@ -164,7 +168,7 @@ export function installModule(spec: string, options: InstallOptions): InstalledM
       ? join(resolve(options.workspaceRoot), ".toporealm", "modules", manifest.id)
       : join(globalHome, "modules", manifest.id, manifest.version);
     moveManagedModule(packed.root, targetRoot, manifest);
-    const record: SourceRecord = { managedBy: "toporealm", id: manifest.id, version: manifest.version, root: targetRoot, scope, sourceSpec: spec, installedAt: new Date().toISOString() };
+    const record: SourceRecord = { managedBy: "toporealm", id: manifest.id, version: manifest.version, root: canonicalPath(targetRoot), scope, sourceSpec: spec, installedAt: new Date().toISOString() };
     writeSourceRecord(scope === "workspace" ? join(options.workspaceRoot, ".toporealm", SOURCE_FILE) : join(globalHome, SOURCE_FILE), record);
     if (scope === "workspace") writeWorkspaceBinding(options.workspaceRoot, manifest.id);
     return record;
