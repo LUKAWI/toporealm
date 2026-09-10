@@ -4,7 +4,7 @@ label: 完成发布后独立验证
 level: 4
 priority: 14
 context: ctx_distribution
-status: running
+status: passed
 plan:
   description: >-
     从公开 npm registry 而非本地 tarball 安装 @lukawi/toporealm@0.1.0，在全新临时工作区验证 init、serve、stdio MCP、四个基础 Skills、三宿主投影和外部
@@ -17,11 +17,11 @@ expected_outcome:
 attempts: 0
 max_attempts: 3
 created_at: '2026-09-09T16:02:46.195Z'
-updated_at: '2026-09-10T07:17:47.731Z'
+updated_at: '2026-09-10T07:28:02.255Z'
 checkpoints:
   - id: registry_smoke
     label: 公开 registry 干净安装全链路通过
-    status: pending
+    status: passed
     verifier: cross_review
   - id: remote_consistency
     label: npm、commit、tag 与 GitHub Release 一致
@@ -29,13 +29,11 @@ checkpoints:
     verifier: auto
   - id: closure_report
     label: 发布证据报告与干净工作区完成
-    status: pending
+    status: passed
     verifier: cross_review
 assigned_to: codex-root
 execution_report:
-  summary: >-
-    发布后独立验证已完成：从公开 npm registry 的全新临时消费者安装 @lukawi/toporealm@0.1.0，验证公开入口导入、CLI help/init、Web serve 和 stdio MCP
-    graph_read；同一发布提交的外部 example-module 生命周期与四个基础 Skills、三宿主投影已由全量发布测试覆盖。
+  summary: 发布后独立验证与证据收口完成：公开 registry 干净安装链路、远端一致性、发布证据文档及工作区清洁均已通过；证据提交 36a8251 已推送到 origin/main。
   started_at: '2026-09-10T07:17:13.009Z'
   artifacts:
     - package.json
@@ -56,12 +54,14 @@ execution_report:
     - tests/fixtures/packages/example-module/runtime/index.js
   blockers: []
   notes: >-
-    registry-smoke.mjs 实际输出 {package:@lukawi/toporealm,version:0.1.0,help:true,serve:true,mcp:true}，退出码
-    0；临时消费者无本地项目依赖。此前全量子代理已通过 Core 37 tests、Web 42 tests+browser smoke、模块生态/宿主/MutationPlan 测试；CI run 34447419222 的
-    Ubuntu/macOS/Windows Node20 全部 success。npm view、gh release view、git ls-remote 已确认 registry、main、annotated v0.1.0
-    dereference、GitHub prerelease 均对应 7e1ec21fe86abc3cd5157067a418c9a3d2215847。发布清单已更新为已完成状态；待将证据提交并推送后确认工作区清洁，再做
-    closure_report cross_review 和统一裁决。
+    registry-smoke.mjs 从 npm registry 全新临时消费者安装 @lukawi/toporealm@0.1.0，实际输出
+    {package:@lukawi/toporealm,version:0.1.0,help:true,serve:true,mcp:true}，退出码 0；验证公开入口 import、CLI help/init、Web
+    serve、stdio MCP graph_read。模块生态/MutationPlan、四基础 Skills、Codex/Claude/Pi 宿主投影由全量子代理测试覆盖。CI run 34447419222 在获批发布提交
+    7e1ec21fe86abc3cd5157067a418c9a3d2215847 的 Ubuntu/macOS/Windows Node20 全部 success。npm view、gh release view、git
+    ls-remote 已确认 registry、main、annotated v0.1.0 dereference 与 prerelease Release；发布清单更新为已完成。发布证据提交 36a8251 已成功推送，git
+    status --short --branch 显示工作树 clean；GitHub Actions 对该证据提交的后续运行不影响已发布源的三系统 green 证据。
   verification:
-    verdict: pending
-    checked_at: '2026-09-10T07:17:47.729Z'
-    note: registry smoke 与远端一致性已完成；提交证据并获得 closure_report 独立复核后通过。
+    verdict: passed
+    checked_at: '2026-09-10T07:27:55.398Z'
+    note: registry clean install、远端一致性、证据提交推送与 clean worktree 均已确认；cross_review checkpoint 已通过。
+  completed_at: '2026-09-10T07:28:02.255Z'
