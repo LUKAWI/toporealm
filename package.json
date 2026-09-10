@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Domain-neutral graph foundation with CLI, MCP, Web UI, module SDK, and agent integrations",
   "license": "MIT",
   "repository": {
@@ -17,14 +17,38 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./core": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },
-    "./module-sdk": { "types": "./dist/module-sdk/index.d.ts", "import": "./dist/module-sdk/index.js" },
-    "./cli": { "types": "./dist/cli/index.d.ts", "import": "./dist/cli/index.js" },
-    "./mcp": { "types": "./dist/mcp/index.d.ts", "import": "./dist/mcp/index.js" },
-    "./server": { "types": "./dist/server/index.d.ts", "import": "./dist/server/index.js" },
-    "./web": { "types": "./dist/web/index.d.ts", "import": "./dist/web/index.js" },
-    "./distribution": { "types": "./dist/distribution/index.d.ts", "import": "./dist/distribution/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./module-sdk": {
+      "types": "./dist/module-sdk/index.d.ts",
+      "import": "./dist/module-sdk/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./web": {
+      "types": "./dist/web/index.d.ts",
+      "import": "./dist/web/index.js"
+    },
+    "./distribution": {
+      "types": "./dist/distribution/index.d.ts",
+      "import": "./dist/distribution/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
