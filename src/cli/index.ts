@@ -343,7 +343,11 @@ export async function runActionCli(
   const store = GraphStore.fromWorkspace(descriptor.workspaceRoot, descriptor.graphId);
   const registry = new GraphActivator(new WorkspaceModuleResolver(descriptor.workspaceRoot)).activate(store.read());
   if (descriptor.action === "list") return JSON.stringify(discoverActions(registry));
-  const payload = JSON.parse(required(descriptor.payload, "toporealm action execute '<JSON>'")) as {
+  const rawPayload = required(descriptor.payload, "toporealm action execute '<JSON>'");
+  const decodedPayload = rawPayload.startsWith("base64:")
+    ? Buffer.from(rawPayload.slice("base64:".length), "base64url").toString("utf8")
+    : rawPayload;
+  const payload = JSON.parse(decodedPayload) as {
     reference?: ActionReference;
     input?: Record<string, unknown>;
   };

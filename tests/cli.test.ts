@@ -88,6 +88,10 @@ describe("TopoRealm CLI 命令面", () => {
     })], root));
     expect(result).toMatchObject({ kind: "mutation", mutation: { snapshot: { revision: 2 } } });
     expect(store.read().objects).toMatchObject([{ id: "card-cli", kind: "example.card" }]);
+
+    const refreshed = JSON.parse(await runActionCli(["action", "list"], root)) as Array<{ operation: string; registryRevision: number }>;
+    const encoded = Buffer.from(JSON.stringify({ reference: refreshed[0], input: { id: "card-base64", label: "Base64 card" } }), "utf8").toString("base64url");
+    expect(JSON.parse(await runActionCli(["action", "execute", `base64:${encoded}`], root))).toMatchObject({ kind: "mutation", mutation: { snapshot: { revision: 3 } } });
   });
 
   it("提供模块管理与三宿主同步的机器可消费入口", () => {
