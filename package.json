@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Domain-neutral graph foundation with CLI, MCP, Web UI, module SDK, and agent integrations",
   "license": "MIT",
   "repository": {
