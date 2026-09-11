@@ -1,7 +1,8 @@
 import { coreSurface } from "../core/index.js";
 import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { CoreError, GraphStore, validateGraph } from "../core/index.js";
 import { ActionExecutor, GraphActivator, WorkspaceModuleResolver } from "../module-sdk/index.js";
 import type { ModuleActionRuntime } from "../module-sdk/index.js";
@@ -66,6 +67,23 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
     }
   };
   const activeRegistry = () => new GraphActivator(new WorkspaceModuleResolver(workspaceRoot)).activate(activeStore.read());
+  const moduleAsset = (pathname: string): { body: Buffer; contentType: string } | undefined => {
+    const match = /^\/api\/module-assets\/([^/]+)\/(.+)$/.exec(pathname);
+    if (!match?.[1] || !match[2]) return undefined;
+    const module = new WorkspaceModuleResolver(workspaceRoot).resolve(decodeURIComponent(match[1]));
+    if (module.status !== "available") return undefined;
+    const requested = resolve(module.root, decodeURIComponent(match[2]));
+    const escaped = relative(module.root, requested).startsWith("..") || isAbsolute(relative(module.root, requested));
+    if (escaped || !existsSync(requested)) return undefined;
+    const contentTypes: Record<string, string> = {
+      ".js": "text/javascript; charset=utf-8",
+      ".mjs": "text/javascript; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".json": "application/json; charset=utf-8",
+      ".svg": "image/svg+xml",
+    };
+    return { body: readFileSync(requested), contentType: contentTypes[extname(requested)] ?? "application/octet-stream" };
+  };
   const runtimes = options.runtimes ?? {};
   return createHttpServer(async (request, response) => {
     try {
@@ -96,6 +114,18 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
       if (request.method === "GET" && (url.pathname === "/modules" || url.pathname === "/api/modules")) {
         const registry = activeRegistry();
         sendJson(response, 200, { registryRevision: registry.registryRevision, modules: registry.modules, ui: registry.ui, operations: registry.operations });
+        return;
+      }
+      if (request.method === "GET" && url.pathname.startsWith("/api/module-assets/")) {
+        const asset = moduleAsset(url.pathname);
+        if (!asset) {
+          sendJson(response, 404, { error: { code: "MODULE_ASSET_NOT_FOUND", message: "模块 Web 资源不存在或不可用。" } });
+          return;
+        }
+        response.statusCode = 200;
+        response.setHeader("content-type", asset.contentType);
+        response.setHeader("cache-control", "no-cache");
+        response.end(asset.body);
         return;
       }
       if (request.method === "GET" && !url.pathname.startsWith("/api/")) {
@@ -156,8 +186,23 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
   });
 }
 
-export function listenToporealmServer(store: GraphStore, port = 0, host = "127.0.0.1", options: ToporealmServerOptions = {}): Promise<Server> {
-  const server = createToporealmServer(store, options);
+async function loadServerRuntimes(store: GraphStore): Promise<Record<string, ModuleActionRuntime>> {
+  const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
+  const resolver = new WorkspaceModuleResolver(workspaceRoot);
+  const loaded: Record<string, ModuleActionRuntime> = {};
+  for (const ref of store.read().manifest.modules ?? []) {
+    const module = resolver.resolve(ref.id);
+    if (module.status !== "available" || !module.manifest.runtime?.entry) continue;
+    const imported = await import(pathToFileURL(resolve(module.root, module.manifest.runtime.entry)).href) as { default?: ModuleActionRuntime; runtime?: ModuleActionRuntime };
+    const runtime = imported.default ?? imported.runtime;
+    if (runtime && typeof runtime.execute === "function") loaded[ref.id] = runtime;
+  }
+  return loaded;
+}
+
+export async function listenToporealmServer(store: GraphStore, port = 0, host = "127.0.0.1", options: ToporealmServerOptions = {}): Promise<Server> {
+  const runtimes = options.runtimes ?? await loadServerRuntimes(store);
+  const server = createToporealmServer(store, { ...options, runtimes });
   return new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, () => {

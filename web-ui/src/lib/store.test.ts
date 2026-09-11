@@ -218,4 +218,25 @@ describe("WebGraphStore", () => {
     await committing;
     expect(store.writing).toBe(false);
   });
+
+  it("模块 action 请求在途时拒绝切图与第二次写入", async () => {
+    let releaseAction!: () => void;
+    const actionGate = new Promise<void>((resolve) => { releaseAction = resolve; });
+    const api = fakeApi({
+      async executeAction() {
+        await actionGate;
+        return { kind: "result", operation: "workflow.next-actions", result: {}, effects: "none" as const };
+      },
+    });
+    const store = new WebGraphStore(api);
+    await store.load();
+    const executing = store.executeAction("workflow.next-actions", undefined, {});
+    expect(store.writing).toBe(true);
+    await store.switchGraph("other");
+    expect(api.calls.switchGraph).toBeUndefined();
+    await expect(store.executeAction("workflow.transition-task", "task-a", { status: "ready" })).rejects.toMatchObject({ code: "WRITE_IN_PROGRESS" });
+    releaseAction();
+    await executing;
+    expect(store.writing).toBe(false);
+  });
 });

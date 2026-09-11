@@ -6,6 +6,7 @@
   import ObjectDetail from "./lib/components/ObjectDetail.svelte";
   import RelationDetail from "./lib/components/RelationDetail.svelte";
   import EditorPanel from "./lib/components/EditorPanel.svelte";
+  import ModuleExtensions from "./lib/components/ModuleExtensions.svelte";
   import { store } from "./lib/store.svelte";
   import { filterGraphSnapshot } from "./lib/filter";
   import { kindColorOf } from "./lib/moduleProjection";
@@ -388,6 +389,7 @@
           <pre class="raw-snapshot">{JSON.stringify(store.snapshot, null, 2)}</pre>
         </aside>
       {/if}
+      <ModuleExtensions />
     {/if}
 
     {#if store.recovery}

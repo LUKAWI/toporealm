@@ -38,6 +38,11 @@ describe("外部 example 模块生态", () => {
       const modules = await fetch(`http://127.0.0.1:${address.port}/api/modules`).then((response) => response.json()) as { ui: Record<string, unknown>; operations: Array<{ fullId: string }> };
       expect(modules.ui).toHaveProperty("example");
       expect(modules.operations.map((item) => item.fullId)).toEqual(["example.create-card"]);
+      const extension = await fetch(`http://127.0.0.1:${address.port}/api/module-assets/example/ui/extension.js`);
+      expect(extension.status).toBe(200);
+      expect(extension.headers.get("content-type")).toContain("text/javascript");
+      expect(await extension.text()).toContain("toporealm-example-view");
+      expect((await fetch(`http://127.0.0.1:${address.port}/api/module-assets/example/../module.yaml`)).status).toBe(404);
     } finally {
       await new Promise<void>((resolveClose, reject) => server.close((error) => error ? reject(error) : resolveClose()));
     }
