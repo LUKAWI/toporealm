@@ -239,4 +239,28 @@ describe("WebGraphStore", () => {
     await executing;
     expect(store.writing).toBe(false);
   });
+
+  it("模块缺失与恢复只刷新 registry，不重载或改写当前图数据", async () => {
+    let available = false;
+    const api = fakeApi({
+      async modules() {
+        return {
+          registryRevision: 5,
+          modules: [{ id: "workflow", namespace: "workflow", status: available ? "available" as const : "unavailable" as const, ...(available ? {} : { reason: "模块目录缺失" }) }],
+          ui: available ? { workflow: { entry: "./web/index.js", tag: "toporealm-workflow-view" } } : {},
+          operations: [],
+        };
+      },
+    });
+    const store = new WebGraphStore(api);
+    await store.load();
+    const before = JSON.parse(JSON.stringify(store.snapshot));
+    expect(store.moduleStatus?.modules[0]).toMatchObject({ status: "unavailable" });
+    available = true;
+    await store.refreshModules();
+    expect(store.moduleStatus?.modules[0]).toMatchObject({ status: "available" });
+    expect(store.moduleStatus?.ui).toHaveProperty("workflow");
+    expect(store.snapshot).toEqual(before);
+    expect(api.calls.readGraph).toBe(1);
+  });
 });
