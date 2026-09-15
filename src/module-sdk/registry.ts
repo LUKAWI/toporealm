@@ -2,8 +2,9 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import * as YAML from "yaml";
-import { CoreError, GraphStore } from "../core/index.js";
-import type { GraphSnapshot, MutationPlan } from "../core/index.js";
+import { CoreError } from "../core/errors.js";
+import type { ManagedGraph } from "../core/managed.js";
+import type { GraphSnapshot, MutationPlan } from "../core/types.js";
 import type { ContributionRef, ModuleDependency, ModuleFormat, ModuleManifest } from "./index.js";
 
 export type ModuleSource = "global" | "workspace" | "path";
@@ -156,6 +157,8 @@ export function satisfiesVersion(version: string, range: string): boolean {
 export class WorkspaceModuleResolver {
   readonly workspaceRoot: string;
   readonly globalHome: string;
+  private bindingsCache?: ModuleBindingsFile;
+  private readonly moduleCache = new Map<string, ResolvedModule>();
 
   constructor(workspaceRoot: string, options: WorkspaceModuleResolverOptions = {}) {
     this.workspaceRoot = resolve(workspaceRoot);
@@ -163,39 +166,43 @@ export class WorkspaceModuleResolver {
   }
 
   readBindings(): ModuleBindingsFile {
+    if (this.bindingsCache) return this.bindingsCache;
     const path = join(this.workspaceRoot, ".toporealm", "modules.yaml");
-    if (!existsSync(path)) return { bindings: {} };
+    if (!existsSync(path)) return (this.bindingsCache = { bindings: {} });
     const parsed = parseFile<ModuleBindingsFile>(path);
-    return parsed && typeof parsed === "object" && parsed.bindings ? parsed : { bindings: {} };
+    return (this.bindingsCache = parsed && typeof parsed === "object" && parsed.bindings ? parsed : { bindings: {} });
   }
 
   resolve(moduleId: string): ResolvedModule {
+    const cached = this.moduleCache.get(moduleId);
+    if (cached) return cached;
+    const remember = (value: ResolvedModule): ResolvedModule => { this.moduleCache.set(moduleId, value); return value; };
     const binding = this.readBindings().bindings?.[moduleId];
-    if (!binding) return { status: "unavailable", id: moduleId, reason: "工作区没有显式模块绑定。" };
+    if (!binding) return remember({ status: "unavailable", id: moduleId, reason: "工作区没有显式模块绑定。" });
     let root: string;
     try {
       if (binding.source === "global") {
-        if (!binding.version) return { status: "unavailable", id: moduleId, source: binding.source, reason: "global 绑定缺少准确 version。" };
+        if (!binding.version) return remember({ status: "unavailable", id: moduleId, source: binding.source, reason: "global 绑定缺少准确 version。" });
         root = join(this.globalHome, "modules", moduleId, binding.version);
       } else {
-        if (!binding.path) return { status: "unavailable", id: moduleId, source: binding.source, reason: `${binding.source} 绑定缺少 path。` };
+        if (!binding.path) return remember({ status: "unavailable", id: moduleId, source: binding.source, reason: `${binding.source} 绑定缺少 path。` });
         root = binding.source === "workspace" || !isAbsolute(binding.path)
           ? resolve(join(this.workspaceRoot, ".toporealm", binding.path))
           : resolve(binding.path);
       }
     } catch (error) {
-      return { status: "unavailable", id: moduleId, source: binding.source, reason: error instanceof Error ? error.message : String(error) };
+      return remember({ status: "unavailable", id: moduleId, source: binding.source, reason: error instanceof Error ? error.message : String(error) });
     }
     root = existsSync(root) ? realpathSync.native(root) : root;
     const manifestPath = join(root, "module.yaml");
-    if (!existsSync(manifestPath)) return { status: "unavailable", id: moduleId, source: binding.source, root, reason: `找不到 module.yaml：${manifestPath}` };
+    if (!existsSync(manifestPath)) return remember({ status: "unavailable", id: moduleId, source: binding.source, root, reason: `找不到 module.yaml：${manifestPath}` });
     try {
       const manifest = validateManifest(parseFile<unknown>(manifestPath), manifestPath);
-      if (manifest.id !== moduleId) return { status: "unavailable", id: moduleId, source: binding.source, root, reason: `模块清单 id=${manifest.id} 与绑定 ${moduleId} 不一致。` };
-      if (binding.version && manifest.version !== binding.version) return { status: "unavailable", id: moduleId, source: binding.source, root, reason: `绑定版本 ${binding.version} 与清单版本 ${manifest.version} 不一致。` };
-      return { status: "available", id: moduleId, source: binding.source, root, manifest };
+      if (manifest.id !== moduleId) return remember({ status: "unavailable", id: moduleId, source: binding.source, root, reason: `模块清单 id=${manifest.id} 与绑定 ${moduleId} 不一致。` });
+      if (binding.version && manifest.version !== binding.version) return remember({ status: "unavailable", id: moduleId, source: binding.source, root, reason: `绑定版本 ${binding.version} 与清单版本 ${manifest.version} 不一致。` });
+      return remember({ status: "available", id: moduleId, source: binding.source, root, manifest });
     } catch (error) {
-      return { status: "unavailable", id: moduleId, source: binding.source, root, reason: error instanceof Error ? error.message : String(error) };
+      return remember({ status: "unavailable", id: moduleId, source: binding.source, root, reason: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -352,7 +359,7 @@ export function validateMutationPlan(registry: GraphRegistrySnapshot, plan: Muta
   }
 }
 
-export function applyRegisteredPlan(store: GraphStore, registry: GraphRegistrySnapshot, plan: MutationPlan) {
+export function applyRegisteredPlan(graph: ManagedGraph, registry: GraphRegistrySnapshot, plan: MutationPlan) {
   validateMutationPlan(registry, plan);
-  return store.apply(plan);
+  return graph.commit(plan);
 }

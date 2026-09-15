@@ -1,13 +1,13 @@
 import { coreSurface } from "../core/index.js";
 import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { CoreError, GraphStore, validateGraph } from "../core/index.js";
-import { ActionExecutor, GraphActivator, WorkspaceModuleResolver } from "../module-sdk/index.js";
-import type { ModuleActionRuntime } from "../module-sdk/index.js";
+import { existsSync, readFileSync } from "node:fs";
+import { extname, isAbsolute, relative, resolve } from "node:path";
+import { CoreError, validateGraph } from "../core/index.js";
+import type { ModuleRuntime } from "../module-sdk/runtime.js";
+import { createWorkspaceRuntime, createWorkspaceRuntimeSync, listWorkspaceGraphs, type WorkspaceRuntime, type WorkspaceRuntimeOptions } from "../runtime/workspace.js";
 import { readWebAsset, renderWebShell } from "../web/index.js";
 import type { MutationPlan } from "../core/index.js";
+import { WebSocketServer } from "ws";
 
 export const serverSurface = {
   name: "server",
@@ -15,7 +15,7 @@ export const serverSurface = {
 } as const;
 
 export interface ToporealmServerOptions {
-  runtimes?: Readonly<Record<string, ModuleActionRuntime>>;
+  runtimes?: Readonly<Record<string, ModuleRuntime>>;
 }
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
@@ -39,11 +39,11 @@ function readBody(request: IncomingMessage): Promise<string> {
 }
 
 /** A small HTTP adapter for the same Core store used by CLI and MCP. */
-export function createToporealmServer(store: GraphStore, options: ToporealmServerOptions = {}): Server {
-  let activeStore = store;
-  const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
-  const graphSummary = (candidate: GraphStore) => {
-    const snapshot = candidate.read();
+export function createToporealmServer(runtime: WorkspaceRuntime, options: ToporealmServerOptions = {}): Server {
+  let active = runtime;
+  const workspaceRoot = runtime.workspaceRoot;
+  const graphSummary = (candidate: WorkspaceRuntime) => {
+    const snapshot = candidate.graph.read().snapshot;
     return {
       id: snapshot.manifest.id,
       label: snapshot.manifest.label,
@@ -53,27 +53,18 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
     };
   };
   const listGraphs = () => {
-    const graphsRoot = join(workspaceRoot, ".toporealm", "graphs");
-    try {
-      return readdirSync(graphsRoot, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .flatMap((entry) => {
-          try { return [graphSummary(GraphStore.fromWorkspace(workspaceRoot, entry.name))]; }
-          catch { return []; }
-        })
-        .sort((left, right) => left.id.localeCompare(right.id));
-    } catch {
-      return [];
-    }
+    return listWorkspaceGraphs(workspaceRoot).flatMap((item) => {
+      try { return [graphSummary(createWorkspaceRuntimeSync({ workspaceRoot, graphId: item.id, ...(options.runtimes ? { runtimes: options.runtimes } : {}) }))]; }
+      catch { return []; }
+    });
   };
-  const activeRegistry = () => new GraphActivator(new WorkspaceModuleResolver(workspaceRoot)).activate(activeStore.read());
   const moduleAsset = (pathname: string): { body: Buffer; contentType: string } | undefined => {
     const match = /^\/api\/module-assets\/([^/]+)\/(.+)$/.exec(pathname);
     if (!match?.[1] || !match[2]) return undefined;
-    const module = new WorkspaceModuleResolver(workspaceRoot).resolve(decodeURIComponent(match[1]));
-    if (module.status !== "available") return undefined;
-    const requested = resolve(module.root, decodeURIComponent(match[2]));
-    const escaped = relative(module.root, requested).startsWith("..") || isAbsolute(relative(module.root, requested));
+    const moduleRoot = active.moduleRoots[decodeURIComponent(match[1])];
+    if (!moduleRoot) return undefined;
+    const requested = resolve(moduleRoot, decodeURIComponent(match[2]));
+    const escaped = relative(moduleRoot, requested).startsWith("..") || isAbsolute(relative(moduleRoot, requested));
     if (escaped || !existsSync(requested)) return undefined;
     const contentTypes: Record<string, string> = {
       ".js": "text/javascript; charset=utf-8",
@@ -84,8 +75,12 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
     };
     return { body: readFileSync(requested), contentType: contentTypes[extname(requested)] ?? "application/octet-stream" };
   };
-  const runtimes = options.runtimes ?? {};
-  return createHttpServer(async (request, response) => {
+  const webSockets = new WebSocketServer({ noServer: true });
+  const broadcastMutation = (result: { revision: number; patch: unknown; diagnostics: unknown; complete: boolean; notice?: unknown }): void => {
+    const message = JSON.stringify({ type: "graph:patch", graphId: active.graphId, revision: result.revision, patch: result.patch, diagnostics: result.diagnostics, complete: result.complete, ...(result.notice ? { notice: result.notice } : {}) });
+    for (const client of webSockets.clients) if (client.readyState === client.OPEN) client.send(message);
+  };
+  const server = createHttpServer(async (request, response) => {
     try {
       const url = new URL(request.url ?? "/", "http://toporealm.local");
       if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
@@ -95,24 +90,31 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
         return;
       }
       if (request.method === "GET" && (url.pathname === "/graph" || url.pathname === "/api/graph")) {
-        sendJson(response, 200, activeStore.read());
+        const result = active.graph.read();
+        sendJson(response, 200, { ...result.snapshot, diagnostics: result.diagnostics, complete: result.complete, ...(result.notice ? { notice: result.notice } : {}) });
         return;
       }
       if (request.method === "GET" && (url.pathname === "/graphs" || url.pathname === "/api/graphs")) {
-        sendJson(response, 200, { currentId: activeStore.read().manifest.id, graphs: listGraphs() });
+        sendJson(response, 200, { currentId: active.graphId, graphs: listGraphs() });
         return;
       }
       if (request.method === "GET" && (url.pathname === "/history" || url.pathname === "/api/history")) {
-        sendJson(response, 200, activeStore.historyStatus());
+        sendJson(response, 200, active.historyStatus());
         return;
       }
       if (request.method === "GET" && (url.pathname === "/validate" || url.pathname === "/api/validate")) {
-        const snapshot = activeStore.read();
-        sendJson(response, 200, url.searchParams.get("mode") === "complete" ? validateGraph(snapshot, activeRegistry()) : validateGraph(snapshot));
+        const snapshot = active.graph.read().snapshot;
+        if (url.searchParams.get("mode") !== "complete") sendJson(response, 200, validateGraph(snapshot));
+        else {
+          const result = active.graph.validate();
+          const errors = result.diagnostics.filter((item) => item.severity === "error");
+          const warnings = result.diagnostics.filter((item) => item.severity === "warning");
+          sendJson(response, 200, { ok: errors.length === 0, complete: result.complete, errors, warnings, diagnostics: result.diagnostics, revision: result.revision });
+        }
         return;
       }
       if (request.method === "GET" && (url.pathname === "/modules" || url.pathname === "/api/modules")) {
-        const registry = activeRegistry();
+        const registry = active.registry;
         sendJson(response, 200, { registryRevision: registry.registryRevision, modules: registry.modules, ui: registry.ui, operations: registry.operations });
         return;
       }
@@ -141,14 +143,21 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
         const body = JSON.parse((await readBody(request)) || "{}") as Record<string, unknown>;
         if (url.pathname === "/graph/switch" || url.pathname === "/api/graph/switch") {
           if (typeof body.id !== "string") throw new CoreError({ code: "INVALID_GRAPH_ID", message: "图切换需要字符串 graph ID。" });
-          const next = GraphStore.fromWorkspace(workspaceRoot, body.id);
-          const snapshot = next.read();
-          activeStore = next;
-          sendJson(response, 200, { snapshot, history: activeStore.historyStatus(), graph: graphSummary(activeStore) });
+          const next = await createWorkspaceRuntime({ workspaceRoot, graphId: body.id, ...(options.runtimes ? { runtimes: options.runtimes } : {}) });
+          const read = next.graph.read();
+          active = next;
+          sendJson(response, 200, {
+            snapshot: read.snapshot,
+            history: active.historyStatus(),
+            graph: graphSummary(active),
+            diagnostics: read.diagnostics,
+            complete: read.complete,
+            ...(read.notice ? { notice: read.notice } : {}),
+          });
           return;
         }
         if (url.pathname === "/actions" || url.pathname === "/api/actions") {
-          const registry = activeRegistry();
+          const registry = active.registry;
           if (typeof body.operation !== "string") throw new CoreError({ code: "INVALID_OPERATION", message: "动作请求需要 operation。" });
           const reference: { operation: string; registryRevision: number; target?: string } = {
             operation: body.operation,
@@ -156,20 +165,27 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
           };
           if (typeof body.target === "string") reference.target = body.target;
           const input = body.input && typeof body.input === "object" && !Array.isArray(body.input) ? body.input as Record<string, unknown> : {};
-          const result = await new ActionExecutor(activeStore, registry, runtimes).execute(reference, input);
+          const result = await active.actions.execute(reference, input);
+          if (result.kind === "mutation") broadcastMutation(result.mutation);
           sendJson(response, 200, result);
           return;
         }
         if (url.pathname === "/mutations" || url.pathname === "/api/mutations") {
-          sendJson(response, 200, activeStore.apply(body as unknown as MutationPlan));
+          const result = active.graph.commit(body as unknown as MutationPlan);
+          broadcastMutation(result);
+          sendJson(response, 200, result);
           return;
         }
         if (url.pathname === "/undo" || url.pathname === "/api/undo") {
-          sendJson(response, 200, activeStore.undo(typeof body.expectedRevision === "number" ? body.expectedRevision : undefined));
+          const result = active.graph.undo(typeof body.expectedRevision === "number" ? body.expectedRevision : undefined);
+          broadcastMutation(result);
+          sendJson(response, 200, result);
           return;
         }
         if (url.pathname === "/redo" || url.pathname === "/api/redo") {
-          sendJson(response, 200, activeStore.redo(typeof body.expectedRevision === "number" ? body.expectedRevision : undefined));
+          const result = active.graph.redo(typeof body.expectedRevision === "number" ? body.expectedRevision : undefined);
+          broadcastMutation(result);
+          sendJson(response, 200, result);
           return;
         }
       }
@@ -184,25 +200,18 @@ export function createToporealmServer(store: GraphStore, options: ToporealmServe
       sendJson(response, 400, { error: { code: "BAD_REQUEST", message: error instanceof Error ? error.message : String(error) } });
     }
   });
+  server.on("upgrade", (request, socket, head) => {
+    const url = new URL(request.url ?? "/", "http://toporealm.local");
+    if (url.pathname !== "/api/events") { socket.destroy(); return; }
+    webSockets.handleUpgrade(request, socket, head, (client) => webSockets.emit("connection", client, request));
+  });
+  server.on("close", () => webSockets.close());
+  return server;
 }
 
-async function loadServerRuntimes(store: GraphStore): Promise<Record<string, ModuleActionRuntime>> {
-  const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
-  const resolver = new WorkspaceModuleResolver(workspaceRoot);
-  const loaded: Record<string, ModuleActionRuntime> = {};
-  for (const ref of store.read().manifest.modules ?? []) {
-    const module = resolver.resolve(ref.id);
-    if (module.status !== "available" || !module.manifest.runtime?.entry) continue;
-    const imported = await import(pathToFileURL(resolve(module.root, module.manifest.runtime.entry)).href) as { default?: ModuleActionRuntime; runtime?: ModuleActionRuntime };
-    const runtime = imported.default ?? imported.runtime;
-    if (runtime && typeof runtime.execute === "function") loaded[ref.id] = runtime;
-  }
-  return loaded;
-}
-
-export async function listenToporealmServer(store: GraphStore, port = 0, host = "127.0.0.1", options: ToporealmServerOptions = {}): Promise<Server> {
-  const runtimes = options.runtimes ?? await loadServerRuntimes(store);
-  const server = createToporealmServer(store, { ...options, runtimes });
+export async function listenToporealmServer(runtimeOptions: WorkspaceRuntimeOptions, port = 0, host = "127.0.0.1", options: ToporealmServerOptions = {}): Promise<Server> {
+  const runtime = await createWorkspaceRuntime({ ...runtimeOptions, ...(options.runtimes ? { runtimes: options.runtimes } : {}) });
+  const server = createToporealmServer(runtime, { ...options, runtimes: runtime.runtimes });
   return new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, () => {

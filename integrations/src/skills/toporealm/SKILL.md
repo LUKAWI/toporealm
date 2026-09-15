@@ -9,11 +9,11 @@ description: 识别 TopoRealm 工作区中的用户意图，读取当前图与�
 
 按以下边界路由请求：
 
-- 通用图发现、读取、对象/关系编辑、撤销重做与校验，使用 TopoRealm CLI 或 MCP。
+- 通用图发现、读取、对象/关系编辑、撤销重做与校验，使用 TopoRealm CLI 或 MCP；读取并报告 `revision`、`diagnostics`、`complete` 和公开 `notice`。
 - 模块动作先读取 `action_list`；只有当前图已启用且运行时可用时才调用 `action_execute`。
 - 模块安装、卸载与宿主同步属于管理操作，只能在用户明确要求时使用 CLI；MCP 不提供这些入口。
 - 缺少所需模块时保持未知数据无损可读，说明缺少哪项能力，不把领域字段猜进通用模型。
 
-所有图写入必须以 `MutationPlan` 交给 Core，并携带刚读取的 `expectedRevision`。模块可以实现领域操作，但没有图存储写权限；外部或 artifact 副作用必须按实际效果透明说明。
+所有图写入必须以 `MutationPlan` 交给 Core 的 ManagedGraph 提交，并携带刚读取的 `expectedRevision`。模块可以实现领域操作，但没有图存储写权限；外部或 artifact 副作用必须按实际效果透明说明。不得直接修改 `.toporealm/graphs` 内的事实文件。
 
 请求明确时直接完成。若存在会改变产品边界或持久协议的关键未决选择，转入 `$toporealm-grilling` 对齐；普通参数缺省不触发拷问。

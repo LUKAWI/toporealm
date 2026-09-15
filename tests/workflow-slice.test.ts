@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
+import { createManagedGraph } from "../src/core/managed.js";
 import { createWorkflowRuntime } from "./fixtures/runtimes/index.js";
 import { ActionExecutor, GraphActivator, WorkspaceModuleResolver, discoverActions } from "../src/module-sdk/index.js";
 
@@ -33,7 +34,7 @@ describe("workflow representative slice", () => {
   it("在模块内执行状态流转、依赖门禁、checkpoint/report 与下一行动", async () => {
     const { root, store } = copiedFixture();
     const registry = new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read());
-    const executor = new ActionExecutor(store, registry, { workflow: createWorkflowRuntime() });
+    const executor = new ActionExecutor(createManagedGraph(store, { registry }), registry, { workflow: createWorkflowRuntime() });
     const next = action(executor, registry, "workflow.next-actions");
     const transitionA = action(executor, registry, "workflow.transition-task", "task-a");
     const transitionB = action(executor, registry, "workflow.transition-task", "task-b");

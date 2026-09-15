@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,10 +6,10 @@ import {
   executeCli,
   resolveGraphTarget,
   resolveWorkspaceRoot,
+  readGraph,
   runCli,
   runActionCli,
 } from "../src/cli/index.js";
-import { GraphStore } from "../src/core/index.js";
 import { installModule } from "../src/distribution/index.js";
 
 const roots: string[] = [];
@@ -70,15 +70,28 @@ describe("TopoRealm CLI 命令面", () => {
     expect(executeCli(["--root", missing, "read"], { cwd: missing })).toMatchObject({ exitCode: 1, stdout: "" });
   });
 
+  it("以结构化 JSON 传播 revision 冲突、校验错误和外部吸收 notice", () => {
+    const root = tempRoot();
+    runCli(["init", "demo"], root);
+    runCli(["apply", JSON.stringify({ expectedRevision: 0, mutations: [{ op: "upsert_object", object: { id: "a", kind: "plain", label: "A" } }] })], root);
+    const conflict = executeCli(["apply", JSON.stringify({ expectedRevision: 0, mutations: [] })], { cwd: root });
+    expect(conflict).toMatchObject({ exitCode: 1, stdout: "" });
+    expect(JSON.parse(conflict.stderr)).toMatchObject({ error: { code: "REVISION_CONFLICT" } });
+    const invalid = executeCli(["apply", JSON.stringify({ mutations: [{ op: "upsert_relation", relation: { id: "r", kind: "plain", source: "a", target: "missing", direction: "directed" } }] })], { cwd: root });
+    expect(JSON.parse(invalid.stderr)).toMatchObject({ error: { code: "DANGLING_RELATION" } });
+    const objectPath = join(root, ".toporealm", "graphs", "demo", "objects", "a.yaml");
+    writeFileSync(objectPath, readFileSync(objectPath, "utf8").replace("label: A", "label: External"), "utf8");
+    expect(JSON.parse(runCli(["read"], root))).toMatchObject({ revision: 2, notice: { code: "EXTERNAL_EDIT_ABSORBED" } });
+  });
+
   it("CLI action list/execute 与 MCP 共用 ActionReference 和 Core 提交边界", async () => {
     const root = tempRoot();
     runCli(["init", "demo"], root);
     installModule(resolve("tests/fixtures/packages/example-module"), { workspaceRoot: root });
-    const store = GraphStore.fromWorkspace(root, "demo");
-    store.apply({ expectedRevision: 0, mutations: [{
+    runCli(["--graph", "demo", "apply", JSON.stringify({ expectedRevision: 0, mutations: [{
       op: "patch_manifest",
       patch: { modules: [{ id: "example", namespace: "example", schema: 1 }] },
-    }] });
+    }] })], root);
 
     const actions = JSON.parse(await runActionCli(["action", "list"], root)) as Array<{ operation: string; registryRevision: number }>;
     expect(actions.map((item) => item.operation)).toEqual(["example.create-card"]);
@@ -87,7 +100,7 @@ describe("TopoRealm CLI 命令面", () => {
       input: { id: "card-cli", label: "CLI card" },
     })], root));
     expect(result).toMatchObject({ kind: "mutation", mutation: { snapshot: { revision: 2 } } });
-    expect(store.read().objects).toMatchObject([{ id: "card-cli", kind: "example.card" }]);
+    expect(readGraph(root, "demo").objects).toMatchObject([{ id: "card-cli", kind: "example.card" }]);
 
     const refreshed = JSON.parse(await runActionCli(["action", "list"], root)) as Array<{ operation: string; registryRevision: number }>;
     const encoded = Buffer.from(JSON.stringify({ reference: refreshed[0], input: { id: "card-base64", label: "Base64 card" } }), "utf8").toString("base64url");

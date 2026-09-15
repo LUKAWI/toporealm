@@ -1,10 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import {
   CoreError,
   GRAPH_FORMAT,
-  GraphStore,
   coreSurface,
   validateGraph,
   type GraphManifest,
@@ -19,13 +17,18 @@ import {
   type InstallOptions,
 } from "../distribution/index.js";
 import {
-  ActionExecutor,
-  GraphActivator,
-  WorkspaceModuleResolver,
   discoverActions,
   type ActionReference,
-  type ModuleActionRuntime,
 } from "../module-sdk/index.js";
+import {
+  createWorkspaceRuntime,
+  createWorkspaceRuntimeSync,
+  initializeWorkspaceGraph,
+  listWorkspaceGraphs,
+  selectWorkspaceGraph,
+} from "../runtime/workspace.js";
+import type { ManagedGraph } from "../core/managed.js";
+import { PRODUCT_IDENTITY } from "../product-identity.js";
 
 export const cliSurface = { name: "cli", coreFormat: coreSurface.graphFormat } as const;
 
@@ -45,7 +48,7 @@ class CliUsageError extends Error {
   readonly code = "CLI_USAGE";
 }
 
-const HELP = `TopoRealm CLI
+const HELP = `TopoRealm CLI ${PRODUCT_IDENTITY.version}
 
 用法：toporealm [--root <目录>] [--graph <图 ID>] <命令>
 
@@ -65,6 +68,7 @@ const HELP = `TopoRealm CLI
   action list|execute       发现或执行模块领域操作
   host sync                 同步 Codex、Claude、Pi 宿主资产
   help                      显示帮助
+  version                   显示产品版本
 
 环境变量：TOPOREALM_ROOT、TOPOREALM_GRAPH、TOPOREALM_HOME`;
 
@@ -103,17 +107,7 @@ export function resolveWorkspaceRoot(options: {
 }
 
 export function listGraphs(workspaceRoot: string): Array<{ id: string; label?: string }> {
-  const graphsRoot = join(workspaceRoot, ".toporealm", "graphs");
-  if (!existsSync(graphsRoot)) return [];
-  return readdirSync(graphsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && existsSync(join(graphsRoot, entry.name, "graph.yaml")))
-    .map((entry) => {
-      const snapshot = GraphStore.fromWorkspace(workspaceRoot, entry.name).read();
-      const item: { id: string; label?: string } = { id: entry.name };
-      if (snapshot.manifest.label !== undefined) item.label = snapshot.manifest.label;
-      return item;
-    })
-    .sort((left, right) => left.id.localeCompare(right.id));
+  return listWorkspaceGraphs(workspaceRoot);
 }
 
 function assertGraphExists(workspaceRoot: string, graphId: string, source: string): string {
@@ -141,20 +135,19 @@ export function resolveGraphTarget(workspaceRoot: string, options: {
 }
 
 export function selectGraph(workspaceRoot: string, graphId: string): void {
-  assertGraphExists(workspaceRoot, graphId, "");
-  writeFileSync(join(workspaceRoot, ".toporealm", "active"), `${graphId}\n`, "utf8");
+  selectWorkspaceGraph(workspaceRoot, graphId);
 }
 
-export function openGraph(workspaceRoot: string, graphId: string): GraphStore {
-  return GraphStore.fromWorkspace(workspaceRoot, graphId);
+export function openGraph(workspaceRoot: string, graphId: string): ManagedGraph {
+  return createWorkspaceRuntimeSync({ workspaceRoot, graphId }).graph;
 }
 
 export function readGraph(workspaceRoot: string, graphId: string) {
-  return openGraph(workspaceRoot, graphId).read();
+  return openGraph(workspaceRoot, graphId).read().snapshot;
 }
 
 export function applyGraphPlan(workspaceRoot: string, graphId: string, plan: MutationPlan) {
-  return openGraph(workspaceRoot, graphId).apply(plan);
+  return openGraph(workspaceRoot, graphId).commit(plan);
 }
 
 export function undoGraph(workspaceRoot: string, graphId: string, expectedRevision?: number) {
@@ -166,7 +159,7 @@ export function redoGraph(workspaceRoot: string, graphId: string, expectedRevisi
 }
 
 export function initGraph(workspaceRoot: string, graphId: string, manifest: GraphManifest) {
-  return openGraph(workspaceRoot, graphId).initialize(manifest);
+  return initializeWorkspaceGraph(workspaceRoot, graphId, manifest);
 }
 
 export function addModule(spec: string, options: InstallOptions) {
@@ -229,6 +222,7 @@ export function runCli(argv: readonly string[], cwd = process.cwd(), env: Resolv
   const parsed = parseCli(argv);
   const [command, first, second] = parsed.args;
   if (!command || command === "help" || command === "--help" || command === "-h") return HELP;
+  if (command === "version" || command === "--version" || command === "-v") return PRODUCT_IDENTITY.version;
   const commands = new Set(["init", "list", "switch", "status", "read", "apply", "undo", "redo", "validate", "serve", "mcp", "module", "host", "action"]);
   if (!commands.has(command)) throw new CliUsageError(`未知命令：${command}`);
 
@@ -292,38 +286,54 @@ export function runCli(argv: readonly string[], cwd = process.cwd(), env: Resolv
     payload = second;
   }
   const graphId = resolveGraphTarget(root, { explicitGraph: parsed.graph ?? legacyGraph, env });
-  const store = openGraph(root, graphId);
-  if (command === "read") return JSON.stringify(store.read());
-  if (command === "status") {
-    const snapshot = store.read();
-    return JSON.stringify({ graphId, revision: snapshot.revision, objects: snapshot.objects.length, relations: snapshot.relations.length, history: store.historyStatus() });
+  const runtime = createWorkspaceRuntimeSync({ workspaceRoot: root, graphId });
+  if (command === "read") {
+    const result = runtime.graph.read();
+    return JSON.stringify({ ...result.snapshot, diagnostics: result.diagnostics, complete: result.complete, ...(result.notice ? { notice: result.notice } : {}) });
   }
-  if (command === "apply") return JSON.stringify(store.apply(JSON.parse(required(payload, "toporealm apply <MutationPlan JSON>")) as MutationPlan));
-  if (command === "undo") return JSON.stringify(store.undo(parseRevision(first)));
-  if (command === "redo") return JSON.stringify(store.redo(parseRevision(first)));
+  if (command === "status") {
+    const result = runtime.graph.read();
+    return JSON.stringify({ graphId, revision: result.revision, objects: result.snapshot.objects.length, relations: result.snapshot.relations.length, history: runtime.historyStatus(), diagnostics: result.diagnostics, complete: result.complete, ...(result.notice ? { notice: result.notice } : {}) });
+  }
+  if (command === "apply") return JSON.stringify(runtime.graph.commit(JSON.parse(required(payload, "toporealm apply <MutationPlan JSON>")) as MutationPlan));
+  if (command === "undo") return JSON.stringify(runtime.graph.undo(parseRevision(first)));
+  if (command === "redo") return JSON.stringify(runtime.graph.redo(parseRevision(first)));
   if (command === "validate") {
-    const snapshot = store.read();
-    const registry = parsed.complete ? new GraphActivator(new WorkspaceModuleResolver(root)).activate(snapshot) : undefined;
-    return JSON.stringify(validateGraph(snapshot, registry));
+    if (!parsed.complete) return JSON.stringify(validateGraph(runtime.graph.read().snapshot));
+    const validation = runtime.graph.validate();
+    return JSON.stringify({ ok: !validation.diagnostics.some((item) => item.severity === "error"), ...validation });
   }
   throw new CliUsageError(`未知命令：${command}`);
 }
 
-async function loadActionRuntimes(workspaceRoot: string, graphId: string): Promise<Record<string, ModuleActionRuntime>> {
-  const snapshot = GraphStore.fromWorkspace(workspaceRoot, graphId).read();
-  const resolver = new WorkspaceModuleResolver(workspaceRoot);
-  const loaded: Record<string, ModuleActionRuntime> = {};
-  for (const ref of snapshot.manifest.modules ?? []) {
-    const module = resolver.resolve(ref.id);
-    if (module.status !== "available" || !module.manifest.runtime?.entry) continue;
-    const imported = await import(pathToFileURL(resolve(module.root, module.manifest.runtime.entry)).href) as {
-      default?: ModuleActionRuntime;
-      runtime?: ModuleActionRuntime;
-    };
-    const runtime = imported.default ?? imported.runtime;
-    if (runtime && typeof runtime.execute === "function") loaded[ref.id] = runtime;
+/** Production async seam: graph commands load the target graph's declared module runtimes. */
+export async function runCliAsync(argv: readonly string[], cwd = process.cwd(), env: ResolverEnvironment = process.env): Promise<string> {
+  const parsed = parseCli(argv);
+  const [command, first, second] = parsed.args;
+  if (!command || !["read", "status", "apply", "undo", "redo", "validate"].includes(command)) return runCli(argv, cwd, env);
+  const root = resolveWorkspaceRoot({ cwd, explicitRoot: parsed.root, env });
+  let legacyGraph: string | undefined;
+  let payload = first;
+  if (!parsed.graph && ["read", "apply"].includes(command) && first && !first.startsWith("{")) {
+    legacyGraph = first;
+    payload = second;
   }
-  return loaded;
+  const graphId = resolveGraphTarget(root, { explicitGraph: parsed.graph ?? legacyGraph, env });
+  const runtime = await createWorkspaceRuntime({ workspaceRoot: root, graphId, ...(env.TOPOREALM_HOME ? { globalHome: env.TOPOREALM_HOME } : {}) });
+  if (command === "read") {
+    const result = runtime.graph.read();
+    return JSON.stringify({ ...result.snapshot, diagnostics: result.diagnostics, complete: result.complete, ...(result.notice ? { notice: result.notice } : {}) });
+  }
+  if (command === "status") {
+    const result = runtime.graph.read();
+    return JSON.stringify({ graphId, revision: result.revision, objects: result.snapshot.objects.length, relations: result.snapshot.relations.length, history: runtime.historyStatus(), diagnostics: result.diagnostics, complete: result.complete, ...(result.notice ? { notice: result.notice } : {}) });
+  }
+  if (command === "apply") return JSON.stringify(runtime.graph.commit(JSON.parse(required(payload, "toporealm apply <MutationPlan JSON>")) as MutationPlan));
+  if (command === "undo") return JSON.stringify(runtime.graph.undo(parseRevision(first)));
+  if (command === "redo") return JSON.stringify(runtime.graph.redo(parseRevision(first)));
+  if (!parsed.complete) return JSON.stringify(validateGraph(runtime.graph.read().snapshot));
+  const validation = runtime.graph.validate();
+  return JSON.stringify({ ok: !validation.diagnostics.some((item) => item.severity === "error"), ...validation });
 }
 
 /** Async CLI seam for the same ActionReference protocol exposed by MCP. */
@@ -340,9 +350,8 @@ export async function runActionCli(
     payload?: string;
   };
   if (descriptor.command !== "action") throw new CliUsageError("runActionCli 只接受 action 命令。");
-  const store = GraphStore.fromWorkspace(descriptor.workspaceRoot, descriptor.graphId);
-  const registry = new GraphActivator(new WorkspaceModuleResolver(descriptor.workspaceRoot)).activate(store.read());
-  if (descriptor.action === "list") return JSON.stringify(discoverActions(registry));
+  const runtime = await createWorkspaceRuntime({ workspaceRoot: descriptor.workspaceRoot, graphId: descriptor.graphId, ...(env.TOPOREALM_HOME ? { globalHome: env.TOPOREALM_HOME } : {}) });
+  if (descriptor.action === "list") return JSON.stringify(discoverActions(runtime.registry));
   const rawPayload = required(descriptor.payload, "toporealm action execute '<JSON>'");
   const decodedPayload = rawPayload.startsWith("base64:")
     ? Buffer.from(rawPayload.slice("base64:".length), "base64url").toString("utf8")
@@ -352,8 +361,7 @@ export async function runActionCli(
     input?: Record<string, unknown>;
   };
   if (!payload.reference) throw new CliUsageError("action execute 缺少 reference。");
-  const executor = new ActionExecutor(store, registry, await loadActionRuntimes(descriptor.workspaceRoot, descriptor.graphId));
-  return JSON.stringify(await executor.execute(payload.reference, payload.input));
+  return JSON.stringify(await runtime.actions.execute(payload.reference, payload.input));
 }
 
 export function executeCli(argv: readonly string[], options: { cwd?: string; env?: ResolverEnvironment } = {}): CliExecutionResult {
@@ -364,5 +372,15 @@ export function executeCli(argv: readonly string[], options: { cwd?: string; env
     const code = error instanceof CoreError ? error.code : usage ? error.code : "CLI_ERROR";
     const message = error instanceof Error ? error.message : String(error);
     return { exitCode: usage ? 2 : 1, stdout: "", stderr: `${JSON.stringify({ error: { code, message } })}\n` };
+  }
+}
+
+export async function executeCliAsync(argv: readonly string[], options: { cwd?: string; env?: ResolverEnvironment } = {}): Promise<CliExecutionResult> {
+  try {
+    return { exitCode: 0, stdout: `${await runCliAsync(argv, options.cwd, options.env)}\n`, stderr: "" };
+  } catch (error) {
+    if (error instanceof CliUsageError || error instanceof SyntaxError) return { exitCode: 2, stdout: "", stderr: `${error.message}\n` };
+    if (error instanceof CoreError) return { exitCode: 1, stdout: "", stderr: `${JSON.stringify({ error: { code: error.code, message: error.message, details: error.details } })}\n` };
+    return { exitCode: 1, stdout: "", stderr: `${error instanceof Error ? error.message : String(error)}\n` };
   }
 }

@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
+import { createManagedGraph } from "../src/core/managed.js";
 import { listenToporealmServer } from "../src/server/index.js";
 import { createMcpHandlers } from "../src/mcp/index.js";
 import { createExplorationRuntime, createResearchRuntime } from "./fixtures/runtimes/index.js";
@@ -31,7 +32,7 @@ describe("offline research/exploration vertical slice", () => {
     const { root, store } = copiedFixture();
     const registry = new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read());
     expect(registry.modules.map((module) => module.status)).toEqual(["available", "available"]);
-    const actions = new ActionExecutor(store, registry, {
+    const actions = new ActionExecutor(createManagedGraph(store, { registry }), registry, {
       research: createResearchRuntime(),
       exploration: createExplorationRuntime(),
     });
@@ -39,7 +40,7 @@ describe("offline research/exploration vertical slice", () => {
     if (!reference) throw new Error("缺少 research.expand-question 动作");
     const initial = store.read();
     const web = new WebGraphModel(initial);
-    const crossModule = applyRegisteredPlan(store, registry, {
+    const crossModule = applyRegisteredPlan(createManagedGraph(store, { registry }), registry, {
       mutations: [
         { op: "upsert_object", object: { id: "unknown-1", kind: "exploration.unknown", label: "待核对", data: { status: "open" } } },
         { op: "upsert_object", object: { id: "question-1", kind: "research.question", label: "增量图更新如何保持可追溯？", data: { status: "active" } } },
@@ -59,8 +60,9 @@ describe("offline research/exploration vertical slice", () => {
   it("MCP execute_action 与普通 graph_apply 使用同一 MutationPlan 入口", async () => {
     const { root, store } = copiedFixture();
     const registry = new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read());
-    const actions = new ActionExecutor(store, registry, { exploration: createExplorationRuntime(), research: createResearchRuntime() });
-    const handlers = createMcpHandlers(store, actions);
+    const graph = createManagedGraph(store, { registry });
+    const actions = new ActionExecutor(graph, registry, { exploration: createExplorationRuntime(), research: createResearchRuntime() });
+    const handlers = createMcpHandlers(graph, actions);
     const reference = discoverActions(registry).find((action) => action.operation === "exploration.open-unknown");
     if (!reference) throw new Error("缺少 exploration.open-unknown 动作");
     const result = await handlers.execute_action(reference, { label: "需要进一步确认" });
@@ -82,8 +84,8 @@ describe("offline research/exploration vertical slice", () => {
   });
 
   it("Server 从模块声明发现动作，并在运行时失败时返回稳定错误边界", async () => {
-    const { store } = copiedFixture();
-    const server = await listenToporealmServer(store, 0, "127.0.0.1", { runtimes: { research: createResearchRuntime(), exploration: createExplorationRuntime() } });
+    const { root, store } = copiedFixture();
+    const server = await listenToporealmServer({ workspaceRoot: root, graphId: "research-demo" }, 0, "127.0.0.1", { runtimes: { research: createResearchRuntime(), exploration: createExplorationRuntime() } });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     const base = `http://127.0.0.1:${address.port}`;

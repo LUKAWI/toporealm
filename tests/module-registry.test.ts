@@ -2,7 +2,8 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
+import { createManagedGraph } from "../src/core/managed.js";
 import {
   GraphActivator,
   WorkspaceModuleResolver,
@@ -64,7 +65,7 @@ describe("module registry", () => {
   it("校验通过后让跨模块 MutationPlan 仍由 Core 原子提交", () => {
     const { root, store } = moduleWorkspace();
     const registry = new GraphActivator(new WorkspaceModuleResolver(root)).activate(store.read());
-    const result = applyRegisteredPlan(store, registry, {
+    const result = applyRegisteredPlan(createManagedGraph(store, { registry }), registry, {
       mutations: [{ op: "upsert_object", object: { id: "q-1", kind: "research.question", label: "Q" } }],
     });
     expect(result.snapshot.objects[0]?.id).toBe("q-1");

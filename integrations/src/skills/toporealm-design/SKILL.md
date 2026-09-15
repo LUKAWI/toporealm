@@ -11,4 +11,4 @@ description: 设计或修改领域无关的 TopoRealm 图结构，包括对象�
 
 用户审核后，把完整变更整理为一个或多个边界清晰的 `MutationPlan`，每次提交携带当前 `expectedRevision`。不要直接写图存储文件，也不要把某个领域的状态机、工作流字段或专属 UI 写进 Core。
 
-完成后重新读取图并执行适当校验；报告实际 revision 和仍缺失的模块能力。
+完成后重新读取 ManagedGraph 结果并执行适当校验；报告实际 revision、公开 diagnostics、`complete` 和仍缺失的模块能力。只有 `complete:true` 且无 error 时才能声称完整校验通过。

@@ -5,3 +5,5 @@ export * from "./mcp/index.js";
 export * from "./server/index.js";
 export * from "./web/index.js";
 export * from "./distribution/index.js";
+export * from "./runtime/index.js";
+export * from "./product-identity.js";

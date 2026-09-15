@@ -4,9 +4,9 @@
 
 TopoRealm provides a stable foundation for graph storage, versioned mutations, CLI, MCP, and a Web UI. Domain behavior arrives through modules that users install explicitly. It is for people who want humans and agents to share one local source of truth without baking task, research, or learning semantics into Core.
 
-> `0.1.0` is a public Preview. The graph and module protocols are frozen at v1, but the npm package ships with no domain modules. `research`, `exploration`, and `workflow` currently exist only as non-release test fixtures. They will be developed independently after v0.1 and must pass standalone connection tests and multi-module composition tests before release.
+> The TopoRealm foundation is published through npm's `preview` channel and ships with no domain modules. The repository's `research`, `exploration`, and `workflow` assets are boundary-test fixtures; Workflow has been released separately, while other domain modules still require independent development and composition verification.
 
-[中文](README.md) · [Architecture boundary](docs/architecture/FOUNDATION.md) · [Module contract](docs/architecture/module-contract.md) · [Release checklist](docs/releases/v0.1.0-preview.md)
+[中文](README.md) · [Architecture boundary](docs/architecture/FOUNDATION.md) · [Module contract](docs/architecture/module-contract.md) · [0.2 release notes](docs/releases/v0.2.0-preview.md)
 
 ## What is included
 
@@ -53,7 +53,7 @@ Any stdio MCP host can launch TopoRealm with:
     "toporealm": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@lukawi/toporealm@0.1.0", "mcp"]
+      "args": ["-y", "@lukawi/toporealm@preview", "mcp"]
     }
   }
 }
@@ -75,7 +75,7 @@ toporealm host sync
 
 ### Module trust boundary
 
-v0.1 loads only trusted local code that the user explicitly installs. It does not provide a third-party code sandbox or remote module marketplace. A module may provide domain operation implementations invoked by Core, but it has no graph-storage write access. Every graph change must be returned to Core as a `MutationPlan` for validation and commit. Core is the only component allowed to write graph facts through the supported contract.
+The current release line loads only trusted local code that the user explicitly installs. It does not provide a third-party code sandbox or remote module marketplace. A module may provide domain operation implementations invoked by Core, but it has no graph-storage write access. Every graph change must be returned to Core as a `MutationPlan` for validation and commit. Core is the only component allowed to write graph facts through the supported contract.
 
 ## Base Skills
 
@@ -91,11 +91,14 @@ These Skills do not decide domain objects, lifecycles, or completion rules on be
 ## Use TopoRealm as a library
 
 ```ts
-import { GraphStore } from "@lukawi/toporealm/core";
-import type { MutationPlan } from "@lukawi/toporealm/module-sdk";
+import { createWorkspaceRuntime } from "@lukawi/toporealm/runtime";
+import type { MutationPlan } from "@lukawi/toporealm/core";
+
+const runtime = await createWorkspaceRuntime({ workspaceRoot, graphId: "demo" });
+const result = runtime.graph.commit(plan satisfies MutationPlan);
 ```
 
-Public subpaths also include `cli`, `mcp`, `server`, `web`, and `distribution`. See [CONTEXT.md](CONTEXT.md) for the shared vocabulary and the [v1 freeze](docs/architecture/v1-freeze.md) for stable contracts.
+`ManagedGraph` and its `read / validate / commit / undo / redo` methods are the only public write seam; the legacy `GraphStore` is no longer exported from the package root or `/core`. Public subpaths also include `cli`, `mcp`, `server`, `web`, `module-sdk`, and `distribution`. See [CONTEXT.md](CONTEXT.md) and the [ManagedGraph API](docs/architecture/managed-graph-api.md).
 
 ## Develop and verify
 

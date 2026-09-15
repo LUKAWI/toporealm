@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { GraphApiError, type GraphSnapshot, type HistoryStatus, type MutationPlan, type MutationResult } from "./protocol";
+import { describe, expect, it, vi } from "vitest";
+import { GraphApiError, type GraphPatchEvent, type GraphSnapshot, type HistoryStatus, type MutationPlan, type MutationResult } from "./protocol";
 import { WebGraphStore } from "./store.svelte";
 
 function snapshot(revision = 5, objects = [{ id: "q-1", kind: "research.question", label: "问题" }]): GraphSnapshot {
@@ -59,7 +59,7 @@ function fakeApi(overrides: Partial<Parameters<typeof Object.assign>[1]> = {}) {
     },
     async switchGraph(id: string) {
       calls.switchGraph = (calls.switchGraph ?? 0) + 1;
-      return { snapshot: snapshot(), history: history(), graph: { id, label: "Demo", revision: 5, objectCount: 1, relationCount: 0 } };
+      return { snapshot: snapshot(), history: history(), graph: { id, label: "Demo", revision: 5, objectCount: 1, relationCount: 0 }, diagnostics: [], complete: true };
     },
     async modules() {
       return { registryRevision: 1, modules: [], ui: {}, operations: [] };
@@ -166,7 +166,7 @@ describe("WebGraphStore", () => {
     const api = fakeApi({
       async switchGraph(id: string) {
         await switchGate;
-        return { snapshot: snapshot(), history: history(), graph: { id, label: "Demo", revision: 5, objectCount: 1, relationCount: 0 } };
+        return { snapshot: snapshot(), history: history(), graph: { id, label: "Demo", revision: 5, objectCount: 1, relationCount: 0 }, diagnostics: [{ code: "LEGACY_SCHEMA_ADAPTED", message: "compat", severity: "warning" as const, privatePath: "D:/secret" }], complete: false, notice: { code: "LEGACY_SCHEMA_ADAPTED", message: "compat", privatePath: "D:/secret" } };
       },
     });
     const store = new WebGraphStore(api);
@@ -194,6 +194,10 @@ describe("WebGraphStore", () => {
     expect(store.kindFilter).toBe("");
     expect(store.validation).toBeNull();
     expect(store.editor).toBeNull();
+    expect(store.complete).toBe(false);
+    expect(store.diagnostics).toMatchObject([{ code: "LEGACY_SCHEMA_ADAPTED" }]);
+    expect(store.notice).toMatchObject({ code: "LEGACY_SCHEMA_ADAPTED" });
+    expect(JSON.stringify({ diagnostics: store.diagnostics, notice: store.notice })).not.toContain("secret");
   });
 
   it("写请求在途时拒绝切图，避免旧写入落到新 activeStore", async () => {
@@ -262,5 +266,72 @@ describe("WebGraphStore", () => {
     expect(store.moduleStatus?.ui).toHaveProperty("workflow");
     expect(store.snapshot).toEqual(before);
     expect(api.calls.readGraph).toBe(1);
+  });
+
+  it("WebSocket 先到、HTTP 后到时同一 patch 只应用一次", async () => {
+    let emit!: (event: GraphPatchEvent) => void;
+    const mutation = resultFor(snapshot(6, [...snapshot().objects, { id: "n-1", kind: "plain", label: "新对象" }]));
+    const api = fakeApi({
+      subscribe(onEvent: (event: GraphPatchEvent) => void) {
+        emit = onEvent;
+        return () => undefined;
+      },
+      async apply() {
+        emit({ type: "graph:patch", graphId: "demo", revision: 6, patch: mutation.patch, diagnostics: [], complete: true });
+        return mutation;
+      },
+    });
+    const store = new WebGraphStore(api);
+    await store.load();
+    await store.commit({ mutations: [{ op: "upsert_object", object: { id: "n-1", kind: "plain", label: "新对象" } }] });
+    expect(store.revision).toBe(6);
+    expect(store.objects.filter((item) => item.id === "n-1")).toHaveLength(1);
+    expect(store.recovery).toBeNull();
+  });
+
+  it("实时 patch 出现 revision gap 时只通过完整快照恢复", async () => {
+    let emit!: (event: GraphPatchEvent) => void;
+    let current = snapshot();
+    const api = fakeApi({
+      async readGraph() {
+        api.calls.readGraph = (api.calls.readGraph ?? 0) + 1;
+        return current;
+      },
+      subscribe(onEvent: (event: GraphPatchEvent) => void) {
+        emit = onEvent;
+        return () => undefined;
+      },
+    });
+    const store = new WebGraphStore(api);
+    await store.load();
+    current = snapshot(9, [{ id: "fresh", kind: "plain", label: "服务器快照" }]);
+    emit({
+      type: "graph:patch",
+      graphId: "demo",
+      revision: 8,
+      patch: { fromRevision: 7, toRevision: 8, objects: { added: [], updated: [], deleted: [] }, relations: { added: [], updated: [], deleted: [] }, manifestChanged: false },
+    });
+    await vi.waitFor(() => expect(store.revision).toBe(9));
+    expect(store.objects.map((item) => item.id)).toEqual(["fresh"]);
+    expect(api.calls.readGraph).toBe(2);
+    expect(store.actionMessage).toContain("完整快照");
+  });
+
+  it("读取结果公开不完整校验、诊断和外部采纳提示，但丢弃额外私有字段", async () => {
+    const store = new WebGraphStore(fakeApi({
+      async readGraph() {
+        return {
+          ...snapshot(),
+          complete: false,
+          diagnostics: [{ code: "MODULE_MISSING", message: "workflow 模块缺失", severity: "warning" as const, privatePath: "D:/secret" }],
+          notice: { code: "EXTERNAL_EDIT_ADOPTED", message: "已采纳外部编辑", fromRevision: 4, toRevision: 5, privatePath: "D:/secret" },
+        };
+      },
+    }));
+    await store.load();
+    expect(store.complete).toBe(false);
+    expect(store.diagnostics).toEqual([{ code: "MODULE_MISSING", message: "workflow 模块缺失", severity: "warning" }]);
+    expect(store.notice).toEqual({ code: "EXTERNAL_EDIT_ADOPTED", message: "已采纳外部编辑", fromRevision: 4, toRevision: 5 });
+    expect(JSON.stringify({ diagnostics: store.diagnostics, notice: store.notice })).not.toContain("secret");
   });
 });

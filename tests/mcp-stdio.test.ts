@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -11,6 +11,10 @@ let client: Client;
 
 beforeAll(async () => {
   runCli(["init", "demo"], root);
+  runCli(["init", "module"], root);
+  runCli(["--graph", "module", "apply", JSON.stringify({ mutations: [{ op: "patch_manifest", patch: { modules: [{ id: "example", namespace: "example", schema: 1 }] } }] })], root);
+  mkdirSync(join(root, ".toporealm"), { recursive: true });
+  writeFileSync(join(root, ".toporealm", "modules.yaml"), `bindings:\n  example:\n    source: path\n    path: ${JSON.stringify(resolve("tests/fixtures/packages/example-module"))}\n`);
   client = new Client({ name: "toporealm-test", version: "0.1.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
@@ -52,5 +56,18 @@ describe("TopoRealm stdio MCP", () => {
     });
     expect(stale.isError).toBe(true);
     expect(stale.structuredContent).toMatchObject({ error: { code: "REVISION_CONFLICT" } });
+  });
+
+  it("切图后按目标图重装 ModuleRuntime 并可执行动作", async () => {
+    const selected = await client.callTool({ name: "graph_select", arguments: { id: "module" } });
+    expect(selected.structuredContent).toMatchObject({ currentId: "module" });
+    const modules = await client.callTool({ name: "module_status", arguments: {} });
+    const registryRevision = (modules.structuredContent as { registryRevision: number }).registryRevision;
+    const action = await client.callTool({
+      name: "action_execute",
+      arguments: { reference: { operation: "example.create-card", registryRevision }, input: { id: "mcp-card", label: "MCP Card" } },
+    });
+    expect(action.isError).not.toBe(true);
+    expect(action.structuredContent).toMatchObject({ kind: "mutation", mutation: { snapshot: { objects: [{ id: "mcp-card" }] } } });
   });
 });

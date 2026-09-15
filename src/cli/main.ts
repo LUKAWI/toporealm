@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { executeCli, runActionCli, runCli } from "./index.js";
+import { executeCliAsync, runActionCli, runCli } from "./index.js";
 import { startToporealmMcpStdio } from "../mcp/index.js";
-import { GraphStore } from "../core/index.js";
 import { listenToporealmServer } from "../server/index.js";
 import { spawn } from "node:child_process";
 
@@ -33,7 +32,7 @@ if (argv.includes("action")) {
 } else if (argv.includes("serve")) {
   try {
     const target = JSON.parse(runCli(argv)) as { workspaceRoot: string; graphId: string; host: string; port: number; open: boolean };
-    const server = await listenToporealmServer(GraphStore.fromWorkspace(target.workspaceRoot, target.graphId), target.port, target.host);
+    const server = await listenToporealmServer({ workspaceRoot: target.workspaceRoot, graphId: target.graphId }, target.port, target.host);
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("Web Server 未获得 TCP 地址。");
     const url = `http://${target.host}:${address.port}/`;
@@ -44,7 +43,7 @@ if (argv.includes("action")) {
     process.exitCode = 1;
   }
 } else {
-  const result = executeCli(argv);
+  const result = await executeCliAsync(argv);
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   process.exitCode = result.exitCode;

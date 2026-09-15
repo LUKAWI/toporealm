@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
 import { listenToporealmServer } from "../src/server/index.js";
 import { createExplorationRuntime, createResearchRuntime } from "./fixtures/runtimes/index.js";
 
@@ -24,7 +24,8 @@ function copiedFixture(): GraphStore {
 describe("real Server browser protocol smoke", () => {
   it("从 Web 根页面走到编辑、历史、动作、冲突和刷新持久化", async () => {
     const store = copiedFixture();
-    const server = await listenToporealmServer(store, 0, "127.0.0.1", { runtimes: { research: createResearchRuntime(), exploration: createExplorationRuntime() } });
+    const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
+    const server = await listenToporealmServer({ workspaceRoot, graphId: "research-demo" }, 0, "127.0.0.1", { runtimes: { research: createResearchRuntime(), exploration: createExplorationRuntime() } });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     const base = `http://127.0.0.1:${address.port}`;
@@ -61,7 +62,8 @@ describe("real Server browser protocol smoke", () => {
       const basicValidation = await fetch(`${base}/api/validate`).then((response) => response.json()) as { ok: boolean; complete: boolean };
       expect(basicValidation).toMatchObject({ ok: true, complete: false });
       const completeValidation = await fetch(`${base}/api/validate?mode=complete`).then((response) => response.json()) as { ok: boolean; complete: boolean };
-      expect(completeValidation).toMatchObject({ ok: true, complete: true });
+      // 旧式模块 schema 可继续参与校验，但结果必须诚实标为 incomplete。
+      expect(completeValidation).toMatchObject({ ok: true, complete: false });
       const modules = await fetch(`${base}/api/modules`).then((response) => response.json()) as { modules: Array<{ id: string; status: string }> };
       expect(modules.modules.length).toBeGreaterThan(0);
 

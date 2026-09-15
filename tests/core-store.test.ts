@@ -1,12 +1,15 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore, RevisionConflictError } from "../src/core/index.js";
+import { RevisionConflictError } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
+import { createManagedGraph } from "../src/core/managed.js";
 import { runCli } from "../src/cli/index.js";
 import { createMcpHandlers } from "../src/mcp/index.js";
 import { listenToporealmServer } from "../src/server/index.js";
 import { WebGraphModel } from "../src/web/index.js";
+import WebSocket from "ws";
 
 const temporaryRoots: string[] = [];
 
@@ -64,7 +67,7 @@ describe("GraphStore", () => {
     const store = fixtureStore();
     const workspace = dirname(dirname(dirname(store.graphRoot)));
     const web = new WebGraphModel(store.read());
-    const handlers = createMcpHandlers(store);
+    const handlers = createMcpHandlers(createManagedGraph(store));
     const mcpResult = handlers.graph_apply({ mutations: [{ op: "upsert_object", object: person("alice", "Alice") }] });
     const cliRead = JSON.parse(runCli(["read", "demo"], workspace));
     web.applyPatch(mcpResult.patch);
@@ -76,7 +79,7 @@ describe("GraphStore", () => {
   it("通过 Server HTTP 适配器读取并撤销同一事务", async () => {
     const store = fixtureStore();
     store.apply({ mutations: [{ op: "upsert_object", object: person("alice", "Alice") }] });
-    const server = await listenToporealmServer(store);
+    const server = await listenToporealmServer({ workspaceRoot: dirname(dirname(dirname(store.graphRoot))), graphId: store.read().manifest.id });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     try {
@@ -92,7 +95,7 @@ describe("GraphStore", () => {
 
   it("通过浏览器协议暴露历史、基础校验并拒绝过期 revision", async () => {
     const store = fixtureStore();
-    const server = await listenToporealmServer(store);
+    const server = await listenToporealmServer({ workspaceRoot: dirname(dirname(dirname(store.graphRoot))), graphId: store.read().manifest.id });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     const base = `http://127.0.0.1:${address.port}`;
@@ -120,7 +123,29 @@ describe("GraphStore", () => {
       expect(conflictResponse.status).toBe(409);
       expect(await conflictResponse.json()).toMatchObject({ error: { code: "REVISION_CONFLICT" } });
       expect(store.read().objects.map((object) => object.id)).toEqual(["alice"]);
+      expect(readFileSync(join(store.graphRoot, ".audit.jsonl"), "utf8").trim().split("\n")).toHaveLength(1);
     } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  });
+
+  it("Server 从同一提交结果发送一次 graph:patch WebSocket 事件", async () => {
+    const store = fixtureStore();
+    const server = await listenToporealmServer({ workspaceRoot: dirname(dirname(dirname(store.graphRoot))), graphId: "demo" });
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/api/events`);
+    try {
+      await new Promise<void>((resolve, reject) => { socket.once("open", resolve); socket.once("error", reject); });
+      const event = new Promise<Record<string, unknown>>((resolve) => socket.once("message", (data) => resolve(JSON.parse(data.toString()))));
+      const response = await fetch(`http://127.0.0.1:${address.port}/api/mutations`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 0, mutations: [{ op: "upsert_object", object: person("alice", "Alice") }] }),
+      }).then((item) => item.json()) as { revision: number; patch: unknown };
+      expect(await event).toMatchObject({ type: "graph:patch", graphId: "demo", revision: response.revision, patch: response.patch });
+      expect(readFileSync(join(store.graphRoot, ".audit.jsonl"), "utf8").trim().split("\n")).toHaveLength(1);
+    } finally {
+      socket.close();
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     }
   });
@@ -132,7 +157,7 @@ describe("GraphStore", () => {
       { op: "upsert_object", object: person("bob", "Bob") },
       { op: "upsert_relation", relation: { id: "knows-1", kind: "knows", source: "alice", target: "bob", direction: "directed" } },
     ] });
-    const server = await listenToporealmServer(store);
+    const server = await listenToporealmServer({ workspaceRoot: dirname(dirname(dirname(store.graphRoot))), graphId: store.read().manifest.id });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     try {
@@ -155,7 +180,7 @@ describe("GraphStore", () => {
     const workspaceRoot = dirname(dirname(dirname(store.graphRoot)));
     const other = GraphStore.fromWorkspace(workspaceRoot, "other");
     other.initialize({ format: "toporealm.graph/v1", id: "other", label: "Other graph", sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" } });
-    const server = await listenToporealmServer(store);
+    const server = await listenToporealmServer({ workspaceRoot, graphId: store.read().manifest.id });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     const base = `http://127.0.0.1:${address.port}`;

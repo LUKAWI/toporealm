@@ -1,7 +1,8 @@
-import { CoreError, GraphStore } from "../core/index.js";
-import type { GraphSnapshot, MutationPlan, MutationResult } from "../core/index.js";
+import { CoreError } from "../core/errors.js";
+import type { ManagedGraph, ManagedGraphMutationResult } from "../core/managed.js";
+import type { GraphSnapshot, MutationPlan } from "../core/types.js";
 import type { ActionReference, GraphRegistrySnapshot } from "./registry.js";
-import { applyRegisteredPlan } from "./registry.js";
+import { validateMutationPlan } from "./registry.js";
 
 export interface ActionContext {
   snapshot: GraphSnapshot;
@@ -15,8 +16,10 @@ export interface ModuleActionRuntime {
   execute(operation: string, context: ActionContext): ActionOutput | Promise<ActionOutput>;
 }
 
+export type ActionRuntimeMap = Readonly<Record<string, Partial<ModuleActionRuntime>>>;
+
 export type ActionExecutionResult =
-  | { kind: "mutation"; operation: string; mutation: MutationResult }
+  | { kind: "mutation"; operation: string; mutation: ManagedGraphMutationResult }
   | { kind: "result"; operation: string; result: unknown; effects: "none" | "artifact" | "external" };
 
 function isMutationPlan(value: ActionOutput): value is MutationPlan {
@@ -25,9 +28,9 @@ function isMutationPlan(value: ActionOutput): value is MutationPlan {
 
 export class ActionExecutor {
   constructor(
-    private readonly store: GraphStore,
+    private readonly graph: ManagedGraph,
     private readonly registry: GraphRegistrySnapshot,
-    private readonly runtimes: Readonly<Record<string, ModuleActionRuntime>>,
+    private readonly runtimes: ActionRuntimeMap,
   ) {}
 
   async execute(reference: ActionReference, input: Record<string, unknown> = {}): Promise<ActionExecutionResult> {
@@ -42,7 +45,8 @@ export class ActionExecutor {
     const module = this.registry.modules.find((candidate) => candidate.id === operation.moduleId);
     if (!module || module.status !== "available") throw new CoreError({ code: "MODULE_UNAVAILABLE", message: `动作所属模块不可用：${operation.moduleId}` });
     if (reference.target !== undefined) {
-      const target = this.store.read().objects.find((object) => object.id === reference.target) ?? this.store.read().relations.find((relation) => relation.id === reference.target);
+      const snapshot = this.graph.read().snapshot;
+      const target = snapshot.objects.find((object) => object.id === reference.target) ?? snapshot.relations.find((relation) => relation.id === reference.target);
       if (!target) throw new CoreError({ code: "ACTION_NOT_APPLICABLE", message: `动作目标不存在：${reference.target}` });
       const declaration = operation.declaration && typeof operation.declaration === "object" ? operation.declaration as Record<string, unknown> : {};
       if (typeof declaration.applies_to === "string" && (target as { kind: string }).kind !== declaration.applies_to) {
@@ -50,17 +54,18 @@ export class ActionExecutor {
       }
     }
     const runtime = this.runtimes[operation.moduleId];
-    if (!runtime) throw new CoreError({ code: "RUNTIME_FAILED", message: `模块 ${operation.moduleId} 没有可用运行时。` });
+    if (!runtime || typeof runtime.execute !== "function") throw new CoreError({ code: "RUNTIME_FAILED", message: `模块 ${operation.moduleId} 没有可用运行时。` });
     let output: ActionOutput;
     try {
-      const context: ActionContext = { snapshot: this.store.read(), input };
+      const context: ActionContext = { snapshot: this.graph.read().snapshot, input };
       if (reference.target !== undefined) context.target = reference.target;
       output = await runtime.execute(operation.fullId, context);
     } catch (error) {
       throw new CoreError({ code: "RUNTIME_FAILED", message: `动作 ${reference.operation} 执行失败。`, details: { cause: error instanceof Error ? error.message : String(error) } });
     }
     if (isMutationPlan(output)) {
-      return { kind: "mutation", operation: reference.operation, mutation: applyRegisteredPlan(this.store, this.registry, output) };
+      validateMutationPlan(this.registry, output);
+      return { kind: "mutation", operation: reference.operation, mutation: this.graph.commit(output) };
     }
     return { kind: "result", operation: reference.operation, result: output.result, effects: output.effects ?? "none" };
   }

@@ -1,14 +1,13 @@
 import {
-  closeSync,
   existsSync,
   mkdirSync,
-  openSync,
   readFileSync,
   readdirSync,
   unlinkSync,
   writeFileSync,
   renameSync,
 } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
 import { join, dirname } from "node:path";
 import * as YAML from "yaml";
 import {
@@ -24,7 +23,8 @@ import {
   type ObjectRecord,
   type RelationRecord,
 } from "./types.js";
-import { CoreError, GraphLockError, HistoryBoundaryError, RevisionConflictError } from "./errors.js";
+import { CoreError, HistoryBoundaryError, RevisionConflictError } from "./errors.js";
+import { RecoverableGraphPersistence, type DurableFileChange, type RecoverableCommit } from "./recoverable.js";
 
 interface HistoryEntry {
   before: GraphSnapshot;
@@ -35,6 +35,38 @@ interface HistoryEntry {
 interface HistoryState {
   entries: HistoryEntry[];
   cursor: number;
+  segmentId: string;
+  baseRevision: number;
+  baseline: GraphSnapshot;
+  sealedSegments: string[];
+  sealed?: boolean;
+  previousSealed?: HistoryState;
+}
+
+export interface StoreNotice {
+  readonly code: "EXTERNAL_EDIT_ABSORBED";
+  readonly message: string;
+  readonly fromRevision: number;
+  readonly toRevision: number;
+  readonly segmentId: string;
+  readonly redoCleared: true;
+  readonly auditPreserved: true;
+  readonly preserved: true;
+  readonly complete: boolean;
+  readonly missingModules: readonly string[];
+}
+
+export type StoreMutationCommand =
+  | { readonly kind: "commit"; readonly plan: MutationPlan }
+  | { readonly kind: "undo"; readonly expectedRevision?: number }
+  | { readonly kind: "redo"; readonly expectedRevision?: number };
+
+type StoreInitializationCommand = { readonly kind: "initialize" };
+
+export interface StoreTransition {
+  readonly before: GraphSnapshot;
+  readonly candidate: GraphSnapshot;
+  readonly patch: GraphPatch;
 }
 
 const OBJECTS_DIR = "objects";
@@ -42,7 +74,9 @@ const RELATIONS_DIR = "relations";
 const MANIFEST_FILE = "graph.yaml";
 const REVISION_FILE = ".revision.json";
 const HISTORY_FILE = ".history.json";
-const LOCK_FILE = ".lock";
+const HISTORY_INDEX_FILE = ".history/index.json";
+const HISTORY_SEGMENTS_DIR = ".history/segments";
+const AUDIT_FILE = ".audit.jsonl";
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -216,8 +250,27 @@ export class GraphStore {
     if (existsSync(join(this.graphRoot, MANIFEST_FILE))) return this.read();
     const snapshot: GraphSnapshot = { manifest: checked, objects: [], relations: [], revision: 0 };
     this.writeSnapshot(snapshot);
-    this.writeHistory({ entries: [], cursor: 0 });
+    this.writeHistory({ entries: [], cursor: 0, segmentId: "seg_0001", baseRevision: 0, baseline: clone(snapshot), sealedSegments: [] });
     return snapshot;
+  }
+
+  /** Internal bootstrap seam used by ManagedGraph; production adapters must not call initialize(). */
+  initializeManaged(manifest: GraphManifest, validate: (snapshot: GraphSnapshot) => void): GraphSnapshot {
+    const checked = validateManifest(manifest, join(this.graphRoot, MANIFEST_FILE));
+    return new RecoverableGraphPersistence(this.graphRoot).transaction(() => {
+      if (existsSync(join(this.graphRoot, MANIFEST_FILE))) return { result: this.read() };
+      const before: GraphSnapshot = { manifest: checked, objects: [], relations: [], revision: -1 };
+      const after: GraphSnapshot = { ...before, revision: 0 };
+      validate(after);
+      const history: HistoryState = {
+        entries: [], cursor: 0, segmentId: "seg_0001", baseRevision: 0,
+        baseline: clone(after), sealedSegments: [],
+      };
+      return {
+        commit: this.createRecoverableCommit(`c_${randomUUID()}`, { kind: "initialize" }, before, after, history, history),
+        result: clone(after),
+      };
+    });
   }
 
   read(): GraphSnapshot {
@@ -233,61 +286,198 @@ export class GraphStore {
     return { manifest, objects, relations, revision };
   }
 
-  apply(plan: MutationPlan): MutationResult {
-    return this.withLock(() => {
-      const before = this.read();
-      if (plan.expectedRevision !== undefined && plan.expectedRevision !== before.revision) {
-        throw new RevisionConflictError(plan.expectedRevision, before.revision);
-      }
-      if (plan.mutations.length === 0) return this.result(before, before);
-      const changed = this.applyMutations(before, plan.mutations);
-      const after: GraphSnapshot = { ...changed, revision: before.revision + 1 };
-      this.writeSnapshot(after);
+  /** Internal ManagedGraph seam: recover and read while holding the graph lock. */
+  readManaged<T>(action: (snapshot: GraphSnapshot, notice?: StoreNotice) => T, missingModules: readonly string[] = []): T {
+    return new RecoverableGraphPersistence(this.graphRoot).transaction(() => {
+      const observed = this.read();
+      const external = this.externalState(observed);
+      if (!external.changed) return { result: action(observed) };
+      const current: GraphSnapshot = { ...observed, revision: external.baseRevision };
       const history = this.readHistory();
-      const entries = history.entries.slice(0, history.cursor);
-      const entry: HistoryEntry = { before: clone(before), after: clone(after) };
-      if (plan.label !== undefined) entry.label = plan.label;
-      entries.push(entry);
-      this.writeHistory({ entries, cursor: entries.length });
-      return this.result(before, after, { entries, cursor: entries.length });
+      const after: GraphSnapshot = { ...current, revision: current.revision + 1 };
+      const segmentId = this.nextSegmentId(history);
+      const sealed: HistoryState = { ...history, sealed: true };
+      const nextHistory: HistoryState = {
+        entries: [], cursor: 0, segmentId, baseRevision: after.revision,
+        baseline: clone(after), sealedSegments: [...history.sealedSegments, history.segmentId],
+        previousSealed: sealed,
+      };
+      const notice: StoreNotice = {
+        code: "EXTERNAL_EDIT_ABSORBED", message: "已吸收图目录中的外部 YAML 修改。",
+        fromRevision: current.revision, toRevision: after.revision, segmentId,
+        redoCleared: true, auditPreserved: true, preserved: true,
+        complete: missingModules.length === 0, missingModules: [...missingModules].sort(),
+      };
+      return {
+        commit: this.createRecoverableCommit(`c_${randomUUID()}`, { kind: "external" }, current, after, history, nextHistory),
+        result: action(after, notice),
+      };
     });
+  }
+
+  /**
+   * Core's single mutation pipeline. Candidate construction, validation and
+   * recoverable persistence all happen under the same graph lock.
+   */
+  executeManaged(command: StoreMutationCommand, validate: (transition: StoreTransition) => void, missingModules: readonly string[] = []): MutationResult & { notice?: StoreNotice } {
+    return new RecoverableGraphPersistence(this.graphRoot).transaction(() => {
+      const observed = this.read();
+      const external = this.externalState(observed);
+      const before: GraphSnapshot = external.changed ? { ...observed, revision: external.baseRevision } : observed;
+      const history = this.readHistory();
+      if (external.changed) {
+        const absorbed = this.prepareExternalAbsorption(before, history, missingModules);
+        return {
+          commit: this.createRecoverableCommit(`c_${randomUUID()}`, { kind: "external" }, before, absorbed.after, history, absorbed.history),
+          result: { ...this.result(before, absorbed.after, absorbed.history), notice: absorbed.notice },
+        };
+      }
+      const prepared = this.prepareTransition(command, before, history);
+      validate({ before, candidate: prepared.after, patch: diffSnapshots(before, prepared.after) });
+      const result = this.result(before, prepared.after, prepared.history);
+      if (prepared.after.revision === before.revision) return { result };
+      const commitId = `c_${randomUUID()}`;
+      return {
+        commit: this.createRecoverableCommit(commitId, command, before, prepared.after, history, prepared.history),
+        result,
+      };
+    });
+  }
+
+  apply(plan: MutationPlan): MutationResult {
+    return this.executeManaged({ kind: "commit", plan }, () => undefined);
   }
 
   undo(expectedRevision?: number): MutationResult {
-    return this.withLock(() => {
-      const current = this.read();
-      this.assertExpectedRevision(expectedRevision, current.revision);
-      const history = this.readHistory();
-      if (history.cursor === 0) throw new HistoryBoundaryError("undo");
-      const entry = history.entries[history.cursor - 1];
-      if (!entry) throw new HistoryBoundaryError("undo");
-      const restored: GraphSnapshot = { ...clone(entry.before), revision: current.revision + 1 };
-      this.writeSnapshot(restored);
-      const nextHistory = { entries: history.entries, cursor: history.cursor - 1 };
-      this.writeHistory(nextHistory);
-      return this.result(current, restored, nextHistory);
-    });
+    const command: StoreMutationCommand = expectedRevision === undefined ? { kind: "undo" } : { kind: "undo", expectedRevision };
+    return this.executeManaged(command, () => undefined);
   }
 
   redo(expectedRevision?: number): MutationResult {
-    return this.withLock(() => {
-      const current = this.read();
-      this.assertExpectedRevision(expectedRevision, current.revision);
-      const history = this.readHistory();
-      if (history.cursor >= history.entries.length) throw new HistoryBoundaryError("redo");
-      const entry = history.entries[history.cursor];
-      if (!entry) throw new HistoryBoundaryError("redo");
-      const restored: GraphSnapshot = { ...clone(entry.after), revision: current.revision + 1 };
-      this.writeSnapshot(restored);
-      const nextHistory = { entries: history.entries, cursor: history.cursor + 1 };
-      this.writeHistory(nextHistory);
-      return this.result(current, restored, nextHistory);
-    });
+    const command: StoreMutationCommand = expectedRevision === undefined ? { kind: "redo" } : { kind: "redo", expectedRevision };
+    return this.executeManaged(command, () => undefined);
   }
 
   historyStatus(): { canUndo: boolean; canRedo: boolean } {
     const state = this.readHistory();
     return { canUndo: state.cursor > 0, canRedo: state.cursor < state.entries.length };
+  }
+
+  private prepareTransition(command: StoreMutationCommand, before: GraphSnapshot, history: HistoryState): { after: GraphSnapshot; history: HistoryState } {
+    if (command.kind === "commit") {
+      this.assertExpectedRevision(command.plan.expectedRevision, before.revision);
+      if (command.plan.mutations.length === 0) return { after: before, history };
+      const changed = this.applyMutations(before, command.plan.mutations);
+      const after: GraphSnapshot = { ...changed, revision: before.revision + 1 };
+      const entries = history.entries.slice(0, history.cursor);
+      const entry: HistoryEntry = { before: clone(before), after: clone(after) };
+      if (command.plan.label !== undefined) entry.label = command.plan.label;
+      entries.push(entry);
+      return { after, history: { ...history, entries, cursor: entries.length } };
+    }
+    this.assertExpectedRevision(command.expectedRevision, before.revision);
+    if (command.kind === "undo") {
+      if (history.cursor === 0) throw new HistoryBoundaryError("undo");
+      const entry = history.entries[history.cursor - 1];
+      if (!entry) throw new HistoryBoundaryError("undo");
+      return {
+        after: { ...clone(entry.before), revision: before.revision + 1 },
+        history: { ...history, entries: history.entries, cursor: history.cursor - 1 },
+      };
+    }
+    if (history.cursor >= history.entries.length) throw new HistoryBoundaryError("redo");
+    const entry = history.entries[history.cursor];
+    if (!entry) throw new HistoryBoundaryError("redo");
+    return {
+      after: { ...clone(entry.after), revision: before.revision + 1 },
+      history: { ...history, entries: history.entries, cursor: history.cursor + 1 },
+    };
+  }
+
+  private prepareExternalAbsorption(before: GraphSnapshot, history: HistoryState, missingModules: readonly string[]): { after: GraphSnapshot; history: HistoryState; notice: StoreNotice } {
+    const after: GraphSnapshot = { ...before, revision: before.revision + 1 };
+    const segmentId = this.nextSegmentId(history);
+    const sealed: HistoryState = { ...history, sealed: true };
+    const nextHistory: HistoryState = {
+      entries: [], cursor: 0, segmentId, baseRevision: after.revision,
+      baseline: clone(after), sealedSegments: [...history.sealedSegments, history.segmentId], previousSealed: sealed,
+    };
+    return {
+      after,
+      history: nextHistory,
+      notice: {
+        code: "EXTERNAL_EDIT_ABSORBED", message: "已吸收图目录中的外部 YAML 修改。",
+        fromRevision: before.revision, toRevision: after.revision, segmentId,
+        redoCleared: true, auditPreserved: true, preserved: true,
+        complete: missingModules.length === 0, missingModules: [...missingModules].sort(),
+      },
+    };
+  }
+
+  private createRecoverableCommit(
+    commitId: string,
+    command: StoreMutationCommand | StoreInitializationCommand | { readonly kind: "external" },
+    before: GraphSnapshot,
+    after: GraphSnapshot,
+    beforeHistory: HistoryState,
+    afterHistory: HistoryState,
+  ): RecoverableCommit {
+    const beforeFacts = this.factContents(before, true);
+    const afterFacts = this.factContents(after, false, commitId);
+    const files: DurableFileChange[] = [];
+    for (const path of [...new Set([...beforeFacts.keys(), ...afterFacts.keys()])].sort()) {
+      const oldValue = beforeFacts.get(path);
+      const newValue = afterFacts.get(path);
+      if (oldValue !== newValue) files.push(optionalChange(path, "fact", oldValue, newValue));
+    }
+    files.push(...this.historyChanges(beforeHistory, afterHistory));
+    const auditPath = join(this.graphRoot, AUDIT_FILE);
+    const oldAudit = existsSync(auditPath) ? readFileSync(auditPath, "utf8") : undefined;
+    const label = command.kind === "commit" ? command.plan.label ?? "提交变更" : command.kind === "undo" ? "[undo] 撤销" : command.kind === "redo" ? "[redo] 重做" : command.kind === "initialize" ? "初始化图" : "吸收外部编辑";
+    const audit = {
+      commitId,
+      source: command.kind === "external" ? "external" : "core",
+      fromRevision: before.revision,
+      toRevision: after.revision,
+      timestamp: new Date().toISOString(),
+      label,
+      checksumSummary: {
+        algorithm: "digest:v1",
+        before: snapshotDigest(before),
+        after: snapshotDigest(after),
+        fileCount: files.filter((item) => item.role === "fact").length,
+      },
+      recoveryStatus: command.kind === "external" ? "absorbed" : "committed",
+    };
+    files.push(optionalChange(AUDIT_FILE, "audit", oldAudit, `${oldAudit ?? ""}${JSON.stringify(audit)}\n`));
+    return { commitId, baseRevision: before.revision, nextRevision: after.revision, files };
+  }
+
+  private factContents(snapshot: GraphSnapshot, preserveCurrentBytes: boolean, commitId?: string): Map<string, string | undefined> {
+    const result = new Map<string, string | undefined>();
+    const current = (path: string, fallback: string): string | undefined => {
+      const absolute = join(this.graphRoot, path);
+      if (preserveCurrentBytes) return existsSync(absolute) ? readFileSync(absolute, "utf8") : undefined;
+      return fallback;
+    };
+    result.set(MANIFEST_FILE, current(MANIFEST_FILE, YAML.stringify(snapshot.manifest)));
+    result.set(REVISION_FILE, current(REVISION_FILE, JSON.stringify(commitId ? { revision: snapshot.revision, commitId, snapshotDigest: snapshotDigest(snapshot) } : { revision: snapshot.revision }, null, 2)));
+    const currentRecordPaths = (directory: string): string[] => {
+      const absolute = join(this.graphRoot, directory);
+      if (!existsSync(absolute)) return [];
+      return readdirSync(absolute)
+        .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+        .map((file) => `${directory}/${file}`);
+    };
+    if (preserveCurrentBytes) {
+      for (const path of [...currentRecordPaths(OBJECTS_DIR), ...currentRecordPaths(RELATIONS_DIR)]) {
+        result.set(path, readFileSync(join(this.graphRoot, path), "utf8"));
+      }
+    } else {
+      for (const object of snapshot.objects) result.set(`${OBJECTS_DIR}/${object.id}.yaml`, YAML.stringify(object));
+      for (const relation of snapshot.relations) result.set(`${RELATIONS_DIR}/${relation.id}.yaml`, YAML.stringify(relation));
+    }
+    return result;
   }
 
   private result(before: GraphSnapshot, after: GraphSnapshot, history = this.readHistory()): MutationResult {
@@ -396,30 +586,107 @@ export class GraphStore {
   }
 
   private readHistory(): HistoryState {
-    const fallback: HistoryState = { entries: [], cursor: 0 };
-    const state = readJson<HistoryState>(join(this.graphRoot, HISTORY_FILE), fallback);
-    if (!Array.isArray(state.entries) || !Number.isInteger(state.cursor) || state.cursor < 0 || state.cursor > state.entries.length) return fallback;
-    return state;
+    const current = this.read();
+    const fallback: HistoryState = { entries: [], cursor: 0, segmentId: "seg_0001", baseRevision: current.revision, baseline: clone(current), sealedSegments: [] };
+    const indexPath = join(this.graphRoot, HISTORY_INDEX_FILE);
+    if (existsSync(indexPath)) {
+      const index = readJson<{ currentSegment?: string; sealedSegments?: string[] }>(indexPath, {});
+      if (index.currentSegment) {
+        const segment = readJson<HistoryState>(join(this.graphRoot, HISTORY_SEGMENTS_DIR, `${index.currentSegment}.json`), fallback);
+        if (Array.isArray(segment.entries) && Number.isInteger(segment.cursor) && segment.cursor >= 0 && segment.cursor <= segment.entries.length) {
+          return { ...segment, segmentId: index.currentSegment, sealedSegments: Array.isArray(index.sealedSegments) ? index.sealedSegments : [] };
+        }
+      }
+    }
+    const legacy = readJson<Partial<HistoryState>>(join(this.graphRoot, HISTORY_FILE), fallback);
+    if (!Array.isArray(legacy.entries) || !Number.isInteger(legacy.cursor) || (legacy.cursor ?? -1) < 0 || (legacy.cursor ?? 0) > legacy.entries.length) return fallback;
+    return {
+      entries: legacy.entries,
+      cursor: legacy.cursor!,
+      segmentId: legacy.segmentId ?? "seg_0001",
+      baseRevision: legacy.baseRevision ?? legacy.entries[0]?.before.revision ?? current.revision,
+      baseline: legacy.baseline ?? clone(legacy.entries[0]?.before ?? current),
+      sealedSegments: legacy.sealedSegments ?? [],
+    };
   }
 
   private writeHistory(state: HistoryState): void {
-    writeAtomic(join(this.graphRoot, HISTORY_FILE), JSON.stringify(state, null, 2));
+    mkdirSync(join(this.graphRoot, HISTORY_SEGMENTS_DIR), { recursive: true });
+    writeAtomic(join(this.graphRoot, HISTORY_INDEX_FILE), JSON.stringify({ currentSegment: state.segmentId, sealedSegments: state.sealedSegments }, null, 2));
+    writeAtomic(join(this.graphRoot, HISTORY_SEGMENTS_DIR, `${state.segmentId}.json`), JSON.stringify(this.serializableSegment(state), null, 2));
   }
 
-  private withLock<T>(action: () => T): T {
-    mkdirSync(this.graphRoot, { recursive: true });
-    const lockPath = join(this.graphRoot, LOCK_FILE);
-    let descriptor: number;
-    try {
-      descriptor = openSync(lockPath, "wx");
-    } catch {
-      throw new GraphLockError(lockPath);
-    }
-    try {
-      return action();
-    } finally {
-      closeSync(descriptor);
-      if (existsSync(lockPath)) unlinkSync(lockPath);
-    }
+  private historyChanges(before: HistoryState, after: HistoryState): DurableFileChange[] {
+    const changes: DurableFileChange[] = [];
+    const add = (path: string, value: unknown): void => {
+      const absolute = join(this.graphRoot, path);
+      changes.push(optionalChange(path, "history", existsSync(absolute) ? readFileSync(absolute, "utf8") : undefined, JSON.stringify(value, null, 2)));
+    };
+    add(HISTORY_INDEX_FILE, { currentSegment: after.segmentId, sealedSegments: after.sealedSegments });
+    if (after.previousSealed) add(`${HISTORY_SEGMENTS_DIR}/${after.previousSealed.segmentId}.json`, this.serializableSegment(after.previousSealed));
+    add(`${HISTORY_SEGMENTS_DIR}/${after.segmentId}.json`, this.serializableSegment(after));
+    const legacyPath = join(this.graphRoot, HISTORY_FILE);
+    if (existsSync(legacyPath)) changes.push(optionalChange(HISTORY_FILE, "history", readFileSync(legacyPath, "utf8"), undefined));
+    return changes;
   }
+
+  private serializableSegment(state: HistoryState): Omit<HistoryState, "previousSealed" | "sealedSegments"> {
+    const segment: Omit<HistoryState, "previousSealed" | "sealedSegments"> = {
+      entries: state.entries,
+      cursor: state.cursor,
+      segmentId: state.segmentId,
+      baseRevision: state.baseRevision,
+      baseline: state.baseline,
+    };
+    if (state.sealed !== undefined) segment.sealed = state.sealed;
+    return segment;
+  }
+
+  private externalState(snapshot: GraphSnapshot): { changed: boolean; baseRevision: number } {
+    const state = readJson<{ revision?: number; snapshotDigest?: string }>(join(this.graphRoot, REVISION_FILE), {});
+    const auditPath = join(this.graphRoot, AUDIT_FILE);
+    let baselineRevision = Number.isInteger(state.revision) ? state.revision! : snapshot.revision;
+    let baselineDigest = state.snapshotDigest;
+    if (existsSync(auditPath)) {
+      const lines = readFileSync(auditPath, "utf8").trim().split("\n").filter(Boolean);
+      try {
+        const last = JSON.parse(lines.at(-1) ?? "{}") as { toRevision?: number; checksumSummary?: { after?: string } };
+        if (Number.isInteger(last.toRevision) && typeof last.checksumSummary?.after === "string") {
+          baselineRevision = last.toRevision!;
+          baselineDigest = last.checksumSummary.after;
+        }
+      } catch {
+        // Audit corruption is handled by the recovery/verification boundary.
+      }
+    }
+    if (typeof baselineDigest !== "string") return { changed: false, baseRevision: baselineRevision };
+    const normalized = { ...snapshot, revision: baselineRevision };
+    return {
+      changed: state.revision !== baselineRevision || snapshotDigest(normalized) !== baselineDigest,
+      baseRevision: baselineRevision,
+    };
+  }
+
+  private nextSegmentId(history: HistoryState): string {
+    const next = history.sealedSegments.length + 2;
+    return `seg_${String(next).padStart(4, "0")}`;
+  }
+
+}
+
+function optionalChange(path: string, role: DurableFileChange["role"], before: string | undefined, after: string | undefined): DurableFileChange {
+  const change: { path: string; role: DurableFileChange["role"]; before?: string; after?: string } = { path, role };
+  if (before !== undefined) change.before = before;
+  if (after !== undefined) change.after = after;
+  return change;
+}
+
+function snapshotDigest(snapshot: GraphSnapshot): string {
+  const canonical = JSON.stringify({
+    manifest: snapshot.manifest,
+    objects: sortedRecords(snapshot.objects),
+    relations: sortedRecords(snapshot.relations),
+    revision: snapshot.revision,
+  });
+  return `digest:v1:${createHash("sha256").update(canonical).digest("hex")}`;
 }

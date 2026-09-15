@@ -7,6 +7,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const repository = resolve(".");
+const expected = JSON.parse(readFileSync(join(repository, "package.json"), "utf8"));
+const packageSpec = `${expected.name}@${expected.version}`;
 const temporary = mkdtempSync(join(tmpdir(), "toporealm-registry-smoke-"));
 const root = join(temporary, "consumer");
 mkdirSync(root, { recursive: true });
@@ -17,7 +19,7 @@ const npmCli = [
   resolve(dirname(process.execPath), "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
 ].find((candidate) => candidate && existsSync(candidate));
 if (!npmCli) throw new Error("找不到 npm CLI。");
-execFileSync(process.execPath, [npmCli, "install", "--ignore-scripts", "--no-audit", "--no-fund", "@lukawi/toporealm@0.1.0"], {
+execFileSync(process.execPath, [npmCli, "install", "--ignore-scripts", "--no-audit", "--no-fund", packageSpec], {
   cwd: root,
   stdio: "inherit",
   timeout: 120_000,
@@ -26,8 +28,8 @@ const packageRoot = join(root, "node_modules", "@lukawi", "toporealm");
 const cli = join(packageRoot, "dist", "cli", "main.js");
 assert(existsSync(cli), `缺少安装包 CLI: ${cli}`);
 const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
-assert.equal(manifest.name, "@lukawi/toporealm");
-assert.equal(manifest.version, "0.1.0");
+assert.equal(manifest.name, expected.name);
+assert.equal(manifest.version, expected.version);
 assert.equal(manifest.license, "MIT");
 process.chdir(root);
 await import("@lukawi/toporealm");
@@ -36,6 +38,7 @@ await import("@lukawi/toporealm/module-sdk");
 
 const help = execFileSync(process.execPath, [cli, "help"], { cwd: root, encoding: "utf8" });
 assert.match(help, /TopoRealm CLI/);
+assert.equal(execFileSync(process.execPath, [cli, "version"], { cwd: root, encoding: "utf8" }).trim(), expected.version);
 execFileSync(process.execPath, [cli, "--root", root, "init", "demo"], { cwd: root, stdio: "pipe" });
 
 let serve;
@@ -74,6 +77,7 @@ try {
     cwd: root,
     stderr: "pipe",
   }));
+  assert.deepEqual(client.getServerVersion(), { name: "toporealm", version: expected.version });
   const listed = await client.listTools();
   assert(listed.tools.some((tool) => tool.name === "graph_read"));
   await client.close();

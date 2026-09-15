@@ -4,9 +4,9 @@
 
 TopoRealm 把图存储、版本化变更、CLI、MCP 和 Web UI 做成稳定基座，再让用户按需安装领域模块。它适合希望用同一份本地数据连接人、agent 与不同工作方法，同时又不愿把任务流、研究流或学习流写死在 Core 里的用户。
 
-> `0.1.0` 是公开 Preview：图格式和模块协议已冻结为 v1，但 npm 包不内置任何领域模块。`research`、`exploration`、`workflow` 目前仅作为非发布测试 fixture；它们将在 v0.1 发布后独立开发，并分别完成连接测试和多模块组合测试。
+> TopoRealm 基座通过 npm `preview` 通道发布，且不内置任何领域模块。仓库中的 `research`、`exploration`、`workflow` 仅是边界测试 fixture；Workflow 已作为独立模块发布，其他领域模块仍需分别开发和完成组合验证。
 
-[English](README.en.md) · [架构边界](docs/architecture/FOUNDATION.md) · [模块协议](docs/architecture/module-contract.md) · [发布清单](docs/releases/v0.1.0-preview.md)
+[English](README.en.md) · [架构边界](docs/architecture/FOUNDATION.md) · [模块协议](docs/architecture/module-contract.md) · [0.2 发布说明](docs/releases/v0.2.0-preview.md)
 
 ## 你得到什么
 
@@ -55,7 +55,7 @@ toporealm redo
     "toporealm": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@lukawi/toporealm@0.1.0", "mcp"]
+      "args": ["-y", "@lukawi/toporealm@preview", "mcp"]
     }
   }
 }
@@ -77,7 +77,7 @@ toporealm host sync
 
 ### 模块信任边界
 
-v0.1 只加载用户主动安装的可信本地代码，不提供第三方代码沙箱或远程模块市场。模块可以提供由 Core 调用的领域操作实现，但没有图存储写权限；所有图变更只能以 `MutationPlan` 形式交给 Core 校验并提交。Core 是受支持契约中唯一写入图事实来源的组件。
+当前版本只加载用户主动安装的可信本地代码，不提供第三方代码沙箱或远程模块市场。模块可以提供由 Core 调用的领域操作实现，但没有图存储写权限；所有图变更只能以 `MutationPlan` 形式交给 Core 校验并提交。Core 是受支持契约中唯一写入图事实来源的组件。
 
 ## 基础 Skills
 
@@ -93,11 +93,14 @@ v0.1 只加载用户主动安装的可信本地代码，不提供第三方代码
 ## 作为库使用
 
 ```ts
-import { GraphStore } from "@lukawi/toporealm/core";
-import type { MutationPlan } from "@lukawi/toporealm/module-sdk";
+import { createWorkspaceRuntime } from "@lukawi/toporealm/runtime";
+import type { MutationPlan } from "@lukawi/toporealm/core";
+
+const runtime = await createWorkspaceRuntime({ workspaceRoot, graphId: "demo" });
+const result = runtime.graph.commit(plan satisfies MutationPlan);
 ```
 
-公开子路径还包括 `cli`、`mcp`、`server`、`web` 和 `distribution`。完整术语见 [CONTEXT.md](CONTEXT.md)，稳定契约见 [v1 冻结清单](docs/architecture/v1-freeze.md)。
+`ManagedGraph` 的 `read / validate / commit / undo / redo` 是唯一公开写入 seam；旧 `GraphStore` 不再从包根或 `/core` 导出。公开子路径还包括 `cli`、`mcp`、`server`、`web`、`module-sdk` 和 `distribution`。完整术语见 [CONTEXT.md](CONTEXT.md)，0.2 API 见 [ManagedGraph API](docs/architecture/managed-graph-api.md)。
 
 ## 开发与验证
 

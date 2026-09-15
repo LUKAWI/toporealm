@@ -60,6 +60,7 @@
 
   onMount(() => {
     void store.load();
+    return () => store.dispose();
   });
 </script>
 
@@ -129,6 +130,14 @@
       </div>
     </div>
   </header>
+
+  {#if store.notice || !store.complete || store.diagnostics.length}
+    <div class="action-chip" role="status">
+      {#if store.notice}<strong>{store.notice.code}</strong>：{store.notice.message}{/if}
+      {#if !store.complete}{store.notice ? " · " : ""}当前为不完整校验结果{/if}
+      {#if store.diagnostics.length}{store.notice || !store.complete ? " · " : ""}{store.diagnostics.length} 条诊断{/if}
+    </div>
+  {/if}
 
   <!-- ── 主区：画布舞台 + 工具轨 ── -->
   <main class="main">

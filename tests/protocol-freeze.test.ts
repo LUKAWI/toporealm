@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore, validateGraph } from "../src/core/index.js";
+import { validateGraph } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
 
 const roots: string[] = [];
 afterEach(() => {

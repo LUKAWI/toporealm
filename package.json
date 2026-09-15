@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Domain-neutral graph foundation with CLI, MCP, Web UI, module SDK, and agent integrations",
   "license": "MIT",
   "repository": {
@@ -25,9 +25,17 @@
       "types": "./dist/core/index.d.ts",
       "import": "./dist/core/index.js"
     },
+    "./core/legacy": {
+      "types": "./dist/core/legacy.d.ts",
+      "import": "./dist/core/legacy.js"
+    },
     "./module-sdk": {
       "types": "./dist/module-sdk/index.d.ts",
       "import": "./dist/module-sdk/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
     },
     "./cli": {
       "types": "./dist/cli/index.d.ts",
@@ -78,11 +86,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "ajv": "^8.20.0",
+    "ws": "^8.21.3",
     "yaml": "^2.7.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

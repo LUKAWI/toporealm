@@ -5,7 +5,8 @@ import { pathToFileURL } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { afterEach, describe, expect, it } from "vitest";
-import { GraphStore, validateGraph } from "../src/core/index.js";
+import { validateGraph } from "../src/core/index.js";
+import { GraphStore } from "../src/core/store.js";
 import { installModule, syncHosts, uninstallModule } from "../src/distribution/index.js";
 import { GraphActivator, WorkspaceModuleResolver, type ModuleActionRuntime } from "../src/module-sdk/index.js";
 import { listenToporealmServer } from "../src/server/index.js";
@@ -31,7 +32,7 @@ describe("外部 example 模块生态", () => {
     expect(registry.operations.map((item) => item.fullId)).toEqual(["example.create-card"]);
 
     const runtimeModule = await import(pathToFileURL(join(installed.root, "runtime/index.js")).href) as { default: ModuleActionRuntime };
-    const server = await listenToporealmServer(store, 0, "127.0.0.1", { runtimes: { example: runtimeModule.default } });
+    const server = await listenToporealmServer({ workspaceRoot: root, graphId: "demo" }, 0, "127.0.0.1", { runtimes: { example: runtimeModule.default } });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("测试服务器没有地址");
     try {

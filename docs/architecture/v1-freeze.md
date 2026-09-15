@@ -8,7 +8,7 @@
 - 模块清单：`toporealm.module/v1`。
 - Core 只定义图、对象、关系、稳定 ID、revision、历史和通用错误；领域类型由模块注册。
 - 模块缺失或不兼容时保留未知字段，基础读取继续可用；不做自动 Schema 迁移。
-- 所有写入通过单一 `MutationPlan` 和图级 revision，持久化线性撤销/重做；旧 revision 被拒绝。
+- 所有写入通过 `ManagedGraph.commit(MutationPlan)` 和图级 revision，持久化线性撤销/重做；旧 revision 被拒绝。模块只能返回计划，不能获得图存储写权限。
 
 ## 非发布协议验证切片
 
@@ -16,7 +16,7 @@
 - `workflow`：状态转移、依赖门禁、checkpoint、execution report、下一行动。
 - 分发：npm `pack --ignore-scripts`、工作区/全局生命周期、来源记录和 Codex/Claude/Pi 投影。
 
-这些切片只验证 `toporealm.graph/v1`、`toporealm.module/v1` 与模块组合边界，不随 `@lukawi/toporealm` v0.1 主包发布。research、exploration 与 workflow 将在 Core 产品发布后独立开发、连接测试和组合验收。
+这些切片只验证 `toporealm.graph/v1`、`toporealm.module/v1` 与模块组合边界，不随 `@lukawi/toporealm` v0.1 主包发布。Workflow 已在 Core 产品发布后以独立 `@lukawi/toporealm-workflow@0.1.0` 完成开发、连接测试和组合验收；research、exploration 等模块仍需分别开发。
 
 ## 破坏性变更规则
 

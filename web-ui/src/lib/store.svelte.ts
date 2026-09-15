@@ -7,6 +7,8 @@ import {
   type ActionResult,
   type CanvasSelection,
   type GraphObject,
+  type GraphNotice,
+  type GraphPatchEvent,
   type GraphRelation,
   type GraphSnapshot,
   type GraphSummary,
@@ -15,6 +17,7 @@ import {
   type ModuleStatusResult,
   type MutationPlan,
   type MutationResult,
+  type ValidationIssue,
 } from "./protocol";
 
 /** 409 冲突 / patch gap 的可恢复错误态。 */
@@ -38,6 +41,9 @@ export class WebGraphStore {
   error = $state("");
   recovery = $state<RecoveryState | null>(null);
   actionMessage = $state("");
+  diagnostics = $state<ValidationIssue[]>([]);
+  complete = $state(true);
+  notice = $state<GraphNotice | null>(null);
   readOnly = $state(false);
   selection = $state<CanvasSelection | null>(null);
   searchQuery = $state("");
@@ -78,9 +84,11 @@ export class WebGraphStore {
   }
 
   private graphState: WebGraphState | null = null;
-  private readonly api: Pick<ToporealmApi, "readGraph" | "apply" | "undo" | "redo" | "history" | "listGraphs" | "switchGraph" | "modules" | "executeAction" | "validate" | "validateComplete">;
+  private unsubscribe: (() => void) | null = null;
+  private reloading = false;
+  private readonly api: Pick<ToporealmApi, "readGraph" | "apply" | "undo" | "redo" | "history" | "listGraphs" | "switchGraph" | "modules" | "executeAction" | "validate" | "validateComplete"> & Partial<Pick<ToporealmApi, "subscribe">>;
 
-  constructor(api: Pick<ToporealmApi, "readGraph" | "apply" | "undo" | "redo" | "history" | "listGraphs" | "switchGraph" | "modules" | "executeAction" | "validate" | "validateComplete"> = new ToporealmApi()) {
+  constructor(api: Pick<ToporealmApi, "readGraph" | "apply" | "undo" | "redo" | "history" | "listGraphs" | "switchGraph" | "modules" | "executeAction" | "validate" | "validateComplete"> & Partial<Pick<ToporealmApi, "subscribe">> = new ToporealmApi()) {
     this.api = api;
   }
 
@@ -121,10 +129,12 @@ export class WebGraphStore {
       const next = await this.api.readGraph();
       this.graphState = new WebGraphState(next);
       this.snapshot = this.graphState.snapshot;
+      this.updateMetadata(next);
       const [history, graphList] = await Promise.all([this.api.history(), this.api.listGraphs()]);
       this.history = history;
       this.graphs = graphList.graphs;
       await this.refreshModules();
+      this.connectEvents();
     } catch (cause) {
       this.error = cause instanceof Error ? cause.message : "图快照读取失败";
     } finally {
@@ -136,6 +146,11 @@ export class WebGraphStore {
   async reload(): Promise<void> {
     this.recovery = null;
     await this.load();
+  }
+
+  dispose(): void {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
   }
 
   async refreshModules(): Promise<void> {
@@ -214,6 +229,7 @@ export class WebGraphStore {
       this.clearFilters();
       this.validation = null;
       this.recovery = null;
+      this.updateMetadata(result);
       this.graphs = (await this.api.listGraphs()).graphs;
       await this.refreshModules();
       this.actionMessage = `已切换到图 ${this.snapshot.manifest.id}`;
@@ -252,9 +268,69 @@ export class WebGraphStore {
   }
 
   private absorb(result: MutationResult): void {
-    this.graphState?.applyPatch(result.patch);
+    if (this.graphState && result.patch.toRevision > this.graphState.snapshot.revision) this.graphState.applyPatch(result.patch);
     if (this.graphState) this.snapshot = this.graphState.snapshot;
     this.history = result.history;
+    this.updateMetadata(result);
+  }
+
+  private updateMetadata(value: { diagnostics?: ValidationIssue[]; complete?: boolean; notice?: GraphNotice }): void {
+    if (value.diagnostics !== undefined) this.diagnostics = value.diagnostics.map(({ code, message, severity }) => ({ code, message, severity }));
+    if (value.complete !== undefined) this.complete = value.complete;
+    if (!value.notice) {
+      this.notice = null;
+      return;
+    }
+    const { code, message, fromRevision, toRevision, segmentId, complete, missingModules } = value.notice;
+    this.notice = {
+      code,
+      message,
+      ...(fromRevision !== undefined ? { fromRevision } : {}),
+      ...(toRevision !== undefined ? { toRevision } : {}),
+      ...(segmentId !== undefined ? { segmentId } : {}),
+      ...(complete !== undefined ? { complete } : {}),
+      ...(missingModules !== undefined ? { missingModules: [...missingModules] } : {}),
+    };
+  }
+
+  private connectEvents(): void {
+    if (!this.api.subscribe) return;
+    this.unsubscribe?.();
+    this.unsubscribe = this.api.subscribe(
+      (event) => this.receiveEvent(event),
+      () => { void this.reloadFromEvent("实时连接已断开，已重新读取完整快照。"); },
+    );
+  }
+
+  private receiveEvent(event: GraphPatchEvent): void {
+    if (!this.graphState || this.switching || event.graphId !== this.snapshot?.manifest.id) return;
+    const currentRevision = this.graphState.snapshot.revision;
+    if (event.patch.toRevision <= currentRevision) {
+      this.updateMetadata(event);
+      return;
+    }
+    if (event.patch.fromRevision !== currentRevision) {
+      this.recovery = { code: "PATCH_GAP", message: `实时更新存在版本缺口：当前 r${currentRevision}，收到 r${event.patch.fromRevision}。` };
+      void this.reloadFromEvent("检测到实时更新缺口，已重新读取完整快照。");
+      return;
+    }
+    this.graphState.applyPatch(event.patch);
+    this.snapshot = this.graphState.snapshot;
+    this.updateMetadata(event);
+    void this.api.history().then((history) => { this.history = history; }).catch(() => undefined);
+  }
+
+  private async reloadFromEvent(message: string): Promise<void> {
+    if (this.reloading || this.switching) return;
+    this.reloading = true;
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    try {
+      await this.reload();
+      if (!this.error) this.actionMessage = message;
+    } finally {
+      this.reloading = false;
+    }
   }
 
   private async runHistoryAction(kind: "undo" | "redo"): Promise<void> {

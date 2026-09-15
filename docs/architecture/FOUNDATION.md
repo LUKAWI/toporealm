@@ -1,12 +1,12 @@
 # TopoRealm 基座共识
 
-状态：已确认的架构起点，后续仍需形成实施计划。
+状态：基座边界已确认；当前公开 Preview 为 0.1.3，0.2.0 重组候选已完成本地实施，待独立复核与人工发布门。Workflow 已作为独立模块发布。
 
 ## 产品定位
 
 TopoRealm 是包含核心库、CLI、MCP 和 Web UI 的独立产品。它以可扩展图为共同数据模型，通过模块覆盖开发工作流、深度研究、个人学习及其他领域。
 
-`@lukawi/toporealm` v0.1 只发行领域无关的基座产品及其基础 Skills 和三宿主集成，不内置任何领域模块。本文中的 research、exploration 与 workflow 用于验证模块边界；其产品实现须在 Core 发布后独立开发和验收。
+`@lukawi/toporealm` v0.1 只发行领域无关的基座产品及其基础 Skills 和三宿主集成，不内置任何领域模块。本文中的 research、exploration 与 workflow fixture 仅用于验证模块边界；其中 Workflow 已在 Core 发布后以独立 `@lukawi/toporealm-workflow@0.1.0` 完成开发和验收，其他领域模块仍需分别开发。
 
 现有 Super Plumber 不在原仓库内原地改造。TopoRealm 在独立工作区建立新格式和模块协议，选择性吸收成熟行为与实现经验；v1 不承诺读取旧图。
 
@@ -93,7 +93,7 @@ TopoRealm 是包含核心库、CLI、MCP 和 Web UI 的独立产品。它以可�
 
 ## 格式方向
 
-新格式使用独立版本，例如 `toporealm/v1`。最小对象保留稳定 ID、主类型、标签和模块扩展区；模块私有字段置于各自命名空间。关系的排序、门禁、循环和展示语义由模块注册。
+稳定格式为 `toporealm.graph/v1`，模块清单为 `toporealm.module/v1`。最小对象保留稳定 ID、主类型、标签和模块扩展区；模块私有字段置于各自命名空间。关系的排序、门禁、循环和展示语义由模块注册。
 
 TopoRealm v1 不读取或写回 Super Plumber 1.0.0 图，也不继续向旧 `NodeSchema` 叠加通用化字段。低成本的一次性复制转换器可在后续独立评估。
 
@@ -101,10 +101,10 @@ TopoRealm v1 不读取或写回 Super Plumber 1.0.0 图，也不继续向旧 `No
 
 第一阶段不建设远程模块市场、第三方代码沙箱、复杂依赖求解、热更新或完整自适应学习算法。先用 `workflow` 与一个最小 `research` 模块验证协议边界。
 
-## 下一步需要形成的设计
+## 0.2 已形成的实现
 
-1. 最小持久化格式及无损未知字段规则；
-2. 模块清单、注册接口和版本兼容策略；
-3. Core、Server、Web、Module SDK 的包边界；
-4. Super Plumber 能力归属与选择性移植边界；
-5. 最小 research 模块的端到端验证场景。
+1. `ManagedGraph` 是唯一公开写入 seam，内部统一 `GraphCommand`、校验、锁、journal、history 与 audit；
+2. Workspace Runtime 统一装配 Core、模块注册、validator、动作执行，并供 CLI、MCP、Server、Web 使用；
+3. Web 正常写入消费一次 revision patch，断线或 revision gap 才全量恢复；
+4. `package.json` 派生 Product Identity，并同步 CLI、MCP、三宿主投影与只读 hooks；
+5. 旧式模块 schema 在 0.2.x 只读兼容，能力不足时明确 `complete:false`。

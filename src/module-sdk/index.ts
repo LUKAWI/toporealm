@@ -44,3 +44,5 @@ export const moduleSurface: ModuleSurface = {
 
 export * from "./registry.js";
 export * from "./actions.js";
+export * from "./validation.js";
+export * from "./runtime.js";

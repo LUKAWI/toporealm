@@ -3,12 +3,14 @@ import { dirname, join, resolve } from "node:path";
 import { WorkspaceModuleResolver, type ResolvedModule } from "../module-sdk/index.js";
 import { CoreError } from "../core/index.js";
 import { BASE_SKILL_NAMES, baseSkillsRoot } from "./skills.js";
+import { PRODUCT_IDENTITY, type ProductIdentity } from "../product-identity.js";
 
 export type HostId = "codex" | "claude" | "pi";
 
 export interface HostSyncOptions {
   workspaceRoot: string;
   hostRoots: Record<HostId, string>;
+  identity?: ProductIdentity;
 }
 
 export interface HostSyncResult {
@@ -46,19 +48,20 @@ function ensureOwnedOrEmpty(path: string, expectedModule?: string): void {
   }
 }
 
-function writeBaseProjection(root: string, host: HostId, modules: readonly string[]): void {
+function writeBaseProjection(root: string, host: HostId, modules: readonly string[], identity: ProductIdentity): void {
   writeJson(join(root, ".toporealm-owner.json"), { managedBy: "toporealm", generator: "toporealm-host-sync" } satisfies OwnerMarker);
-  const mcpServer = { type: "stdio", command: "npx", args: ["-y", "@lukawi/toporealm@0.1.0", "mcp"], enabled: true };
+  const packageSpec = `${identity.packageName}@${identity.version}`;
+  const mcpServer = { type: "stdio", command: "npx", args: ["-y", packageSpec, "mcp"], enabled: true };
   writeJson(join(root, ".mcp.json"), { mcpServers: { toporealm: mcpServer } });
   mkdirSync(join(root, "hooks"), { recursive: true });
   writeFileSync(join(root, "hooks", "session-brief.mjs"), `import { spawnSync } from "node:child_process";
-const result = spawnSync("npx", ["-y", "@lukawi/toporealm@0.1.0", "status"], { encoding: "utf8", shell: process.platform === "win32" });
+const result = spawnSync("npx", ["-y", "${packageSpec}", "status"], { encoding: "utf8", shell: process.platform === "win32" });
 const summary = result.status === 0 ? result.stdout.trim() : "TopoRealm 工作区尚不可用。";
 process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: summary } }));
 `, "utf8");
   if (host === "codex") {
     writeJson(join(root, ".codex-plugin", "plugin.json"), {
-      name: "toporealm", version: "0.1.0", description: "Domain-neutral graph foundation for Codex.",
+      name: "toporealm", version: identity.version, description: "Domain-neutral graph foundation for Codex.",
       author: { name: "lukawi", url: "https://github.com/LUKAWI/toporealm" }, homepage: "https://github.com/LUKAWI/toporealm",
       repository: "https://github.com/LUKAWI/toporealm", license: "MIT", keywords: ["graph", "mcp", "skills"],
       skills: "./skills/", mcpServers: "./.mcp.json",
@@ -68,20 +71,20 @@ process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "Sess
   if (host === "claude") {
     writeJson(join(root, ".claude-plugin", "plugin.json"), {
       $schema: "https://json.schemastore.org/claude-code-plugin-manifest.json", name: "toporealm", displayName: "TopoRealm",
-      description: "Domain-neutral graph foundation for Claude Code.", version: "0.1.0", author: { name: "lukawi" },
+      description: "Domain-neutral graph foundation for Claude Code.", version: identity.version, author: { name: "lukawi" },
       homepage: "https://github.com/LUKAWI/toporealm", repository: "https://github.com/LUKAWI/toporealm", license: "MIT", keywords: ["graph", "mcp", "skills"],
     });
     writeJson(join(root, "hooks", "hooks.json"), { hooks: { SessionStart: [{ hooks: [{ type: "command", command: "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-brief.mjs\"" }] }] } });
   }
   if (host === "pi") {
     writeJson(join(root, "package.json"), {
-      name: "@lukawi/toporealm-pi", version: "0.1.0", private: true, type: "module", keywords: ["pi-package", "graph", "mcp"],
+      name: "@lukawi/toporealm-pi", version: identity.version, private: true, type: "module", keywords: ["pi-package", "graph", "mcp"],
       pi: { extensions: ["./index.js"], skills: ["./skills"] }, mcpServers: { toporealm: mcpServer },
     });
     writeFileSync(join(root, "index.js"), `import { spawnSync } from "node:child_process";
 export default function toporealmPi(pi) {
   pi.on("before_agent_start", async () => {
-    const result = spawnSync("npx", ["-y", "@lukawi/toporealm@0.1.0", "status"], { encoding: "utf8", shell: process.platform === "win32" });
+    const result = spawnSync("npx", ["-y", "${packageSpec}", "status"], { encoding: "utf8", shell: process.platform === "win32" });
     return { message: { customType: "toporealm-status", content: result.status === 0 ? result.stdout.trim() : "TopoRealm 工作区尚不可用。", display: false } };
   });
 }
@@ -113,6 +116,7 @@ function removeStaleSkills(root: string, active: ReadonlySet<string>): void {
 }
 
 export function syncHosts(options: HostSyncOptions): readonly HostSyncResult[] {
+  const identity = options.identity ?? PRODUCT_IDENTITY;
   const resolver = new WorkspaceModuleResolver(options.workspaceRoot);
   const bindings = resolver.readBindings().bindings ?? {};
   const resolved = Object.keys(bindings).map((id) => resolver.resolve(id));
@@ -131,7 +135,7 @@ export function syncHosts(options: HostSyncOptions): readonly HostSyncResult[] {
     }
     for (const module of available) copySkills(root, module);
     removeStaleSkills(root, new Set(["core", ...modules]));
-    writeBaseProjection(root, host, [...BASE_SKILL_NAMES, ...modules]);
+    writeBaseProjection(root, host, [...BASE_SKILL_NAMES, ...modules], identity);
     return { host, projectionRoot: root, modules };
   });
 }

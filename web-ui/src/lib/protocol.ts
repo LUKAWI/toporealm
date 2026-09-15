@@ -124,6 +124,35 @@ export interface MutationResult {
   snapshot: GraphSnapshot;
   patch: GraphPatch;
   history: HistoryStatus;
+  diagnostics?: ValidationIssue[];
+  complete?: boolean;
+  notice?: GraphNotice;
+}
+
+export interface GraphNotice {
+  code: string;
+  message: string;
+  fromRevision?: number;
+  toRevision?: number;
+  segmentId?: string;
+  complete?: boolean;
+  missingModules?: string[];
+}
+
+export interface GraphReadResult extends GraphSnapshot {
+  diagnostics?: ValidationIssue[];
+  complete?: boolean;
+  notice?: GraphNotice;
+}
+
+export interface GraphPatchEvent {
+  type: "graph:patch";
+  graphId: string;
+  revision: number;
+  patch: GraphPatch;
+  diagnostics?: ValidationIssue[];
+  complete?: boolean;
+  notice?: GraphNotice;
 }
 
 export interface ValidationIssue {
@@ -214,8 +243,8 @@ interface ApiErrorBody {
 export class ToporealmApi {
   constructor(private readonly baseUrl = "") {}
 
-  async readGraph(): Promise<GraphSnapshot> {
-    return this.request<GraphSnapshot>("/api/graph");
+  async readGraph(): Promise<GraphReadResult> {
+    return this.request<GraphReadResult>("/api/graph");
   }
 
   async apply(plan: MutationPlan): Promise<MutationResult> {
@@ -241,8 +270,8 @@ export class ToporealmApi {
     return this.request<GraphListResult>("/api/graphs");
   }
 
-  async switchGraph(id: string): Promise<{ snapshot: GraphSnapshot; history: HistoryStatus; graph: GraphSummary }> {
-    return this.request<{ snapshot: GraphSnapshot; history: HistoryStatus; graph: GraphSummary }>("/api/graph/switch", {
+  async switchGraph(id: string): Promise<{ snapshot: GraphSnapshot; history: HistoryStatus; graph: GraphSummary; diagnostics: ValidationIssue[]; complete: boolean; notice?: GraphNotice }> {
+    return this.request<{ snapshot: GraphSnapshot; history: HistoryStatus; graph: GraphSummary; diagnostics: ValidationIssue[]; complete: boolean; notice?: GraphNotice }>("/api/graph/switch", {
       method: "POST",
       body: JSON.stringify({ id }),
     });
@@ -265,6 +294,26 @@ export class ToporealmApi {
 
   async validateComplete(): Promise<GraphValidationResult> {
     return this.request<GraphValidationResult>("/api/validate?mode=complete");
+  }
+
+  subscribe(onEvent: (event: GraphPatchEvent) => void, onDisconnect: () => void): () => void {
+    const base = this.baseUrl || (typeof window !== "undefined" ? window.location.href : "http://127.0.0.1");
+    const url = new URL("/api/events", base);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    const socket = new WebSocket(url);
+    let closed = false;
+    let opened = false;
+    socket.addEventListener("open", () => { opened = true; });
+    socket.addEventListener("message", (message) => {
+      try {
+        const event = JSON.parse(String(message.data)) as GraphPatchEvent;
+        if (event.type === "graph:patch") onEvent(event);
+      } catch {
+        // Invalid event frames are ignored; revision gaps still force reload.
+      }
+    });
+    socket.addEventListener("close", () => { if (!closed && opened) onDisconnect(); });
+    return () => { closed = true; socket.close(); };
   }
 
   private async historyMutation(path: string, expectedRevision?: number): Promise<MutationResult> {

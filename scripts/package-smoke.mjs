@@ -41,13 +41,16 @@ try {
   const cli = join(packageRoot, "dist", "cli", "main.js");
   assert(existsSync(cli));
   const installedPackage = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+  assert.equal(installedPackage.version, packed.version);
   assert.equal(installedPackage.license, "MIT");
   assert.equal(installedPackage.engines.node, ">=20");
   assert.equal(installedPackage.bin.toporealm, "dist/cli/main.js");
   assert(readFileSync(cli, "utf8").startsWith("#!/usr/bin/env node"));
-  execFileSync(process.execPath, ["--input-type=module", "--eval", "await import('@lukawi/toporealm'); await import('@lukawi/toporealm/core'); await import('@lukawi/toporealm/module-sdk')"], { cwd: installRoot, stdio: "pipe" });
+  const runtimeIdentity = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", "const pkg = await import('@lukawi/toporealm'); await import('@lukawi/toporealm/core'); await import('@lukawi/toporealm/module-sdk'); process.stdout.write(JSON.stringify(pkg.PRODUCT_IDENTITY))"], { cwd: installRoot, encoding: "utf8" }));
+  assert.deepEqual(runtimeIdentity, { packageName: packed.name, version: packed.version, channel: installedPackage.publishConfig.tag, cliName: "toporealm", mcpServerName: "toporealm" });
   const help = execFileSync(process.execPath, [cli, "help"], { cwd: installRoot, encoding: "utf8" });
   assert.match(help, /TopoRealm CLI/);
+  assert.equal(execFileSync(process.execPath, [cli, "version"], { cwd: installRoot, encoding: "utf8" }).trim(), packed.version);
   execFileSync(process.execPath, [cli, "--root", installRoot, "init", "demo"], { cwd: temporary, stdio: "pipe" });
 
   serve = spawn(process.execPath, [cli, "--root", installRoot, "--graph", "demo", "serve", "--port", "0"], { cwd: temporary, stdio: ["ignore", "pipe", "pipe"] });
@@ -71,6 +74,7 @@ try {
 
   client = new Client({ name: "package-smoke", version: "0.1.0" });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [cli, "--root", installRoot, "--graph", "demo", "mcp"], cwd: temporary, stderr: "pipe" }));
+  assert.deepEqual(client.getServerVersion(), { name: runtimeIdentity.mcpServerName, version: packed.version });
   const tools = await client.listTools();
   assert(tools.tools.some((tool) => tool.name === "graph_read"));
   await client.close();
