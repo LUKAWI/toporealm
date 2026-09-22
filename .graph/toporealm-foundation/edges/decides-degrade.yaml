@@ -1,4 +1,0 @@
-id: decides-degrade
-source: adr_0003
-target: ctx-kernel
-type: decides

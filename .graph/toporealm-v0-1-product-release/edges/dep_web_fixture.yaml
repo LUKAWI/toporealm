@@ -1,4 +1,0 @@
-id: dep_web_fixture
-source: l2_web_product
-target: l2_module_fixture
-type: depends_on

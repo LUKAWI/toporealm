@@ -1,4 +1,0 @@
-id: dep-web-research
-source: l2_web_contract
-target: l3_research_slice
-type: depends_on

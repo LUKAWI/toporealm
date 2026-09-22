@@ -1,4 +1,0 @@
-id: dep_mcp_fixture
-source: l1_mcp_stdio
-target: l2_module_fixture
-type: depends_on

@@ -1,4 +1,0 @@
-id: dep_package_docs
-source: l3_package_artifact
-target: l3_release_docs
-type: depends_on

@@ -1,4 +1,0 @@
-id: dep_web_package
-source: l2_web_product
-target: l3_package_artifact
-type: depends_on

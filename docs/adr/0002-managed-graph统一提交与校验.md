@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded # 已被 ADR-0003~0006 取代，保留作为决策历史
 date: 2026-09-14
 ---
 

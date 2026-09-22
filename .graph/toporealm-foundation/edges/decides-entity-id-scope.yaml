@@ -1,4 +1,0 @@
-id: decides-entity-id-scope
-source: adr_0012
-target: ctx-kernel
-type: decides
