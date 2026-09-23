@@ -253,7 +253,7 @@ export class WsSession implements Session {
         this.reconnecting = false;
         return;
       }
-      await new Promise((r) => setTimeout(r, Math.min(cap, base * attempt)));
+      await new Promise((r) => setTimeout(r, Math.min(cap, base * 2 ** (attempt - 1))));
       let ws: WsLike;
       try {
         ws = await connectWs(this.url, this.connectTimeoutMs);
