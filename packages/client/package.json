@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-client",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0",
   "description": "TopoRealm 1.0 DaemonClient port implementations: MemoryClient (in-process), IpcClient (auto-spawn), WsClient (browser/WS). Browser-safe subpath: ./browser",
   "license": "MIT",
   "type": "module",
@@ -15,12 +15,12 @@
     "dist"
   ],
   "dependencies": {
-    "@lukawi/toporealm-daemon-core": "1.0.0-alpha.1",
-    "@lukawi/toporealm-module-host": "1.0.0-alpha.1",
-    "@lukawi/toporealm-protocol": "1.0.0-alpha.1"
+    "@lukawi/toporealm-daemon-core": "1.0.0",
+    "@lukawi/toporealm-module-host": "1.0.0",
+    "@lukawi/toporealm-protocol": "1.0.0"
   },
   "devDependencies": {
-    "@lukawi/toporealm-daemon": "1.0.0-alpha.1"
+    "@lukawi/toporealm-daemon": "1.0.0"
   },
   "publishConfig": {
     "access": "public"

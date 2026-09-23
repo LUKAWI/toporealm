@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-distribution",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0",
   "description": "TopoRealm 1.0 distribution: module installer (npm pack --ignore-scripts + local path, ownership marker), host sync (claude-code plugin / pi extension+skills), 0.x migrate. Cold-path only: called by the cli, never touches a running daemon.",
   "license": "MIT",
   "type": "module",
@@ -15,8 +15,8 @@
     "dist"
   ],
   "dependencies": {
-    "@lukawi/toporealm-daemon-core": "1.0.0-alpha.1",
-    "@lukawi/toporealm-protocol": "1.0.0-alpha.1",
+    "@lukawi/toporealm-daemon-core": "1.0.0",
+    "@lukawi/toporealm-protocol": "1.0.0",
     "yaml": "^2.8.1"
   },
   "publishConfig": {
