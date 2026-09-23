@@ -14,6 +14,7 @@ import {
   isRelation,
   isValidGraphId,
   suggestClosest,
+  type Catalog,
   type Change,
   type DaemonClient,
   type EntityRecord,
@@ -83,6 +84,28 @@ function extractGlobals(argv: string[], env: NodeJS.ProcessEnv): Globals {
 
 function defaultRoot(deps: CliDeps): string {
   return path.resolve(deps.cwd ?? process.cwd());
+}
+
+/** 目录拉取（help 动态聚合用）：触达不了 daemon（无工作区/图）→ null，回退纯静态帮助 */
+async function fetchCatalog(
+  deps: CliDeps,
+  root: string,
+  graph?: string,
+): Promise<Catalog | null> {
+  try {
+    const client = deps.clientFactory?.() ?? new IpcClient();
+    const s = await client.connect({
+      root,
+      ...(graph !== undefined ? { graph } : {}),
+    });
+    try {
+      return await s.catalog();
+    } finally {
+      await s.close();
+    }
+  } catch {
+    return null;
+  }
 }
 
 interface VerbOutcome {
@@ -166,7 +189,31 @@ async function dispatch(
   const env = deps.env ?? {};
 
   if (verb === undefined || verb === "help") {
-    return { envelope: { ok: true, data: { verbs: CORE_VERBS } }, human: helpText() };
+    // help [cmd]：core 静态表 + 目录动态聚合（单一真相，blueprint §4）
+    const helpTarget = g.rest[1];
+    const root = g.root ?? defaultRoot(deps);
+    const cat = helpTarget === "version" ? null : await fetchCatalog(deps, root, g.graph);
+    const commands = cat?.commands ?? [];
+    const entry =
+      helpTarget !== undefined && helpTarget.includes(".")
+        ? commands.find((c) => c.id === helpTarget)
+        : undefined;
+    if (entry) {
+      const lines = [
+        `${entry.id} — ${entry.title}`,
+        `  module: ${entry.module}`,
+        ...(entry.target !== undefined ? [`  appliesTo: ${entry.target}`] : []),
+        ...(entry.input !== undefined
+          ? [`  input schema: ${JSON.stringify(entry.input)}`]
+          : []),
+        `  用法：toporealm ${entry.id}${entry.target !== undefined ? " <target>" : ""} [--input '<json>']`,
+      ];
+      return { envelope: { ok: true, data: entry }, human: lines.join("\n") };
+    }
+    return {
+      envelope: { ok: true, data: { verbs: CORE_VERBS, commands } },
+      human: helpText(commands),
+    };
   }
   if (verb === "version") {
     const req = createRequire(import.meta.url);
@@ -177,6 +224,26 @@ async function dispatch(
       envelope: { ok: true, data: { version: pkg.version } },
       human: `toporealm ${pkg.version} (contract toporealm.graph/v2)`,
     };
+  }
+  // ★模块命令即顶层子命令（点号与核心动词零冲突，blueprint §4）：<ns.name> [target] [--input '<json>']
+  if (verb.includes(".")) {
+    const a = new Argv(args);
+    // 先吃 flag，再取位置参数（否则 flag 值会被误当 target id）
+    const input = parseJsonObject(a.value("--input"), "--input");
+    const target = a.positionals()[0];
+    const root = g.root ?? defaultRoot(deps);
+    return withSession(deps, root, g.graph, async (s) => {
+      const r = await s.run(verb, {
+        ...(target !== undefined ? { target } : {}),
+        ...(input !== undefined ? { input } : {}),
+      });
+      const lastRev = r.commits?.at(-1)?.revision;
+      return {
+        data: r,
+        human: `${r.message ?? `ok ${verb}`}${lastRev !== undefined ? ` (revision ${lastRev})` : ""}`,
+        ...(lastRev !== undefined ? { revision: lastRev } : {}),
+      };
+    });
   }
   if (!verb.includes("-")) {
     // 未知核心动词 → 用法错误（did-you-mean）
@@ -480,6 +547,33 @@ async function dispatch(
           data: { entries },
           human: `${entries.length} entr(ies):\n${rows || "  (empty)"}`,
           revision: st.revision,
+        };
+      });
+    }
+    case "cmds": {
+      const a = new Argv(args);
+      const mod = a.value("--module");
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const cat = await s.catalog(mod);
+        const modules =
+          cat.modules.length > 0
+            ? cat.modules
+                .map((m) => `  ${m.id} @ ${m.version} (ns: ${m.namespace})`)
+                .join("\n")
+            : "  (no modules)";
+        const cmds =
+          cat.commands.length > 0
+            ? cat.commands
+                .map(
+                  (c) =>
+                    `  ${c.id}${c.target !== undefined ? ` [target: ${c.target}]` : ""}    ${c.title}`,
+                )
+                .join("\n")
+            : "  (no commands)";
+        return {
+          data: cat,
+          human: `${cat.modules.length} module(s):\n${modules}\n${cat.commands.length} command(s):\n${cmds}`,
         };
       });
     }

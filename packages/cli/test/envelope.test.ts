@@ -1,6 +1,7 @@
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { MemoryClient } from "@lukawi/toporealm-client";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -213,4 +214,106 @@ describe("CLI --json 信封 + 退出码", () => {
     expect(r.data.graphs.map((g) => g.id)).toContain("flow");
     expect(r.data.graphs.find((g) => g.id === "flow")?.current).toBe(true);
   });
+});
+
+// ---------- M2 CLI：cmds / 模块命令顶层路由 / help 目录聚合（golden 信封，MemoryClient 后端） ----------
+
+const fixturesDir = fileURLToPath(
+  new URL("../../../tests/fixtures/modules/", import.meta.url),
+);
+
+function bindingYaml(entries: Record<string, string>): string {
+  return (
+    Object.entries(entries)
+      .map(([id, dir]) => `${id}:\n  source: path\n  path: ${JSON.stringify(dir)}`)
+      .join("\n") + "\n"
+  );
+}
+
+describe("M2 CLI：模块命令面", () => {
+  it(
+    "cmds [--module ns] / <ns.name> [target] [--input json] / help 动态聚合 / did-you-mean 来自目录",
+    async () => {
+      // 绑定 fixture 模块到既有工作区（graph "flow"，.toporealm 已由 new 建立）
+      await fsp.writeFile(
+        path.join(root, ".toporealm", "modules.yaml"),
+        bindingYaml({
+          example: path.join(fixturesDir, "example"),
+          "workflow-mini": path.join(fixturesDir, "workflow-mini"),
+        }),
+        "utf8",
+      );
+      await DaemonCore.createGraph(root, "modflow");
+      await exec(["--json", "use", "modflow"]);
+
+      // cmds：目录自省（modules/kinds/commands）
+      const cmds = jsonOf(await exec(["--json", "cmds"]));
+      expect(cmds).toMatchObject({ ok: true });
+      const cat = cmds as unknown as {
+        data: {
+          modules: { id: string }[];
+          commands: { id: string }[];
+          kinds: { kind: string; owner?: string }[];
+        };
+      };
+      expect(cat.data.modules.map((m) => m.id)).toEqual(["example", "workflow-mini"]);
+      expect(cat.data.commands.map((c) => c.id)).toContain("wf.start");
+      expect(cat.data.kinds.find((k) => k.kind === "wf.task")?.owner).toBe("wf");
+
+      // cmds --module ns：按 namespace 收窄
+      const byNs = jsonOf(await exec(["--json", "cmds", "--module", "wf"])) as unknown as {
+        data: { modules: { id: string }[]; commands: { id: string }[] };
+      };
+      expect(byNs.data.modules.map((m) => m.id)).toEqual(["workflow-mini"]);
+      expect(byNs.data.commands.map((c) => c.id)).toEqual(["wf.start", "wf.pass", "wf.next"]);
+
+      // <ns.name> [target]：target 命令全链路（提交 + created 回显 + revision 信封）
+      await exec([
+        "--json", "add", "wf.task", "--id", "cli-t",
+        "--payload", JSON.stringify({ title: "CLI", status: "pending" }),
+      ]);
+      const start = jsonOf(await exec(["--json", "wf.start", "cli-t"]));
+      expect(start).toMatchObject({ ok: true });
+      const startData = (start as { data: { message: string; commits: { revision: number }[] }, revision: number }).data;
+      expect(startData.message).toBe("started cli-t");
+      expect(startData.commits).toHaveLength(1);
+      const rd = jsonOf(await exec(["--json", "read", "cli-t"])) as {
+        data: { entity: { payload: { status: string } } };
+      };
+      expect(rd.data.entity.payload.status).toBe("running");
+
+      // did-you-mean 来自目录（领域错误 1，不是用法错误 2）
+      const typo = await exec(["--json", "wf.strt"]);
+      expect(typo.code).toBe(1);
+      const typoEnv = jsonOf(typo) as { error: { code: string; details?: { suggestions?: string[] } } };
+      expect(typoEnv.error.code).toBe("UNKNOWN_COMMAND");
+      expect(typoEnv.error.details?.suggestions).toContain("wf.start");
+
+      // appliesTo 兑现：缺 target → INVALID_INPUT（exit 1）
+      const noTarget = await exec(["--json", "wf.start"]);
+      expect(noTarget.code).toBe(1);
+      expect(jsonOf(noTarget)).toMatchObject({
+        ok: false,
+        error: { code: "INVALID_INPUT", details: { appliesTo: "wf.task" } },
+      });
+
+      // --input JSON：全局命令（无 target）+ schema 只是说明书
+      const card = jsonOf(
+        await exec(["--json", "example.create-card", "--input", JSON.stringify({ title: "Cli Card" })]),
+      ) as { data: { message: string; commits: unknown[] } };
+      expect(card.data.message).toContain("created");
+      expect(card.data.commits).toHaveLength(1);
+
+      // help = core 静态表 + 目录动态聚合
+      const help = await exec(["help"]);
+      expect(help.out).toContain("cmds [--module ns]");
+      expect(help.out).toContain("模块命令");
+      expect(help.out).toContain("example.create-card");
+      // help <ns.name>：单条命令文档
+      const helpCmd = await exec(["help", "wf.start"]);
+      expect(helpCmd.out).toContain("appliesTo: wf.task");
+      expect(helpCmd.out).toContain("--input '<json>'");
+    },
+    60_000,
+  );
 });

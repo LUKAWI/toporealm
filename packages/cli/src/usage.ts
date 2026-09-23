@@ -1,4 +1,4 @@
-import { suggestClosest } from "@lukawi/toporealm-protocol";
+import { suggestClosest, type CatalogEntry } from "@lukawi/toporealm-protocol";
 
 // ---------- 用法错误（退出码 2：本地解析，不触 daemon） ----------
 
@@ -26,12 +26,13 @@ export const CORE_VERBS = [
   "log",
   "undo",
   "redo",
+  "cmds",
   "help",
   "version",
 ] as const;
 
-export function helpText(): string {
-  return `toporealm — 图工作空间 CLI（1.0，M1 核心动词）
+export function helpText(commands?: readonly CatalogEntry[]): string {
+  let text = `toporealm — 图工作空间 CLI（1.0）
 
 全局选项：--json  --root <dir>  --graph <id>
 环境变量：TOPOREALM_ROOT / TOPOREALM_GRAPH
@@ -54,9 +55,22 @@ export function helpText(): string {
   rm <id>                       删除（悬空边拦截时点名 + fix）
   undo [N] / redo [N]           撤销/重做 N 步
   log [-n N]                    提交日志尾读
+  cmds [--module ns]            命令目录自省（did-you-mean 的真相源）
 
-help / version                 帮助与版本（模块命令 cmds、serve、module、migrate、host sync 在后续里程碑）
+模块命令（<ns.name> [target] [--input '<json>']，即顶层子命令）：
 `;
+  if (commands && commands.length > 0) {
+    for (const c of commands) {
+      text += `  ${c.id}${c.target ? " <target>" : ""} [--input '<json>']    ${c.title}\n`;
+    }
+  } else {
+    text += `  （本图未装载模块；toporealm cmds 自省目录）\n`;
+  }
+  text += `
+help [cmd] / version           帮助（core 静态表 + 目录动态聚合，单一真相）与版本
+                               （serve、module、migrate、host sync 在后续里程碑）
+`;
+  return text;
 }
 
 // ---------- 参数解析 ----------
