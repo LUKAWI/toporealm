@@ -1,10 +1,30 @@
 import { defineConfig } from "vitest/config";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 
 export default defineConfig({
   test: {
-    include: ["packages/*/test/**/*.test.ts"],
-    // IPC 生命周期用例（spawn daemon、空闲退出、外部编辑监视）在 Windows 上需要宽裕的时间
-    testTimeout: 20000,
-    hookTimeout: 20000,
+    // 单一门禁覆盖全部测试（blueprint §8）：packages 后端缝 + web-ui 浏览器层
+    projects: [
+      {
+        test: {
+          name: "packages",
+          include: ["packages/*/test/**/*.test.ts"],
+          // IPC 生命周期用例（spawn daemon、空闲退出、外部编辑监视）在 Windows 上需要宽裕的时间
+          testTimeout: 20000,
+          hookTimeout: 20000,
+        },
+      },
+      {
+        plugins: [svelte()],
+        resolve: { conditions: ["browser"] }, // svelte 客户端构建（mount 可用）
+        test: {
+          name: "web-ui",
+          include: ["web-ui/src/**/*.test.ts"],
+          environment: "jsdom",
+          testTimeout: 20000,
+          hookTimeout: 20000,
+        },
+      },
+    ],
   },
 });
