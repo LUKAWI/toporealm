@@ -2,6 +2,7 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+  TOPO_ERROR_CODES,
   TopoError,
   isValidKind,
   kindNamespace,
@@ -22,6 +23,7 @@ import {
   type ModuleApi,
   type ModuleEntryPoint,
   type ModuleManifestV2,
+  type TopoErrorCode,
 } from "@lukawi/toporealm-protocol";
 import type { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { parse } from "yaml";
@@ -399,10 +401,19 @@ export class ModuleHost {
     const modules = [...this.loaded.values()]
       .filter((m) => !scope || scope.has(m.id))
       .map((m) => ({ id: m.id, version: m.version, namespace: m.namespace }));
+    // D24②：form 注册面的目录投影（仅非空时携带）——「目录永远为真」在 form 上成立
+    const forms = [...this.forms.entries()]
+      .filter(([kind]) => {
+        if (!scope) return true;
+        const ns = kindNamespace(kind);
+        return ns !== null && [...this.loaded.values()].some((m) => scope.has(m.id) && m.namespace === ns);
+      })
+      .map(([kind, form]) => ({ kind, form }));
     return {
       modules,
       kinds: [...kinds.values()].sort((a, b) => a.kind.localeCompare(b.kind)),
       commands,
+      ...(forms.length > 0 ? { forms } : {}),
     };
   }
 
@@ -472,6 +483,11 @@ export class ModuleHost {
         ...(target !== undefined ? { target } : {}),
         input: input as Record<string, unknown>,
       })) as CommandOutput;
+    } catch (err) {
+      // 自包含模块零运行时依赖（D24④：发布包不含 dependencies），持不到 TopoError
+      // 的类身份——分发面对「封闭集码 + 消息」的鸭子类型错误如实认领重建，其余原样上抛
+      // （wire 层归 DAEMON_UNREACHABLE = 真 daemon 内部错误）。
+      throw rewrapDomainError(err);
     } finally {
       this.currentCommits = null;
     }
@@ -511,6 +527,34 @@ export class ModuleHost {
 }
 
 // ---------- 纯辅助 ----------
+
+/**
+ * 模块命令抛出的鸭子类型领域错误认领（D24③）：模块发布包自包含、零运行时依赖，
+ * 无法 import protocol 的 TopoError——只要求「code ∈ 封闭集 + message 字符串」形状，
+ * 分发面重建为真 TopoError（wire 序列化与客户端错误语言因此完整：code/hint/fix/details）。
+ */
+function rewrapDomainError(err: unknown): unknown {
+  if (TopoError.is(err)) return err;
+  if (err !== null && typeof err === "object") {
+    const e = err as { code?: unknown; message?: unknown; hint?: unknown; fix?: unknown; details?: unknown };
+    if (
+      typeof e.code === "string" &&
+      (TOPO_ERROR_CODES as readonly string[]).includes(e.code) &&
+      typeof e.message === "string"
+    ) {
+      return new TopoError({
+        code: e.code as TopoErrorCode,
+        message: e.message,
+        ...(typeof e.hint === "string" ? { hint: e.hint } : {}),
+        ...(typeof e.fix === "string" ? { fix: e.fix } : {}),
+        ...(e.details !== undefined && typeof e.details === "object" && e.details !== null
+          ? { details: e.details as Record<string, unknown> }
+          : {}),
+      });
+    }
+  }
+  return err;
+}
 
 function lateRegistration(moduleId: string, what: string): TopoError {
   return new TopoError({

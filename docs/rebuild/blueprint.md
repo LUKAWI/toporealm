@@ -134,6 +134,7 @@ export interface Catalog {
   modules: readonly { id: string; version: string; namespace: string }[];
   kinds: readonly { kind: Kind; owner?: string; color?: string; icon?: string }[];
   commands: readonly CatalogEntry[];
+  forms?: readonly { kind: Kind; form: FormSpec }[];   // D24②：api.form 注册面的目录投影（仅非空时携带）
 }
 
 // ---------- 事件 ----------
@@ -225,6 +226,7 @@ export interface CommitCandidate {
   after: GraphSnapshot;                 // 候选图（不可变）
   changes: readonly Change[];
   origin: Origin;                       // 钩子对一切来源生效（含 undo/external/人）
+  conversion?: "commit" | "undo" | "redo" | "external";  // D24①：转换类别——领域钩子据此豁免 undo/redo 游标移动
 }
 export type BeforeCommitHook = (c: CommitCandidate) => void | { veto: string; details?: Record<string, unknown> };
 // v1 钩子必须同步（D17 默认值）；core 不聚合不排序；first-veto 短路；钩子内 commit → REENTRANT_COMMIT
@@ -347,6 +349,36 @@ id ≠ namespace（如 id=workflow、namespace=wf），core 需要映射。裁�
    而失败；distribution 拉起 npm 子进程时（win32）把 `C:\Windows\System32` 前置到子进程
    PATH（系统自带 bsdtar 优先）。测试同样在用例内前置，不依赖外部 shell 环境。
 
+### 1.7 实现期补遗（M5：D24）
+
+**D24（实现期补遗）：Workflow 首发移植的四条落点裁决。**
+动机：§7 的移植面落到代码前钉死四件事——领域钩子如何区分 undo/redo 与前向转换、
+FormSpec 如何过缝到达 WebUI、0.x `manifest.meta` 死亡后图级档位放哪里、自包含模块的
+领域错误如何进入客户端错误语言。
+
+1. **CommitCandidate 增补 `conversion`；undo/redo 豁免领域门禁**：CommitCandidate 增补
+   可选字段 `conversion?: "commit" | "undo" | "redo" | "external"`（core.stage 如实填写；
+   纯增补，既有字段语义不变）。领域钩子对一切**前向**转换（commit/external，含人与外部
+   手改）执法；undo/redo 是已过管线的提交的游标移动（M2：撤销是用户的手），领域钩子不得
+   拦截——否则 undo「passed → running」这类合法逆转会被七态门禁否决，撤销永久失灵
+   （workflow-mini fixture 在 M2 即以「只把守形状」绕开此缺口，完整执法以本字段为前提）。
+   钩子仍被 undo/redo 调用（§1.2「对一切来源生效」不变），豁免是 workflow 模块的执法策略。
+2. **FormSpec 目录投影通道（D22④ 补课）**：Catalog 增补可选
+   `forms?: readonly { kind: Kind; form: FormSpec }[]`——module-host 的 catalog() 把
+   `api.form` 注册面投影进目录（仅非空时携带），wire 透传。WebUI inspector 表单从目录
+   读取，不另开查询面：「目录永远等于注册事实」（D12）在 form 上同样成立。
+3. **workflow 图级档位落 `wf.settings` 单例**：0.x `set-class` 无 target 时写
+   `manifest.meta.workflow.class`；1.0 manifest 没有 meta。裁决：图级档位是模块领域
+   数据，落为模块自己的 kind——`wf.settings` 单例对象（id 固定 `workflow`，
+   `payload.class` = quick|standard|program），随声明词汇进目录；所有权归模块，
+   人可经 `set` 直改（所有权法豁免，前向转换仍过领域钩子）。
+4. **模块领域错误的鸭子类型认领**：模块发布包自包含、零运行时依赖（0.x 契约延续：
+   依赖打入 bundle、不保留 dependencies），持不到 protocol `TopoError` 的类身份——
+   module-host 命令分发面对 handler 抛出的「`code` ∈ §1.1 封闭集 + `message` 字符串」
+   形状的错误如实认领重建为真 TopoError（hint/fix/details 一并透传）；形状不符的原样
+   上抛，归 wire 层 `DAEMON_UNREACHABLE`（真 daemon 内部错误）。模块作者的错误语言
+   因此仍是封闭集（§1.1 只增不改义），无需为此引入运行时依赖。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
@@ -467,7 +499,7 @@ packages/
 | 专用 Web 视图 | form + ui 投影先行；复杂视图走 v1.1 预留 |
 | 依赖门禁（depends_on） | 钩子读 after 快照（≈20 行，现状测试用例可直接改造） |
 
-预估移植量：runtime ~150 行 + module.yaml ~20 行 + 钩子 ~60 行（fixture 89 行运行时的量级，语义零损失）。
+预估移植量：runtime ~150 行 + module.yaml ~20 行 + 钩子 ~60 行（fixture 89 行运行时的量级，语义零损失）。移植落点裁决见 §1.7 D24（undo/redo 钩子豁免、forms 目录投影、图级档位落 `wf.settings` 单例）。
 
 ## 8. 测试策略（replace, don't layer）
 

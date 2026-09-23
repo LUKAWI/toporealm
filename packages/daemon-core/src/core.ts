@@ -548,6 +548,7 @@ export class DaemonCore {
         after: snapshotFrom(this.graphId, norm.objects, norm.relations, revision),
         changes: norm.changes,
         origin: plan.origin,
+        conversion: plan.kind, // D24①：undo/redo 是游标移动——领域钩子据此豁免，前向转换执法
       };
       const prevPhase = this.hookPhase;
       this.hookPhase = "before";

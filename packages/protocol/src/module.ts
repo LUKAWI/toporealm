@@ -71,6 +71,12 @@ export interface CommitCandidate {
   changes: readonly Change[];
   /** 钩子对一切来源生效（含 undo/external/人） */
   origin: Origin;
+  /**
+   * 转换类别（D24①，core.stage 如实填写）：commit/external = 前向转换（领域门禁执法）；
+   * undo/redo = 已过管线的提交的游标移动（撤销是用户的手——领域钩子据此豁免，M2）。
+   * 可选：缺省按前向转换对待（保守执法）。
+   */
+  conversion?: "commit" | "undo" | "redo" | "external";
 }
 
 export type BeforeCommitHook = (

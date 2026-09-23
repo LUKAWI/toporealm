@@ -396,6 +396,20 @@ describe("磁盘卫生（Windows 原子写）", () => {
 });
 
 describe("M2 管线扩展：所有权 namespace 映射 / commitSync / 钩子相位（D19–D21）", () => {
+  it("CommitCandidate.conversion 如实标注转换类别（D24①）：commit/undo/redo 各归其位", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    const seen: string[] = [];
+    core.registerBeforeCommitHook((c) => {
+      seen.push(c.conversion ?? "(missing)");
+    });
+    await core.commit({ changes: [{ op: "put", kind: "k", id: "e1" }] }, "cli");
+    await core.undo(1, "cli");
+    await core.redo(1, "cli");
+    expect(seen).toEqual(["commit", "undo", "redo"]);
+    core.dispose();
+  });
+
   it("所有权法按注册的 namespace 判定（D20）：id=workflow + ns=wf 可写 wf.*", async () => {
     const root = await tmpWorkspace();
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });

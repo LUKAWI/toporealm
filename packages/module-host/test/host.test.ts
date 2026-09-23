@@ -367,7 +367,7 @@ describe("S2 钩子与执法：VETOED 结构化否决 / 所有权 / 词汇偏差
     core.dispose();
   });
 
-  it("form 注册：kind → FormSpec 投影可读（M3 WebUI 面）", async () => {
+  it("form 注册：kind → FormSpec 投影可读（M3 WebUI 面）；目录投影随 D24② 过缝", async () => {
     const root = await tmpWorkspace({
       example: fixturePath("example"),
       "workflow-mini": fixturePath("workflow-mini"),
@@ -377,6 +377,54 @@ describe("S2 钩子与执法：VETOED 结构化否决 / 所有权 / 词汇偏差
     const wfForm = host.form("wf.task");
     expect(wfForm?.fields.find((f) => f.name === "status")?.options).toContain("running");
     expect(host.form("nope.thing")).toBeUndefined();
+    // D24②：catalog() 把 form 注册面投影进目录（仅非空时携带）；scope 收窄按命名空间
+    const cat = host.catalog();
+    const forms = Object.fromEntries((cat.forms ?? []).map((f) => [f.kind, f.form]));
+    expect(forms["example.card"]?.fields.map((f) => f.name)).toEqual(["title", "pinned"]);
+    expect(forms["wf.task"]?.fields.some((f) => f.name === "status")).toBe(true);
+    const wfCat = host.catalog("wf");
+    expect((wfCat.forms ?? []).map((f) => f.kind)).toEqual(["wf.task"]);
+    core.dispose();
+  });
+
+  it("模块命令抛鸭子类型领域错误 → 分发面认领重建为 TopoError（D24④）", async () => {
+    const root = await tmpWorkspace();
+    const dir = path.join(root, ".toporealm", "modules", "duck-mod");
+    await fsp.mkdir(dir, { recursive: true });
+    await fsp.writeFile(
+      path.join(dir, "module.yaml"),
+      `format: toporealm.module/v2\nid: duck-mod\nnamespace: duck\nversion: "1.0.0"\nentry: ./index.js\n`,
+      "utf8",
+    );
+    // 自包含模块持不到 TopoError 类身份：普通对象 + 封闭集 code + 消息
+    await fsp.writeFile(
+      path.join(dir, "index.js"),
+      `export default { activate(api) {
+        api.command({ name: "boom", title: "抛鸭子类型领域错误" }, () => {
+          throw { name: "TopoError", code: "INVALID_INPUT", message: "领域输入不合法", hint: "按 hint 修正", fix: "toporealm cmds", details: { why: "demo" } };
+        });
+        api.command({ name: "plain", title: "抛普通错误" }, () => {
+          throw new Error("真内部错误");
+        });
+      } };\n`,
+      "utf8",
+    );
+    await fsp.writeFile(
+      path.join(root, ".toporealm", "modules.yaml"),
+      bindingYaml({ "duck-mod": dir }),
+      "utf8",
+    );
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    const host = await ModuleHost.load(core, { root });
+    const err = await host.run("duck.boom").catch((e: unknown) => e);
+    expect(TopoError.is(err)).toBe(true);
+    expect((err as TopoError).code).toBe("INVALID_INPUT");
+    expect((err as TopoError).message).toBe("领域输入不合法");
+    expect((err as TopoError).hint).toBe("按 hint 修正");
+    expect((err as TopoError).details).toEqual({ why: "demo" });
+    // 形状不符（普通 Error）原样上抛 → wire 层归 DAEMON_UNREACHABLE，不在分发面伪造领域码
+    const plain = await host.run("duck.plain").catch((e: unknown) => e);
+    expect(TopoError.is(plain)).toBe(false);
     core.dispose();
   });
 });
