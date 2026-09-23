@@ -380,6 +380,9 @@ export function runSessionContractSuite(
       const u = await s.undo();
       expect(u.revision).toBeGreaterThan(got.revision);
       expect((await s.read({ ids: [id] })).entities).toHaveLength(0);
+      // 等监视面安静（去抖 120ms + 吸收）：避免延迟的外部吸收提交插进
+      // 后续用例的 undo 序列（重载下偶发 UNKNOWN_ID 的根源）
+      await sleep(600);
       un();
     });
 

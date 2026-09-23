@@ -184,7 +184,7 @@ describe("WS 传输一致性 + web 生命周期", () => {
     });
     const url = await wsUrlFromEndpoint(root3);
     expect(url).toBe(`ws://127.0.0.1:${d.web?.port}/ws`);
-    const ws = await new WsClient().connect({ root: root3 });
+    const ws = await new WsClient().connect({ url });
     expect(await ws.status()).toMatchObject({ graphId: "g1" });
     await ws.close();
     const ep = await readEndpoint(root3);
