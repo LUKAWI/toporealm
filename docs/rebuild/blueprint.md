@@ -173,7 +173,7 @@ export interface CommandRunResult { message?: string; data?: unknown; commits?: 
 - I4 所有权法只约束 `module:*` 来源；cli/web/external 豁免（人是图最终属主）。
 - I5 客户端永不写图文件；磁盘唯一写者是 daemon。
 
-**错误码全表（~14，封闭集只增不改义，全部带 hint + fix）**
+**错误码全表（~17，封闭集只增不改义，全部带 hint + fix）**
 | 码 | 层 | hint/fix 示例 |
 |---|---|---|
 | NO_WORKSPACE / NO_CURRENT_GRAPH / GRAPH_NOT_FOUND | 环境 | fix: `toporealm new` / `toporealm use` |
@@ -181,6 +181,9 @@ export interface CommandRunResult { message?: string; data?: unknown; commits?: 
 | DANGLING_RELATION | 执法一 | 点名悬空边 + fix 建/删 |
 | OWNERSHIP_VIOLATION | 执法二 | 点名模块与越界 kind |
 | VETOED | 钩子 | 点名否决模块 + 理由（details.vetoes[]） |
+| LATE_REGISTRATION | 模块 | activate 返回后注册；fix: 移回 activate 内 |
+| REENTRANT_COMMIT | 钩子 | before-commit 钩子内再入提交；fix: 改到 after-commit（自动排队） |
+| MISSING_MODULE | 模块依赖 | requires.modules 未装载；fix: `toporealm module add <id>` |
 | UNKNOWN_COMMAND / INVALID_INPUT | 命令 | did-you-mean 来自目录 |
 | IF_REVISION_MISMATCH | 并发 | fix: `read <id>` 后重试 |
 | DAEMON_UNREACHABLE / SESSION_STALE | 传输 | fix: 重试（自动拉起）/ 重连 |
@@ -259,6 +262,29 @@ ui:                               # 静态投影（core 不解释，WebUI 读）
   titleKey: title                 # payload 中作显示名的键
 entry: ./index.js                 # 代码层入口
 ```
+
+### 1.4 实现期补遗（M2：D19–D21）
+
+**D19（实现期补遗）：错误码封闭集增补三码。**
+动机：§1.2 点名的 LATE_REGISTRATION / REENTRANT_COMMIT 与不变量 M6 的 requires
+缺失失败都需要稳定码进客户端错误语言；封闭集只增不改义，随本条一次入 §1.1 全表。
+- `LATE_REGISTRATION`：注册面（command/hook/form）在 activate 返回后再调用即抛。
+- `REENTRANT_COMMIT`：before-commit 钩子内调用 api.commit 即抛（管辖区内再入）。
+- `MISSING_MODULE`：`requires.modules` 未满足，daemon 拒绝启动并点名缺失。
+
+**D20（实现期补遗）：所有权法的 namespace 映射。**
+动机：§1.2 说所有权"看 kind 的 namespace"（M3），而提交身份是 `module:<id>`——
+id ≠ namespace（如 id=workflow、namespace=wf），core 需要映射。裁决：
+- module-host 装载模块时向 core 注册 `id → namespace`（core 不 import module-host，
+  注册面单向，与钩子注册同性质）；
+- 所有权检查 = kind 命名空间 ∈ { 公共/无主, 该模块声明的 namespace }；
+- 未注册的 `module:<id>` 来源回退为 namespace = id（S1 测试直注 origin 的既有语义不变）。
+
+**D21（实现期补遗）：after-commit 排队提交的回执与失败语义。**
+- after-commit 钩子内 api.commit 排队追加（不嵌套）；受理即返回排队时图态的快照回执
+  （revision 为当前顶、空 patch）——真实结果以随后广播的 commit 事件为准；
+- 排队提交在外层提交广播后按序排空；排空中被钩子 veto 只记 warning，不回滚外层提交；
+- 排空深度上限 100（防模块自激死循环），超限记 warning 停止排空。
 
 ---
 
@@ -347,6 +373,7 @@ packages/
 ## 5. Daemon 运行时规格
 
 - **生命周期**：client.connect / CLI 首命令触达 → socket 不存在则 spawn `toporeald`（握手含 instanceId）；空闲超时（默认 30s，可配）自动退出；每次转换刷新空闲计时。
+- **模块集失效检测（实现期补遗，复用 D5）**：daemon 启动记录 `.toporealm/modules.yaml` 内容摘要；hello 时复验，摘要变化 = 模块集过期 → 如实 SESSION_STALE + 旧 daemon 自旋退出，客户端下次触达自动拉起装载新模块集的 daemon。模块集启动冻结，运行期不热装载。
 - **提交管线（固定序，模块作者唯一需要背的顺序）**：
   ```
   id/kind 解析 → 所有权法（仅 module 来源）→ 悬空边检查（集合整体）
