@@ -10,8 +10,10 @@ export interface ContractSuiteContext {
   root: string;
   graphId: string;
   connect(): Promise<Session>;
-  /** 触发外部编辑吸收：memory=确定性 reconcile；IPC=等真实 fs.watch 去抖 */
+  /** 触发外部编辑吸收：memory=确定性 reconcile；IPC/WS=等真实 fs.watch 去抖 */
   absorbExternal(s: Session, probeId: string): Promise<void>;
+  /** 该 adapter 的提交 origin（memory/IPC="cli"；WS="web"，D22 传输来源如实） */
+  expectedOrigin?: "cli" | "web";
 }
 
 export const sleep = (ms: number) =>
@@ -290,7 +292,7 @@ export function runSessionContractSuite(
       expect(log).toHaveLength(1);
       expect(log[0]).toMatchObject({ kind: "commit", label: "log-case" });
       expect(typeof log[0].time).toBe("string");
-      expect(log[0].origin).toBe("cli");
+      expect(log[0].origin).toBe(ctx.expectedOrigin ?? "cli");
     });
 
     it("read：ids/kinds/where 过滤与投影", async () => {
