@@ -34,14 +34,19 @@ import {
 import { endpointAddress, graphPaths, type GraphPaths } from "./paths.js";
 import {
   appendLogLine,
+  appendLogLineSync,
   createGraphDir,
   loadEntities,
   loadManifest,
   readLog,
   removeEntityFile,
+  removeEntityFileSync,
   rewriteLog,
+  rewriteLogSync,
   saveManifest,
+  saveManifestSync,
   writeEntity,
+  writeEntitySync,
   type GraphManifestV2,
 } from "./store.js";
 
@@ -63,6 +68,8 @@ export interface DaemonCoreOptions {
   watch?: boolean;
   /** 活动回调（daemon 入口用于空闲计时） */
   onActivity?: () => void;
+  /** 内部 warning 下沉口（after-commit 排队被拒等；同时累积在 core.warnings） */
+  onWarning?: (message: string) => void;
 }
 
 const EXTERNAL_DEBOUNCE_MS = 120;
@@ -98,13 +105,28 @@ export class DaemonCore {
   private persistDepth = 0;
   private disposed = false;
 
+  /** 钩子相位：before 期内提交 = REENTRANT_COMMIT；after 期内提交 = 排队追加（D21） */
+  private hookPhase: "none" | "before" | "after" = "none";
+  /** after-commit 钩子排队的提交（外层提交广播后按序排空，不嵌套） */
+  private readonly afterQueue: { input: CommitInput; origin: Origin }[] = [];
+  private drainingAfter = false;
+  /** 所有权法 id → namespace 注册表（module-host 装载期写入；D20，core 不知 module-host） */
+  private readonly moduleNamespaces = new Map<string, string>();
+  /** 运行时模块集（status/catalog 的 modules 真相源；module-host 装载完成后覆写） */
+  private loadedModules: readonly string[];
+  /** 内部 warning 累积（模块可读面经 module-host 聚合） */
+  readonly warnings: string[] = [];
+  private readonly onWarning: ((message: string) => void) | undefined;
+
   private constructor(opts: DaemonCoreOptions, manifest: GraphManifestV2) {
     this.root = opts.root;
     this.graphId = manifest.id || opts.graphId;
     this.p = graphPaths(opts.root, opts.graphId);
     this.manifest = manifest;
     this.revision_ = manifest.revision;
+    this.loadedModules = [...manifest.modules];
     this.onActivity = opts.onActivity;
+    this.onWarning = opts.onWarning;
   }
 
   get revision(): number {
@@ -162,7 +184,7 @@ export class DaemonCore {
       graphId: this.graphId,
       revision: this.revision_,
       counts,
-      modules: this.manifest.modules,
+      modules: this.loadedModules,
       canUndo: this.cursor > 0,
       canRedo: this.cursor < this.logEntries.length,
     };
@@ -210,12 +232,9 @@ export class DaemonCore {
         details: { expected: input.ifRevision, actual: this.revision_ },
       });
     }
-    if (!Array.isArray(input.changes) || input.changes.length === 0) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: "提交必须包含至少一个变更（changes[]）",
-      });
-    }
+    this.validateCommitInput(input);
+    const queued = this.guardHookPhase(input, origin);
+    if (queued) return queued;
     return this.convert({
       kind: "commit",
       origin,
@@ -223,6 +242,72 @@ export class DaemonCore {
       changes: input.changes,
       append: true,
     });
+  }
+
+  /**
+   * 同步提交（模块 api.commit 的执行点，blueprint §1.2「返回即已原子落盘」）。
+   * 走与异步完全相同的管线，仅落盘用同步原语。
+   * - before-commit 相位内调用 → REENTRANT_COMMIT（禁再入，M4）
+   * - after-commit 相位内调用 → 排队追加，返回受理回执（D21）
+   */
+  commitSync(input: CommitInput, origin: Origin): CommitResult {
+    if (
+      input.ifRevision !== undefined &&
+      input.ifRevision !== this.revision_
+    ) {
+      throw new TopoError({
+        code: "IF_REVISION_MISMATCH",
+        message: `期望 revision ${input.ifRevision}，实际已是 ${this.revision_}`,
+        hint: "并发护航生效：重读后带新 revision 重试",
+        details: { expected: input.ifRevision, actual: this.revision_ },
+      });
+    }
+    this.validateCommitInput(input);
+    const queued = this.guardHookPhase(input, origin);
+    if (queued) return queued;
+    return this.convertSync({
+      kind: "commit",
+      origin,
+      ...(input.label !== undefined ? { label: input.label } : {}),
+      changes: input.changes,
+      append: true,
+    });
+  }
+
+  private validateCommitInput(input: CommitInput): void {
+    if (!Array.isArray(input.changes) || input.changes.length === 0) {
+      throw new TopoError({
+        code: "INVALID_INPUT",
+        message: "提交必须包含至少一个变更（changes[]）",
+      });
+    }
+  }
+
+  /** 钩子相位守卫：返回 undefined = 放行；否则返回排队受理回执（after 相位，D21）。 */
+  private guardHookPhase(
+    input: CommitInput,
+    origin: Origin,
+  ): CommitResult | undefined {
+    if (this.hookPhase === "before") {
+      throw new TopoError({
+        code: "REENTRANT_COMMIT",
+        message: "before-commit 钩子内不得提交（禁再入）",
+        hint: "钩子只做领域判断；需要追加写入改到 after-commit 钩子，其 api.commit 会排队追加",
+        details: { origin },
+      });
+    }
+    if (this.hookPhase === "after") {
+      // D21：排队受理——回执是排队时图态快照，真实结果以随后的 commit 事件为准
+      this.afterQueue.push({ input, origin });
+      return {
+        revision: this.revision_,
+        created: [],
+        patch: emptyPatch(this.revision_),
+        canUndo: this.cursor > 0,
+        canRedo: this.cursor < this.logEntries.length,
+      };
+    }
+    return undefined;
   }
 
   async undo(steps: number, origin: Origin): Promise<CommitResult> {
@@ -308,10 +393,10 @@ export class DaemonCore {
     for (const o of this.objects.values()) kinds.add(o.kind);
     for (const r of this.relations.values()) kinds.add(r.kind);
     return {
-      modules: this.manifest.modules.map((id) => ({
+      modules: this.loadedModules.map((id) => ({
         id,
         version: "0.0.0",
-        namespace: id,
+        namespace: this.moduleNamespaces.get(id) ?? id,
       })),
       kinds: [...kinds].sort().map((kind) => {
         const ns = kindNamespace(kind);
@@ -326,7 +411,7 @@ export class DaemonCore {
     throw new TopoError({
       code: "UNKNOWN_COMMAND",
       message: `未知命令 "${commandId}"`,
-      hint: "M1 未装载模块，命令目录为空；目录自省：toporealm cmds（M2 交付）",
+      hint: "模块命令由 module-host 分发；core 缝上没有命令目录",
       details: {
         commandId,
         suggestions: suggestClosest(commandId, []),
@@ -334,7 +419,7 @@ export class DaemonCore {
     });
   }
 
-  // ---------- 钩子注册面（M2 模块装载点；M1 无人调用，管线已就位） ----------
+  // ---------- 钩子注册面与模块执法注册（module-host 的装载入口；M1 直接调用也合法） ----------
 
   registerBeforeCommitHook(hook: BeforeCommitHook): void {
     this.beforeHooks.push(hook);
@@ -342,6 +427,38 @@ export class DaemonCore {
 
   registerAfterCommitHook(hook: AfterCommitHook): void {
     this.afterHooks.push(hook);
+  }
+
+  /**
+   * 所有权法 id → namespace 注册（D20）：module-host 装载每个模块时调用；
+   * core 不 import module-host，注册面单向。未注册的 module:<id> 来源回退
+   * namespace = id（S1 直注 origin 的既有语义）。
+   */
+  registerModuleOwner(id: string, namespace: string): void {
+    this.moduleNamespaces.set(id, namespace);
+  }
+
+  /** 运行时模块集覆写（module-host 装载完成后调用；status/catalog 的 modules 真相源）。 */
+  setLoadedModules(ids: readonly string[]): void {
+    this.loadedModules = [...ids];
+  }
+
+  /**
+   * 所有权法（执法二之一）：只约束 module:* 来源。
+   * kind 命名空间 ∈ { 公共/无主, 该模块声明的 namespace }（M3 + D20）。
+   */
+  private checkOwnership(origin: Origin, kind: Kind, changeIndex: number): void {
+    if (!origin.startsWith("module:")) return;
+    const moduleId = origin.slice("module:".length);
+    const ownerNs = this.moduleNamespaces.get(moduleId) ?? moduleId;
+    const ns = kindNamespace(kind);
+    if (ns === null || ns === ownerNs) return;
+    throw new TopoError({
+      code: "OWNERSHIP_VIOLATION",
+      message: `模块 "${moduleId}" 不能触碰主类型 "${kind}"（所有权法：只能写 ${ownerNs}.* 或公共/无主类型）`,
+      hint: "跨模块协作走图数据面：读他人实体、建自己命名空间的关系",
+      details: { module: moduleId, namespace: ownerNs, kind, changeIndex },
+    });
   }
 
   // ---------- 事件 ----------
@@ -406,14 +523,18 @@ export class DaemonCore {
   }
 
   // ---------- 提交管线（唯一转换通道：commit/undo/redo/external 全走这里） ----------
+  //
+  // 结构：stage（①②③④：规范化 + 执法 + before 钩子，全程无副作用）
+  //       → persist（⑤：落盘，异步/同步两个变体）
+  //       → land（内存生效 + ⑥ after 钩子（排队）+ ⑦ 广播 + ⑧ 排空队列）
 
-  private async convert(plan: {
+  private stage(plan: {
     kind: LogEntry["kind"];
     origin: Origin;
     label?: string;
     changes: readonly Change[];
     append: boolean;
-  }): Promise<CommitResult> {
+  }): StagedPlan {
     this.touch();
     // ①②③ id/kind 解析 → 所有权法 → 悬空边（normalize 内联，全程在副本上模拟）
     const norm = this.normalize(plan.origin, plan.changes);
@@ -428,23 +549,29 @@ export class DaemonCore {
         changes: norm.changes,
         origin: plan.origin,
       };
-      for (const hook of this.beforeHooks) {
-        const r = hook(candidate);
-        if (r && typeof r === "object" && "veto" in r) {
-          throw new TopoError({
-            code: "VETOED",
-            message: `提交被领域钩子否决：${r.veto}`,
-            hint: "领域校验由模块钩子执法；按否决理由调整变更后重试",
-            details: {
-              vetoes: [
-                {
-                  reason: r.veto,
-                  ...(r.details !== undefined ? { details: r.details } : {}),
-                },
-              ],
-            },
-          });
+      const prevPhase = this.hookPhase;
+      this.hookPhase = "before";
+      try {
+        for (const hook of this.beforeHooks) {
+          const r = hook(candidate);
+          if (r && typeof r === "object" && "veto" in r) {
+            throw new TopoError({
+              code: "VETOED",
+              message: `提交被领域钩子否决：${r.veto}`,
+              hint: "领域校验由模块钩子执法；按否决理由调整变更后重试",
+              details: {
+                vetoes: [
+                  {
+                    reason: r.veto,
+                    ...(r.details !== undefined ? { details: r.details } : {}),
+                  },
+                ],
+              },
+            });
+          }
         }
+      } finally {
+        this.hookPhase = prevPhase;
       }
     }
 
@@ -464,42 +591,80 @@ export class DaemonCore {
       : plan.kind === "undo"
         ? this.cursor - 1
         : this.cursor + 1;
+    return { norm, revision, entry, truncating, nextCursor };
+  }
 
+  private async persistAsync(plan: {
+    append: boolean;
+  }, st: StagedPlan): Promise<void> {
     // ⑤ 原子应用：实体文件 → .log → graph.yaml（最后写 = 提交标记）
     this.persistDepth++;
     try {
-      for (const rec of norm.upserts.values()) {
+      for (const rec of st.norm.upserts.values()) {
         await writeEntity(this.p, rec);
       }
-      for (const [id, expectRelation] of norm.deletes) {
+      for (const [id, expectRelation] of st.norm.deletes) {
         await removeEntityFile(this.p, id, expectRelation);
       }
       if (plan.append) {
-        if (truncating) {
+        if (st.truncating) {
           // undo 后的新提交：截断 redo 段再追加
-          await rewriteLog(this.p, [...this.logEntries.slice(0, this.cursor), entry]);
+          await rewriteLog(this.p, [...this.logEntries.slice(0, this.cursor), st.entry]);
         } else {
-          await appendLogLine(this.p, entry);
+          await appendLogLine(this.p, st.entry);
         }
       }
       await saveManifest(this.p, {
         ...this.manifest,
-        revision,
-        undoCursor: nextCursor,
+        revision: st.revision,
+        undoCursor: st.nextCursor,
       });
     } finally {
       this.persistDepth--;
     }
+  }
 
+  private persistSync(plan: {
+    append: boolean;
+  }, st: StagedPlan): void {
+    this.persistDepth++;
+    try {
+      for (const rec of st.norm.upserts.values()) writeEntitySync(this.p, rec);
+      for (const [id, expectRelation] of st.norm.deletes) {
+        removeEntityFileSync(this.p, id, expectRelation);
+      }
+      if (plan.append) {
+        if (st.truncating) {
+          rewriteLogSync(this.p, [...this.logEntries.slice(0, this.cursor), st.entry]);
+        } else {
+          appendLogLineSync(this.p, st.entry);
+        }
+      }
+      saveManifestSync(this.p, {
+        ...this.manifest,
+        revision: st.revision,
+        undoCursor: st.nextCursor,
+      });
+    } finally {
+      this.persistDepth--;
+    }
+  }
+
+  private land(plan: {
+    kind: LogEntry["kind"];
+    origin: Origin;
+    label?: string;
+    append: boolean;
+  }, st: StagedPlan): CommitResult {
     // 内存生效（磁盘已成功）
-    this.objects = norm.objects;
-    this.relations = norm.relations;
-    this.revision_ = revision;
-    this.manifest = { ...this.manifest, revision, undoCursor: nextCursor };
+    this.objects = st.norm.objects;
+    this.relations = st.norm.relations;
+    this.revision_ = st.revision;
+    this.manifest = { ...this.manifest, revision: st.revision, undoCursor: st.nextCursor };
     if (plan.append) {
-      this.logEntries = truncating
-        ? [...this.logEntries.slice(0, this.cursor), entry]
-        : [...this.logEntries, entry];
+      this.logEntries = st.truncating
+        ? [...this.logEntries.slice(0, this.cursor), st.entry]
+        : [...this.logEntries, st.entry];
       this.cursor = this.logEntries.length;
     } else if (plan.kind === "undo") {
       this.cursor -= 1;
@@ -507,39 +672,112 @@ export class DaemonCore {
       this.cursor += 1;
     }
 
-    // ⑥ after-commit 钩子（同步排队；其 commit 走队列追加——M2 落实队列，M1 空注册面）
+    // ⑥ after-commit 钩子（同步排队；其 api.commit 走 afterQueue 排队追加，不嵌套——D21）
     if (this.afterHooks.length > 0) {
       const evt: AfterCommitEvent = {
-        revision,
-        patch: norm.patch,
+        revision: st.revision,
+        patch: st.norm.patch,
         origin: plan.origin,
         ...(plan.label !== undefined ? { label: plan.label } : {}),
       };
-      for (const h of this.afterHooks) {
-        try {
-          h(evt);
-        } catch {
-          /* 钩子异常不阻断 */
+      const prevPhase = this.hookPhase;
+      this.hookPhase = "after";
+      try {
+        for (const h of this.afterHooks) {
+          try {
+            h(evt);
+          } catch {
+            /* 钩子异常不阻断 */
+          }
         }
+      } finally {
+        this.hookPhase = prevPhase;
       }
     }
 
     // ⑦ 广播 commit 事件（origin 如实）
     this.emit({
       type: "commit",
-      revision,
-      patch: norm.patch,
+      revision: st.revision,
+      patch: st.norm.patch,
       origin: plan.origin,
       ...(plan.label !== undefined ? { label: plan.label } : {}),
     });
 
+    // ⑧ 排空 after-commit 队列（广播之后，事件顺序保持 revision 连续）
+    this.drainAfterQueue();
+
     return {
-      revision,
-      created: norm.created,
-      patch: norm.patch,
+      revision: st.revision,
+      created: st.norm.created,
+      patch: st.norm.patch,
       canUndo: this.cursor > 0,
       canRedo: this.cursor < this.logEntries.length,
     };
+  }
+
+  /** D21：排队提交在外层提交广播后按序排空；被拒只记 warning，不回滚外层提交。 */
+  private drainAfterQueue(): void {
+    if (this.drainingAfter || this.afterQueue.length === 0) return;
+    this.drainingAfter = true;
+    try {
+      let drained = 0;
+      while (this.afterQueue.length > 0) {
+        if (++drained > 100) {
+          this.warn(
+            `after-commit 排队提交超过上限 100，停止排空（疑似模块自激）`,
+          );
+          this.afterQueue.length = 0;
+          break;
+        }
+        const job = this.afterQueue.shift();
+        if (!job) break;
+        try {
+          this.convertSync({
+            kind: "commit",
+            origin: job.origin,
+            ...(job.input.label !== undefined ? { label: job.input.label } : {}),
+            changes: job.input.changes,
+            append: true,
+          });
+        } catch (err) {
+          this.warn(
+            `after-commit 排队提交被拒绝：${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    } finally {
+      this.drainingAfter = false;
+    }
+  }
+
+  private warn(message: string): void {
+    this.warnings.push(message);
+    this.onWarning?.(message);
+  }
+
+  private async convert(plan: {
+    kind: LogEntry["kind"];
+    origin: Origin;
+    label?: string;
+    changes: readonly Change[];
+    append: boolean;
+  }): Promise<CommitResult> {
+    const st = this.stage(plan);
+    await this.persistAsync(plan, st);
+    return this.land(plan, st);
+  }
+
+  private convertSync(plan: {
+    kind: LogEntry["kind"];
+    origin: Origin;
+    label?: string;
+    changes: readonly Change[];
+    append: boolean;
+  }): CommitResult {
+    const st = this.stage(plan);
+    this.persistSync(plan, st);
+    return this.land(plan, st);
   }
 
   /**
@@ -551,16 +789,7 @@ export class DaemonCore {
   private normalize(
     origin: Origin,
     rawChanges: readonly Change[],
-  ): {
-    changes: Change[];
-    inverse: Change[];
-    patch: GraphPatch;
-    objects: Map<EntityId, Entity>;
-    relations: Map<EntityId, RelationEntity>;
-    upserts: Map<EntityId, EntityRecord>;
-    deletes: Map<EntityId, boolean>;
-    created: EntityId[];
-  } {
+  ): NormalizeResult {
     const objects = new Map(this.objects);
     const relations = new Map(this.relations);
     const changes: Change[] = [];
@@ -640,7 +869,7 @@ export class DaemonCore {
           details: { kind, changeIndex: i },
         });
       }
-      checkOwnership(origin, kind, i);
+      this.checkOwnership(origin, kind, i);
       const payload = c.payload ?? {};
       const next: Entity = { id, kind, payload };
       inverse.push(
@@ -685,7 +914,7 @@ export class DaemonCore {
             details: { kind: c.kind, changeIndex: i },
           });
         }
-        checkOwnership(origin, c.kind, i);
+        this.checkOwnership(origin, c.kind, i);
         // 悬空边检查（集合整体：端点可为同批 put 创建）
         const missing: EntityId[] = [];
         if (!objects.has(c.source)) missing.push(c.source);
@@ -765,7 +994,7 @@ export class DaemonCore {
             },
           });
         }
-        checkOwnership(origin, target.kind, i);
+        this.checkOwnership(origin, target.kind, i);
         if (
           !c.payload ||
           typeof c.payload !== "object" ||
@@ -816,7 +1045,7 @@ export class DaemonCore {
             },
           });
         }
-        checkOwnership(origin, (obj ?? rel)!.kind, i);
+        this.checkOwnership(origin, (obj ?? rel)!.kind, i);
         if (obj) objects.delete(c.id);
         if (rel) relations.delete(c.id);
         // 悬空边检查：删除后仍存活的引用
@@ -993,6 +1222,27 @@ export class DaemonCore {
 
 // ---------- 纯辅助 ----------
 
+/** normalize() 的产物（变更规范化全程在副本上模拟，抛错即无副作用）。 */
+interface NormalizeResult {
+  changes: Change[];
+  inverse: Change[];
+  patch: GraphPatch;
+  objects: Map<EntityId, Entity>;
+  relations: Map<EntityId, RelationEntity>;
+  upserts: Map<EntityId, EntityRecord>;
+  deletes: Map<EntityId, boolean>;
+  created: EntityId[];
+}
+
+/** stage() 的产物：管线后续阶段（落盘/生效/广播）共用的就绪数据。 */
+interface StagedPlan {
+  norm: NormalizeResult;
+  revision: number;
+  entry: StoredLogEntry;
+  truncating: boolean;
+  nextCursor: number;
+}
+
 function snapshotFrom(
   graphId: string,
   objects: Map<EntityId, Entity>,
@@ -1017,18 +1267,7 @@ function emptyPatch(revision: number): GraphPatch {
 }
 
 /** 所有权法（执法二之一）：只约束 module:* 来源；cli/web/external/migrate 豁免（人是图最终属主）。 */
-function checkOwnership(origin: Origin, kind: Kind, changeIndex: number): void {
-  if (!origin.startsWith("module:")) return;
-  const moduleId = origin.slice("module:".length);
-  const ns = kindNamespace(kind);
-  if (ns === null || ns === moduleId) return; // 公共/无主 kind 或本模块命名空间
-  throw new TopoError({
-    code: "OWNERSHIP_VIOLATION",
-    message: `模块 "${moduleId}" 不能触碰主类型 "${kind}"（所有权法：只能写 ${moduleId}.* 或公共/无主类型）`,
-    hint: "跨模块协作走图数据面：读他人实体、建自己命名空间的关系",
-    details: { module: moduleId, kind, changeIndex },
-  });
-}
+/** 已上移为 DaemonCore 方法（需要 id → namespace 注册表，D20）。 */
 
 function matchWhere(
   r: EntityRecord,

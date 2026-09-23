@@ -1,4 +1,5 @@
 import fsp from "node:fs/promises";
+import fs from "node:fs";
 import path from "node:path";
 import { stringify, parse } from "yaml";
 import {
@@ -315,6 +316,89 @@ export async function readLog(
     }
   }
   return out;
+}
+
+// ---------- 同步持久化原语（模块 api.commit「返回即已原子落盘」的支撑，blueprint §1.2） ----------
+// 与异步版同构：临时文件 + renameSync（Windows 上即 MoveFileEx(REPLACE_EXISTING)），
+// EPERM/EACCES/EBUSY 短退避重试。仅供 in-process 模块提交路径使用。
+
+function atomicWriteFileSync(file: string, data: string): void {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = path.join(
+    path.dirname(file),
+    `.${path.basename(file)}.tmp-${process.pid}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`,
+  );
+  fs.writeFileSync(tmp, data, "utf8");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.renameSync(tmp, file);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (
+        attempt < 4 &&
+        (code === "EPERM" || code === "EACCES" || code === "EBUSY")
+      ) {
+        const spinUntil = Date.now() + 10 * 2 ** attempt;
+        while (Date.now() < spinUntil) {
+          /* 忙等：同步路径无法 await */
+        }
+        continue;
+      }
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* 清理失败不影响抛错 */
+      }
+      throw err;
+    }
+  }
+}
+
+export function writeEntitySync(
+  p: GraphPaths,
+  rec: Entity | RelationEntity,
+): void {
+  atomicWriteFileSync(
+    "source" in rec ? relationFile(p, rec.id) : objectFile(p, rec.id),
+    entityYaml(rec),
+  );
+}
+
+export function removeEntityFileSync(
+  p: GraphPaths,
+  id: EntityId,
+  expectRelation: boolean,
+): void {
+  const file = expectRelation ? relationFile(p, id) : objectFile(p, id);
+  try {
+    fs.unlinkSync(file);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+}
+
+export function appendLogLineSync(p: GraphPaths, entry: StoredLogEntry): void {
+  fs.mkdirSync(p.dir, { recursive: true });
+  fs.appendFileSync(p.log, JSON.stringify(entry) + "\n", "utf8");
+}
+
+export function rewriteLogSync(
+  p: GraphPaths,
+  entries: readonly StoredLogEntry[],
+): void {
+  const text =
+    entries.length === 0
+      ? ""
+      : entries.map((e) => JSON.stringify(e)).join("\n") + "\n";
+  atomicWriteFileSync(p.log, text);
+}
+
+export function saveManifestSync(p: GraphPaths, m: GraphManifestV2): void {
+  // graph.yaml 最后写：它是"本次转换已落盘"的标记
+  atomicWriteFileSync(p.manifest, manifestYaml(m));
 }
 
 // 类型再出口（core.ts 复用）

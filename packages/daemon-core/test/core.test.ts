@@ -394,3 +394,148 @@ describe("磁盘卫生（Windows 原子写）", () => {
     core.dispose();
   });
 });
+
+describe("M2 管线扩展：所有权 namespace 映射 / commitSync / 钩子相位（D19–D21）", () => {
+  it("所有权法按注册的 namespace 判定（D20）：id=workflow + ns=wf 可写 wf.*", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    core.registerModuleOwner("workflow", "wf");
+    // 声明 namespace 与 id 不同：以声明为准
+    await core.commit(
+      { changes: [{ op: "put", kind: "wf.task", id: "t1" }] },
+      "module:workflow",
+    );
+    expect(core.read({ ids: ["t1"] }).entities).toHaveLength(1);
+    // 他人命名空间仍然拒绝
+    await expectTopo(
+      () =>
+        core.commit(
+          { changes: [{ op: "put", kind: "other.task", id: "x" }] },
+          "module:workflow",
+        ),
+      "OWNERSHIP_VIOLATION",
+    );
+    // 未注册 id 回退：namespace = id 自身（S1 直注语义不变）
+    await core.commit(
+      { changes: [{ op: "put", kind: "lonely.thing", id: "l1" }] },
+      "module:lonely",
+    );
+    expect(core.read({ ids: ["l1"] }).entities).toHaveLength(1);
+    core.dispose();
+  });
+
+  it("commitSync 同步落盘：返回即持久化，重开可读", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    const r = core.commitSync(
+      { changes: [{ op: "put", kind: "k", id: "sync-1", payload: { n: 1 } }], label: "sync" },
+      "cli",
+    );
+    expect(r.revision).toBe(1);
+    expect(r.created).toEqual([]);
+    core.dispose();
+    const again = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    expect(again.read({ ids: ["sync-1"] }).entities[0]).toMatchObject({
+      id: "sync-1",
+      kind: "k",
+      payload: { n: 1 },
+    });
+    expect(again.revision).toBe(1);
+    expect(again.tailLog().map((e) => e.label)).toContain("sync");
+    again.dispose();
+  });
+
+  it("before-commit 钩子内提交 → REENTRANT_COMMIT，外层提交整体拒绝零副作用", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    core.registerBeforeCommitHook(() => {
+      core.commitSync({ changes: [{ op: "put", kind: "k", id: "reentrant" }] }, "cli");
+    });
+    await expectTopo(
+      () =>
+        core.commit({ changes: [{ op: "put", kind: "k", id: "outer" }] }, "cli"),
+      "REENTRANT_COMMIT",
+    );
+    expect(core.revision).toBe(0);
+    expect(core.read().entities).toHaveLength(0);
+    core.dispose();
+  });
+
+  it("after-commit 钩子提交排队追加（不嵌套）：事件按 revision 连续，undo 整段可撤", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    const seen: number[] = [];
+    core.registerAfterCommitHook((e) => {
+      seen.push(e.revision);
+      if (e.revision === 1) {
+        // 钩子内 api.commit：排队追加，不嵌套进当前转换
+        const receipt = core.commitSync(
+          {
+            changes: [{ op: "put", kind: "k", id: "queued", payload: { by: "after-hook" } }],
+            label: "queued-by-after-hook",
+          },
+          "module:m",
+        );
+        // D21：受理回执是排队时图态快照（revision 为当前顶、空 patch）
+        expect(receipt.revision).toBe(1);
+        expect(receipt.patch.objects.added).toHaveLength(0);
+      }
+    });
+    core.events((e) => {
+      if (e.type === "commit") seen.push(`evt:${e.revision}`);
+    });
+    const outer = await core.commit(
+      { changes: [{ op: "put", kind: "k", id: "outer" }] },
+      "cli",
+    );
+    expect(outer.revision).toBe(1);
+    // 排队提交真实落图：revision 2
+    expect(core.read({ ids: ["queued"] }).entities).toHaveLength(1);
+    expect(core.revision).toBe(2);
+    // 事件顺序：外层 1 先广播，排队 2 后广播（不嵌套 → 事件连续）
+    expect(seen).toEqual([1, "evt:1", 2, "evt:2"]);
+    // 排队提交入日志、可独立 undo
+    expect(core.tailLog().map((e) => e.label)).toContain("queued-by-after-hook");
+    expect(core.tailLog().at(-1)?.origin).toBe("module:m");
+    await core.undo(2, "cli");
+    expect(core.read().entities).toHaveLength(0);
+    core.dispose();
+  });
+
+  it("after-commit 排队提交被钩子 veto → 记 warning，外层提交不受影响（D21）", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    core.registerBeforeCommitHook((c) => {
+      if (c.origin === "module:poison") return { veto: "毒提交", details: { why: 1 } };
+    });
+    core.registerAfterCommitHook(() => {
+      core.commitSync(
+        { changes: [{ op: "put", kind: "k", id: "poisoned" }] },
+        "module:poison",
+      );
+    });
+    const outer = await core.commit(
+      { changes: [{ op: "put", kind: "k", id: "fine" }] },
+      "cli",
+    );
+    expect(outer.revision).toBe(1);
+    expect(core.read({ ids: ["fine"] }).entities).toHaveLength(1);
+    expect(core.read({ ids: ["poisoned"] }).entities).toHaveLength(0);
+    expect(core.revision).toBe(1); // 排队提交被拒，revision 不再前进
+    expect(core.warnings.some((w) => w.includes("VETOED") || w.includes("否决"))).toBe(true);
+    core.dispose();
+  });
+
+  it("registerModuleOwner + setLoadedModules：status/catalog 反映运行时模块集", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    expect(core.status().modules).toEqual([]);
+    core.registerModuleOwner("workflow", "wf");
+    core.setLoadedModules(["workflow"]);
+    expect(core.status().modules).toEqual(["workflow"]);
+    expect(core.catalog().modules).toEqual([
+      { id: "workflow", version: "0.0.0", namespace: "wf" },
+    ]);
+    core.dispose();
+  });
+});
