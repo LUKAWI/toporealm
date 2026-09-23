@@ -1,0 +1,19 @@
+format: toporealm.graph/v1
+id: legacy-research
+label: 注意力机制研究（0.x 遗留）
+
+modules:
+  - id: research
+    namespace: research
+    schema: 1
+  - id: exploration
+    namespace: exploration
+    schema: 1
+
+sources:
+  objects: objects/*.yaml
+  relations: relations/*.yaml
+
+meta:
+  created_at: '2026-09-08T10:00:00+08:00'
+  updated_at: '2026-09-08T12:30:00+08:00'

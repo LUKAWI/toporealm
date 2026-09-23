@@ -1,0 +1,13 @@
+id: q-conflict
+kind: research.question
+label: 键冲突样例
+data:
+  note: data 优先的备注
+  title: data 自带标题
+  meta: data 自带 meta
+capabilities:
+  note:
+    weight: 0.8
+meta:
+  created_at: '2026-09-08T09:00:00+08:00'
+extra_out_of_contract: 该字段不在 0.x 清单内，迁移时丢弃并报告

@@ -1,0 +1,5 @@
+id: r-dangling
+kind: research.supports
+source: q-001
+target: ghost-404
+direction: undirected
