@@ -19,7 +19,10 @@ beforeAll(async () => {
 });
 
 function makeCtx(): ContractSuiteContext {
-  const client = new MemoryClient();
+  // watch:false：外部编辑吸收走确定性 reconcileNow（ctx 注释语义）。
+  // 真实 fs.watch + 每用例重开 core 的组合在满载下会有滞留监视事件插进
+  // 后续用例的 undo 排空序列（偶发 UNKNOWN_ID），这里不需要真监视面。
+  const client = new MemoryClient({ watch: false });
   return {
     root,
     graphId: "g1",
