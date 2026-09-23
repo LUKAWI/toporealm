@@ -1,0 +1,14 @@
+format: toporealm.module/v2
+id: workflow-mini
+namespace: wf
+version: "1.0.0"
+requires:
+  modules: [example]
+kinds:
+  objects: [task]
+  relations: [blocks]
+ui:
+  color: "#3b82f6"
+  icon: "checkbox"
+  titleKey: title
+entry: ./index.js
