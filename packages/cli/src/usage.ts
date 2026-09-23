@@ -28,6 +28,9 @@ export const CORE_VERBS = [
   "redo",
   "cmds",
   "serve",
+  "module",
+  "migrate",
+  "host",
   "help",
   "version",
 ] as const;
@@ -60,6 +63,16 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   serve [--port P] [--no-open]  WebUI：确保 daemon 在跑（自动拉起带 web 伺服）→ 开浏览器
                                 （daemon detached 常驻，命令即退；D22）
 
+模块与分发（工作区文件层冷路径，不触 daemon；改动经 daemon 模块集摘要检测在下次触达生效）：
+  module add <npm|路径>         安装模块（npm 来源走 npm pack --ignore-scripts）→ 落位
+                                .toporealm/modules/<id>/ 并绑定；重复安装报 ID_EXISTS
+  module rm <id>                卸载（只删带安装器所有权标记的目录 + 绑定）
+  module list                   列出绑定模块（workspace/path/global 与安装来源）
+  migrate <旧图目录> [--dry-run]
+                                0.x v1 图 → 1.0 机械迁移 + 迁移报告；新图写入 graphs/ 并选中
+  host sync [--host claude-code|pi|all]
+                                宿主投影：claude-code plugin 打包 / pi extension+skills 打包
+
 模块命令（<ns.name> [target] [--input '<json>']，即顶层子命令）：
 `;
   if (commands && commands.length > 0) {
@@ -71,7 +84,6 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   }
   text += `
 help [cmd] / version           帮助（core 静态表 + 目录动态聚合，单一真相）与版本
-                               （module、migrate、host sync 在后续里程碑）
 `;
   return text;
 }

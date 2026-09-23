@@ -28,6 +28,14 @@ import {
   type Session,
 } from "@lukawi/toporealm-protocol";
 import {
+  hostSync,
+  installModule,
+  listModules,
+  migrateGraph,
+  removeModule,
+  type HostId,
+} from "@lukawi/toporealm-distribution";
+import {
   Argv,
   CORE_VERBS,
   UsageError,
@@ -685,6 +693,109 @@ async function dispatch(
           revision: r.revision,
         };
       });
+    }
+    case "module": {
+      // module add <npm|路径> | module rm <id> | module list（D23①：工作区冷路径安装）
+      const sub = args[0];
+      const a = new Argv(args.slice(1));
+      const root = g.root ?? defaultRoot(deps);
+      if (sub === "add") {
+        const source = a.positionals()[0];
+        if (!source) throw new UsageError("用法：toporealm module add <npm包|路径>");
+        if (a.flag("--global")) {
+          throw new UsageError(
+            "--global 暂未支持（安装器只交付工作区安装，D23①）",
+            "toporealm module add <npm包|路径>",
+          );
+        }
+        const r = await installModule({ root, source });
+        const origin = r.origin.type === "npm" ? `npm:${r.origin.spec}` : `path:${r.origin.path}`;
+        return {
+          envelope: { ok: true, data: r },
+          human: `installed ${r.id} @ ${r.version} (${origin})\n  → ${r.dir}\n  ${r.note}`,
+        };
+      }
+      if (sub === "rm") {
+        const id = a.positionals()[0];
+        if (!id) throw new UsageError("用法：toporealm module rm <id>");
+        const r = await removeModule({ root, id });
+        return {
+          envelope: { ok: true, data: r },
+          human: `removed ${r.id}\n  ${r.note}`,
+        };
+      }
+      if (sub === "list") {
+        const rows = await listModules(root);
+        const human =
+          rows
+            .map((m) => {
+              const origin =
+                m.origin !== undefined
+                  ? m.origin.type === "npm"
+                    ? `npm:${m.origin.spec}`
+                    : `path:${m.origin.path}`
+                  : undefined;
+              return `  ${m.id}\t${m.source}${m.version !== undefined ? `\t${m.version}` : ""}${
+                m.namespace !== undefined ? `\t(ns: ${m.namespace})` : ""
+              }${origin !== undefined ? `\t← ${origin}` : ""}`;
+            })
+            .join("\n") || "  (no modules)";
+        return {
+          envelope: { ok: true, data: { modules: rows } },
+          human: `${rows.length} module(s):\n${human}`,
+        };
+      }
+      throw new UsageError(
+        `未知 module 子命令 "${sub ?? ""}"（合法：add | rm | list）`,
+        "toporealm help module",
+      );
+    }
+    case "migrate": {
+      const a = new Argv(args);
+      const dryRun = a.flag("--dry-run");
+      const oldDir = a.positionals()[0];
+      if (!oldDir) throw new UsageError("用法：toporealm migrate <旧图目录> [--dry-run]");
+      const root = g.root ?? defaultRoot(deps);
+      const report = await migrateGraph({ root, oldDir, ...(dryRun ? { dryRun: true } : {}) });
+      const conflicts = report.conflicts.length;
+      const problems = report.errors.length + report.dangling.length;
+      const human =
+        (report.dryRun ? "[dry-run] " : "") +
+        `migrated "${report.graph.id}" → ${report.target}\n` +
+        `  revision ${report.graph.revision}（undo 游标清零；历史不迁移）· objects ${report.objects.migrated} · relations ${report.relations.migrated}` +
+        (report.objects.skipped + report.relations.skipped > 0
+          ? ` · skipped ${report.objects.skipped + report.relations.skipped}`
+          : "") +
+        `\n  conflicts ${conflicts} · degradations ${report.degradations.length} · dangling ${report.dangling.length} · errors ${report.errors.length}` +
+        (problems + conflicts > 0
+          ? `\n  （明细见 --json 信封：error.conflicts/degradations/dangling/errors）`
+          : "");
+      return { envelope: { ok: true, data: report }, human };
+    }
+    case "host": {
+      const sub = args[0];
+      if (sub !== "sync") {
+        throw new UsageError(`未知 host 子命令 "${sub ?? ""}"（合法：sync）`, "toporealm help host");
+      }
+      const a = new Argv(args.slice(1));
+      const hostFlag = a.value("--host");
+      let hosts: HostId[] | undefined;
+      if (hostFlag !== undefined && hostFlag !== "all") {
+        if (hostFlag !== "claude-code" && hostFlag !== "pi") {
+          throw new UsageError(`--host 非法："${hostFlag}"（合法：claude-code | pi | all）`);
+        }
+        hosts = [hostFlag];
+      }
+      const root = g.root ?? defaultRoot(deps);
+      const r = await hostSync({ root, ...(hosts !== undefined ? { hosts } : {}) });
+      return {
+        envelope: { ok: true, data: r },
+        human:
+          `host sync（${r.modules.length} module(s) 投影）\n` +
+          r.hosts
+            .map((h) => `  ${h.host}: ${h.dir}\n    ${h.files.map((f) => `${f}`).join("\n    ")}`)
+            .join("\n"),
+      };
     }
     default:
       throw new UsageError(
