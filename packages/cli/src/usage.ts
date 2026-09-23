@@ -27,6 +27,7 @@ export const CORE_VERBS = [
   "undo",
   "redo",
   "cmds",
+  "serve",
   "help",
   "version",
 ] as const;
@@ -56,6 +57,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   undo [N] / redo [N]           撤销/重做 N 步
   log [-n N]                    提交日志尾读
   cmds [--module ns]            命令目录自省（did-you-mean 的真相源）
+  serve [--port P] [--no-open]  WebUI：确保 daemon 在跑（自动拉起带 web 伺服）→ 开浏览器
+                                （daemon detached 常驻，命令即退；D22）
 
 模块命令（<ns.name> [target] [--input '<json>']，即顶层子命令）：
 `;
@@ -68,7 +71,7 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   }
   text += `
 help [cmd] / version           帮助（core 静态表 + 目录动态聚合，单一真相）与版本
-                               （serve、module、migrate、host sync 在后续里程碑）
+                               （module、migrate、host sync 在后续里程碑）
 `;
   return text;
 }

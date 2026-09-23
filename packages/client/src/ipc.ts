@@ -61,6 +61,37 @@ function defaultDaemonCommand(): { cmd: string; args: string[] } {
   };
 }
 
+/**
+ * 拉起单属主 daemon（detached 常驻，blueprint §5）：脱离拉起者独立存活，
+ * 退出由空闲超时/清理路径负责。toporealm serve 复用（可附 --web-port 等参数）。
+ */
+export function spawnDaemonDetached(
+  target: { root: string; graphId: string },
+  extraArgs: string[] = [],
+  cmd: { cmd: string; args: string[] } | undefined = undefined,
+): void {
+  const c = cmd ?? defaultDaemonCommand();
+  try {
+    const child = spawn(
+      c.cmd,
+      [...c.args, "--root", target.root, "--graph", target.graphId, ...extraArgs],
+      {
+        // detached：daemon 必须脱离拉起者独立常驻（blueprint §5）——拉起它的
+        // CLI/中间进程退出时不得连带被杀（POSIX 入新进程组，Windows 独立作业）。
+        detached: true,
+        stdio: "ignore", // 不继承 stdio 句柄：拉起者退出关闭管道也不波及 daemon
+        windowsHide: true,
+      },
+    );
+    child.unref(); // 父进程事件循环不为它保持存活
+  } catch (err) {
+    throw new TopoError({
+      code: "DAEMON_UNREACHABLE",
+      message: `无法拉起 daemon：${String(err)}`,
+    });
+  }
+}
+
 function connectSocket(address: string, timeoutMs: number): Promise<net.Socket> {
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -166,26 +197,7 @@ export class IpcClient implements DaemonClient {
   }
 
   private spawnDaemon(target: ResolvedTarget): void {
-    const cmd = this.opts.daemonCommand ?? defaultDaemonCommand();
-    try {
-      const child = spawn(
-        cmd.cmd,
-        [...cmd.args, "--root", target.root, "--graph", target.graphId],
-        {
-          // detached：daemon 必须脱离拉起者独立常驻（blueprint §5）——拉起它的
-          // CLI/中间进程退出时不得连带被杀（POSIX 入新进程组，Windows 独立作业）。
-          detached: true,
-          stdio: "ignore", // 不继承 stdio 句柄：拉起者退出关闭管道也不波及 daemon
-          windowsHide: true,
-        },
-      );
-      child.unref(); // 父进程事件循环不为它保持存活；退出由空闲超时/清理路径负责
-    } catch (err) {
-      throw new TopoError({
-        code: "DAEMON_UNREACHABLE",
-        message: `无法拉起 daemon：${String(err)}`,
-      });
-    }
+    spawnDaemonDetached(target, [], this.opts.daemonCommand);
   }
 }
 

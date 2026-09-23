@@ -2,12 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createRequire } from "node:module";
+import { spawn } from "node:child_process";
 import {
   IpcClient,
   activateGraph,
+  clearEndpoint,
+  isPidAlive,
   listGraphs,
   provisionGraph,
+  readEndpoint,
   resolveTarget,
+  spawnDaemonDetached,
 } from "@lukawi/toporealm-client";
 import {
   TopoError,
@@ -44,6 +49,22 @@ export interface CliDeps {
   cwd?: string;
   out?: (s: string) => void;
   err?: (s: string) => void;
+  /** serve 动词注入：覆盖 daemon 启动命令（测试） */
+  daemonCommand?: { cmd: string; args: string[] };
+  /** serve 动词注入：打开浏览器（测试断言 URL） */
+  openBrowser?: (url: string) => void;
+}
+
+/** 系统默认浏览器打开 URL（serve 默认实现；失败由调用方兜底） */
+function openInBrowser(url: string): void {
+  const plat = process.platform;
+  const child =
+    plat === "win32"
+      ? spawn("cmd", ["/c", "start", "", url], { detached: true, stdio: "ignore", windowsHide: true })
+      : plat === "darwin"
+        ? spawn("open", [url], { detached: true, stdio: "ignore" })
+        : spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
+  child.unref();
 }
 
 interface Globals {
@@ -576,6 +597,72 @@ async function dispatch(
           human: `${cat.modules.length} module(s):\n${modules}\n${cat.commands.length} command(s):\n${cmds}`,
         };
       });
+    }
+    case "serve": {
+      // serve [--port P] [--no-open]（blueprint §4 + D22）：确保带 web 伺服的 daemon
+      // 在跑（必要时自动拉起 detached toporeald）→ 打开浏览器即退；daemon 常驻服务。
+      const a = new Argv(args);
+      const port = a.numberValue("--port");
+      const noOpen = a.flag("--no-open");
+      const root = g.root ?? defaultRoot(deps);
+      const target = await resolveTarget({
+        root,
+        ...(g.graph !== undefined ? { graph: g.graph } : {}),
+        env,
+      });
+      const open = deps.openBrowser ?? openInBrowser;
+      const announce = (ep: { webPort: number; pid: number; graphId: string }): VerbOutcome => {
+        const url = `http://127.0.0.1:${ep.webPort}`;
+        if (!noOpen) {
+          try {
+            open(url);
+          } catch (err) {
+            // 打开浏览器失败不作为命令失败（服务器本身已就绪）
+            void err;
+          }
+        }
+        return {
+          envelope: { ok: true, data: { url, port: ep.webPort, pid: ep.pid, graphId: ep.graphId } },
+          human: `WebUI: ${url}（daemon pid ${ep.pid}，图 "${ep.graphId}"；Ctrl+C 无关紧要——daemon 常驻，toporeald 负责生命周期）`,
+        };
+      };
+      const ep0 = await readEndpoint(root);
+      if (ep0 !== null && isPidAlive(ep0.pid)) {
+        if (ep0.webPort === undefined) {
+          throw new TopoError({
+            code: "DAEMON_UNREACHABLE",
+            message: "运行中的 daemon 未开启 web 伺服",
+            hint: "老 daemon 不带 web；停止后重试 serve（客户端会自动拉起带 web 的新 daemon）",
+          });
+        }
+        return announce({ webPort: ep0.webPort, pid: ep0.pid, graphId: ep0.graphId });
+      }
+      // 无 daemon（或陈旧 endpoint）：清掉重拉，拉起时传递端口诉求
+      if (ep0 !== null) await clearEndpoint(root).catch(() => {});
+      spawnDaemonDetached(
+        { root: target.root, graphId: target.graphId },
+        port !== undefined ? ["--web-port", String(port)] : [],
+        deps.daemonCommand,
+      );
+      const deadline = Date.now() + 20_000;
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 150));
+        const ep = await readEndpoint(root).catch(() => null);
+        if (ep !== null && ep.webPort !== undefined) {
+          return announce({
+            webPort: ep.webPort,
+            pid: ep.pid,
+            graphId: ep.graphId,
+          });
+        }
+        if (Date.now() > deadline) {
+          throw new TopoError({
+            code: "DAEMON_UNREACHABLE",
+            message: "daemon 拉起超时（endpoint 未就绪或未开启 web）",
+            hint: "手动运行 toporeald --web-port <p> 观察输出",
+          });
+        }
+      }
     }
     case "undo":
     case "redo": {
