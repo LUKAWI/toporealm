@@ -247,7 +247,8 @@ export class DaemonCore {
       last = await this.convert({
         kind: "undo",
         origin,
-        changes: entry.inverse,
+        // 逆序应用（LIFO）：正向依赖序的镜像，保证不产生瞬态悬空
+        changes: [...entry.inverse].reverse(),
         append: false,
       });
     }
@@ -355,13 +356,23 @@ export class DaemonCore {
     const from = opts?.fromRevision;
     if (from !== undefined && from !== this.revision_) {
       if (from < this.revision_) {
-        const tail = this.logEntries.slice(this.cursor);
+        // 回放免全量：已应用段中 revision > from 的条目，且 revision 连续、
+        // 末项恰好等于当前 revision（若中间发生过 undo/redo，转换 revision 不入日志，
+        // 无法从日志重建 → 发 reset 让客户端全量重读自愈）
+        const applied = this.logEntries
+          .slice(0, this.cursor)
+          .filter((e) => e.revision > from);
         const contiguous =
-          tail.length === this.revision_ - from &&
-          tail.every((e, i) => e.revision === from + 1 + i);
-        if (contiguous && tail.every((e) => e.patch !== undefined)) {
+          applied.length > 0 &&
+          applied[0]?.revision === from + 1 &&
+          applied[applied.length - 1]?.revision === this.revision_ &&
+          applied.every(
+            (e, i) =>
+              i === 0 || e.revision === (applied[i - 1] as StoredLogEntry).revision + 1,
+          );
+        if (contiguous && applied.every((e) => e.patch !== undefined)) {
           // 回放免全量：日志段连续且带 patch
-          for (const e of tail) {
+          for (const e of applied) {
             listener({
               type: "commit",
               revision: e.revision,
