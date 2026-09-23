@@ -21,7 +21,9 @@
   "dependencies": {
     "@lukawi/toporealm-protocol": "1.0.0",
     "@lukawi/toporealm-client": "1.0.0",
-    "@lukawi/toporealm-distribution": "1.0.0"
+    "@lukawi/toporealm-distribution": "1.0.0",
+    "@lukawi/toporealm-daemon": "1.0.0",
+    "tsx": "^4.20.6"
   },
   "publishConfig": {
     "access": "public"

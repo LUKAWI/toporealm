@@ -4,6 +4,12 @@
 
 TopoRealm 1.0 重建完成（M1–M5，blueprint §9）。本仓库不含领域模块；workflow 模块的 1.0 移植见 [toporealm-workflow](https://github.com/LUKAWI/toporealm-workflow)（同步发布 1.0.0）。
 
+### 发布形态（发布前补齐）
+
+- 新增聚合包 `@lukawi/toporealm`（blueprint §2 发布物）：bin `toporealm` + `toporeald`，依赖 cli/daemon/client/distribution。
+- `cli`/`daemon` 增 `tsx` 运行时依赖（bin 包装器 TS 加载，装完即用）；`cli` 增 `daemon` 依赖（独立安装亦可透明拉起 daemon）。
+- README 重写为发布形态（中/英）。
+
 ### M1 骨架
 
 - `protocol`：全量契约类型 + 错误码封闭集（§1.1 全表，只增不改义）。

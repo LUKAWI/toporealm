@@ -1,0 +1,42 @@
+{
+  "name": "@lukawi/toporealm",
+  "version": "1.0.0",
+  "description": "TopoRealm 1.0 — single-owner daemon graph workspace (aggregate: toporealm CLI + toporeald daemon). Minimal core, two-layer modules, one local graph shared by humans and agents.",
+  "keywords": [
+    "toporealm",
+    "graph",
+    "daemon",
+    "agents",
+    "cli",
+    "workflow"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LUKAWI/toporealm.git"
+  },
+  "homepage": "https://github.com/LUKAWI/toporealm#readme",
+  "bugs": {
+    "url": "https://github.com/LUKAWI/toporealm/issues"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "bin": {
+    "toporealm": "./bin/toporealm.mjs",
+    "toporeald": "./bin/toporeald.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "dependencies": {
+    "@lukawi/toporealm-cli": "1.0.0",
+    "@lukawi/toporealm-client": "1.0.0",
+    "@lukawi/toporealm-daemon": "1.0.0",
+    "@lukawi/toporealm-distribution": "1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

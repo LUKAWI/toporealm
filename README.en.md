@@ -1,10 +1,61 @@
 # TopoRealm
 
-**An agent-first, local-first graph workspace: a minimal core (daemon + CLI + WebUI) with a highly customizable two-layer module system.**
+**An agent-first, local-first graph workspace: a minimal core (single-owner daemon + CLI + realtime WebUI) with a highly customizable two-layer module system.**
 
-> ⚠️ **A ground-up 1.0 rebuild is in progress; no installable version exists yet.**
-> See the [blueprint](docs/rebuild/blueprint.md) (implementation spec) and [issue #1](https://github.com/LUKAWI/toporealm/issues/1) (development spec).
+One local graph, written and read by humans and agents together: people work in the terminal and the browser, agents work through the CLI and skills — everything lands on the same resident daemon, where every change is seen live by everyone, undoable, and auditable.
+
+Design inspired by [pi](https://github.com/badlogic/pi-mono): the smallest possible core, systematic extensions, and one local graph shared by humans and agents.
+
+## Install
+
+```bash
+npm install -g @lukawi/toporealm        # two bins: toporealm (CLI) + toporeald (daemon)
+```
+
+Requires Node ≥ 20.6. For third-party integrations, install `@lukawi/toporealm-client` on its own.
+
+## Quick start
+
+```bash
+toporealm new mygraph
+toporealm add wf.task --id t-1 --payload '{"title":"Write blueprint","status":"todo"}'
+toporealm add wf.task --id t-2 --payload '{"title":"Review blueprint"}'
+toporealm link t-1 t-2 --kind wf.blocks
+toporealm find status=todo             # shallow payload equality search
+toporealm set t-1 status=doing         # daemon-side shallow merge; k=null deletes a key
+toporealm serve                        # open the WebUI: live sync, no refresh
+toporealm undo                         # everything is undoable (external edits included)
+```
+
+The daemon is transparently spawned on first contact and exits when idle; browsers and multiple terminal sessions on the same graph stay in sync in real time.
+
+## Install a domain module, get commands
+
+```bash
+toporealm module add @lukawi/toporealm-workflow    # install the workflow domain module
+toporealm cmds                                     # introspect: wf.* commands become top-level subcommands
+toporealm wf.create-task --input '{"title":"First task"}'
+toporealm host sync --host all                     # project skills/hooks for Claude Code and Pi
+```
+
+Modules are two-layer: `module.yaml` declares identity/namespace/vocabulary (coordination), `activate(api)` registers commands, forms and hooks (behavior). The core enforces exactly two rules — the **ownership rule** (a module may only touch kinds in its own namespace) and the **dangling-relation check**; all domain rules live in module before-commit hooks (with before/after snapshots, named veto against changes from any origin). To write your own module, install [`@lukawi/toporealm-module-sdk`](https://www.npmjs.com/package/@lukawi/toporealm-module-sdk) and follow the types.
+
+## For agents
+
+- Every command speaks a constant `--json` envelope (success: `data/revision/instanceId`; failure: `code/message/hint/fix`), exit codes `0/1/2`, copy-pasteable fix commands, and did-you-mean on mistyped ids.
+- Agent main-path budget: `status → find → set → link → set → log` ≈ 6 commands.
+- `toporealm host sync` projects base and module skills for Claude Code (plugin) and Pi (extension/skills).
+
+## Architecture & docs
+
+One sentence: **humans via CLI, agents via CLI+skills, browsers via WS — all hitting a single-owner daemon; modules are two-layer extensions loaded into the daemon; the core enforces exactly two rules.**
+
+Primary documentation is in Chinese: [blueprint](docs/rebuild/blueprint.md) (implementation spec) · [glossary](CONTEXT.md) · [ADRs](docs/adr/) · [project status](docs/PROJECT-STATUS.md) · [design philosophy](Toporealm设计构想.md) · [CHANGELOG](CHANGELOG.md).
+
+> **Library consumers**: the `-*` subpackages currently ship TS sources directly (`main`/`exports` point at `src/*.ts`); consuming them as libraries requires TS runtime support. The CLI/daemon bins bundle tsx loading and work out of the box.
 >
-> The 0.x line (npm `@lukawi/toporealm@preview`, up to 0.1.3) is archived: code and docs remain on the `v0.1.x` tags and [GitHub Releases](https://github/LUKAWI/toporealm/releases). Primary documentation is in Chinese — start with the [Chinese README](README.md).
+> **0.x is archived**: npm `@lukawi/toporealm@preview` (up to 0.1.3) is frozen; code and docs remain on the `v0.1.x` tags and [GitHub Releases](https://github.com/LUKAWI/toporealm/releases). Old graphs migrate via `toporealm migrate`.
 
-License: [MIT](LICENSE)
+## License
+
+[MIT](LICENSE)
