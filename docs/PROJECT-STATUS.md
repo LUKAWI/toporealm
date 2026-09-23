@@ -2,7 +2,11 @@
 
 状态快照：2026-09-23。
 
-## 当前阶段：M1–M5 全部完成，1.0.0 代码就绪待发布（发布动作留属主）
+## 当前阶段：1.0.0 已发布（2026-09-23，npm + GitHub Release；web-ui 按既定边界保持 private）
+
+发布前补齐：聚合包 `@lukawi/toporealm`（blueprint §2 发布物）、cli/daemon 的 tsx 运行时依赖、
+README 发布形态重写（中/英）；真实浏览器人工验收已执行并通过（无刷新实时同步 / 外部编辑自愈 /
+开页空闲保活 / 节点检查器，详见 `docs/releases/v1.0.0.md`）。
 
 决策（D1–D17，另有 D18–D24 实现期补遗记录于 blueprint §1.4–§1.7）、ADR、接口设计与完整开发 Spec 已收口。重建为 npm workspaces monorepo，九个后端包 + web-ui 前端包就位：
 
