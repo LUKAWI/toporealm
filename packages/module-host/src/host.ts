@@ -360,9 +360,19 @@ export class ModuleHost {
   // ---------- 目录聚合（D12：目录永远等于注册事实） ----------
 
   catalog(module?: string): Catalog {
+    // --module 按模块 id 或 namespace 收窄范围（cli cmds [--module ns]）
+    const scope =
+      module !== undefined
+        ? new Set(
+            [...this.loaded.values()]
+              .filter((m) => m.id === module || m.namespace === module)
+              .map((m) => m.id),
+          )
+        : undefined;
     const kinds = new Map<Kind, Catalog["kinds"][number]>();
     // 声明层投影优先（带 ui color/icon），活图 kind 兜底（core 聚合，owner 取命名空间前缀）
     for (const m of this.loaded.values()) {
+      if (scope && !scope.has(m.id)) continue;
       const ui = m.manifest.ui;
       for (const kind of m.declaredKinds) {
         kinds.set(kind, {
@@ -385,21 +395,12 @@ export class ModuleHost {
         ...(c.spec.input !== undefined ? { input: c.spec.input } : {}),
       }),
     );
-    if (module !== undefined) {
-      // --module 按模块 id 或 namespace 过滤（cli cmds [--module ns]）
-      const ids = new Set(
-        [...this.loaded.values()]
-          .filter((m) => m.id === module || m.namespace === module)
-          .map((m) => m.id),
-      );
-      commands = commands.filter((c) => ids.has(c.module));
-    }
+    if (scope) commands = commands.filter((c) => scope.has(c.module));
+    const modules = [...this.loaded.values()]
+      .filter((m) => !scope || scope.has(m.id))
+      .map((m) => ({ id: m.id, version: m.version, namespace: m.namespace }));
     return {
-      modules: [...this.loaded.values()].map((m) => ({
-        id: m.id,
-        version: m.version,
-        namespace: m.namespace,
-      })),
+      modules,
       kinds: [...kinds.values()].sort((a, b) => a.kind.localeCompare(b.kind)),
       commands,
     };
