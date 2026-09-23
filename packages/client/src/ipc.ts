@@ -95,6 +95,7 @@ export class IpcClient implements DaemonClient {
     const deadline = Date.now() + (this.opts.connectTimeoutMs ?? 10_000);
     let spawnCount = 0;
     let staleCount = 0;
+    let lastSpawnAt = 0;
     for (;;) {
       if (Date.now() > deadline) {
         throw new TopoError({
@@ -116,7 +117,8 @@ export class IpcClient implements DaemonClient {
               });
             }
             await waitForPidExit(ep.pid);
-            continue; // 旧 daemon 退出后下一轮自动重拉
+            lastSpawnAt = 0; // 旧 daemon 已退，下一轮允许立即重拉
+            continue;
           }
           // socket 连不上（僵死 endpoint）→ 清掉重拉
           await clearEndpoint(target.root).catch(() => {});
@@ -128,16 +130,15 @@ export class IpcClient implements DaemonClient {
         await clearEndpoint(target.root).catch(() => {});
         continue;
       }
-      if (spawnCount >= 2) {
-        throw new TopoError({
-          code: "DAEMON_UNREACHABLE",
-          message: "daemon 无法拉起或反复退出",
-          hint: "手动运行 toporeald 查看错误输出",
-        });
+      // 无 endpoint：拉起（上限 2 次）；已拉起则耐心等冷启动（tsx 装载 ~1-2s），
+      // 超过 4s 仍无 endpoint 才允许第二次拉起（防崩溃循环但不误判慢启动）
+      const now = Date.now();
+      if (spawnCount === 0 || (spawnCount < 2 && now - lastSpawnAt > 4000)) {
+        this.spawnDaemon(target);
+        spawnCount++;
+        lastSpawnAt = now;
       }
-      this.spawnDaemon(target);
-      spawnCount++;
-      await sleep(150);
+      await sleep(120);
     }
   }
 

@@ -7,7 +7,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
   },
   "bin": {
     "toporealm": "./bin/toporealm.mjs"
@@ -19,8 +20,7 @@
   ],
   "dependencies": {
     "@lukawi/toporealm-protocol": "1.0.0-alpha.1",
-    "@lukawi/toporealm-client": "1.0.0-alpha.1",
-    "yaml": "^2.8.1"
+    "@lukawi/toporealm-client": "1.0.0-alpha.1"
   },
   "publishConfig": {
     "access": "public"

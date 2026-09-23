@@ -1,0 +1,554 @@
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { createRequire } from "node:module";
+import {
+  IpcClient,
+  activateGraph,
+  listGraphs,
+  provisionGraph,
+  resolveTarget,
+} from "@lukawi/toporealm-client";
+import {
+  TopoError,
+  isRelation,
+  isValidGraphId,
+  suggestClosest,
+  type Change,
+  type DaemonClient,
+  type EntityRecord,
+  type GraphSummary,
+  type ReadQuery,
+  type Session,
+} from "@lukawi/toporealm-protocol";
+import {
+  Argv,
+  CORE_VERBS,
+  UsageError,
+  helpText,
+  parseJsonObject,
+  parseKvPairs,
+  unknownVerbSuggestion,
+} from "./usage.js";
+
+// ---------- toporealm CLI：人与 agent 的共同入口（blueprint §4） ----------
+// 信封：--json 成功 {ok:true,data,revision?,instanceId}；失败 stderr {ok:false,error}
+// 退出码：0 成功 · 1 领域错误 · 2 用法错误（本地解析，不触 daemon）
+
+export interface CliDeps {
+  /** 测试注入（golden 信封用 MemoryClient 后端，blueprint §8） */
+  clientFactory?: () => DaemonClient;
+  env?: NodeJS.ProcessEnv;
+  cwd?: string;
+  out?: (s: string) => void;
+  err?: (s: string) => void;
+}
+
+interface Globals {
+  json: boolean;
+  root?: string;
+  graph?: string;
+  rest: string[];
+}
+
+function extractGlobals(argv: string[], env: NodeJS.ProcessEnv): Globals {
+  const rest = [...argv];
+  const json = rest.includes("--json");
+  if (json) rest.splice(rest.indexOf("--json"), 1);
+  let root: string | undefined;
+  let graph: string | undefined;
+  for (;;) {
+    const ri = rest.indexOf("--root");
+    if (ri >= 0) {
+      root = (rest[ri + 1] as string) ?? undefined;
+      rest.splice(ri, 2);
+      continue;
+    }
+    const gi = rest.indexOf("--graph");
+    if (gi >= 0) {
+      graph = (rest[gi + 1] as string) ?? undefined;
+      rest.splice(gi, 2);
+      continue;
+    }
+    break;
+  }
+  return {
+    json,
+    root: root ?? env.TOPOREALM_ROOT ?? undefined,
+    graph: graph ?? env.TOPOREALM_GRAPH ?? undefined,
+    rest,
+  };
+}
+
+function defaultRoot(deps: CliDeps): string {
+  return path.resolve(deps.cwd ?? process.cwd());
+}
+
+interface VerbOutcome {
+  envelope: Record<string, unknown>;
+  human: string;
+}
+
+function okEnvelope(
+  data: unknown,
+  extra: { revision?: number; instanceId?: string } = {},
+): Record<string, unknown> {
+  const e: Record<string, unknown> = { ok: true, data };
+  if (extra.revision !== undefined) e.revision = extra.revision;
+  if (extra.instanceId !== undefined) e.instanceId = extra.instanceId;
+  return e;
+}
+
+async function withSession(
+  deps: CliDeps,
+  root: string,
+  graph: string | undefined,
+  fn: (s: Session) => Promise<{ data: unknown; human: string; revision?: number }>,
+): Promise<VerbOutcome> {
+  const client = deps.clientFactory?.() ?? new IpcClient();
+  const s = await client.connect({
+    root,
+    ...(graph !== undefined ? { graph } : {}),
+  });
+  try {
+    const r = await fn(s);
+    return {
+      envelope: okEnvelope(r.data, {
+        ...(r.revision !== undefined ? { revision: r.revision } : {}),
+        instanceId: s.instanceId,
+      }),
+      human: r.human,
+    };
+  } finally {
+    await s.close();
+  }
+}
+
+// ---------- 人类可读输出 ----------
+
+function humanSummary(s: GraphSummary): string {
+  const counts =
+    Object.entries(s.counts)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(" ") || "(empty)";
+  return (
+    `${s.graphId} @ rev ${s.revision} · ${counts}\n` +
+    `  undo ${s.canUndo ? "✓" : "✗"} · redo ${s.canRedo ? "✓" : "✗"} · modules ${s.modules.length}`
+  );
+}
+
+function humanEntities(entities: readonly EntityRecord[]): string {
+  if (entities.length === 0) return "  (0 entities)";
+  return entities
+    .map((e) => {
+      // 投影后的实体可能没有 payload
+      const title =
+        typeof e.payload?.["title"] === "string"
+          ? ` ${e.payload["title"] as string}`
+          : "";
+      if (isRelation(e)) {
+        return `  ${e.id} [${e.kind}] ${e.source} -> ${e.target}${title}`;
+      }
+      return `  ${e.id} [${e.kind}]${title}`;
+    })
+    .join("\n");
+}
+
+// ---------- 动词分发 ----------
+
+async function dispatch(
+  g: Globals,
+  deps: CliDeps,
+): Promise<VerbOutcome> {
+  const verb = g.rest[0] as string | undefined;
+  const args = g.rest.slice(1);
+  const env = deps.env ?? {};
+
+  if (verb === undefined || verb === "help") {
+    return { envelope: { ok: true, data: { verbs: CORE_VERBS } }, human: helpText() };
+  }
+  if (verb === "version") {
+    const req = createRequire(import.meta.url);
+    const pkg = JSON.parse(
+      fs.readFileSync(req.resolve("@lukawi/toporealm-cli/package.json"), "utf8"),
+    ) as { version: string };
+    return {
+      envelope: { ok: true, data: { version: pkg.version } },
+      human: `toporealm ${pkg.version} (contract toporealm.graph/v2)`,
+    };
+  }
+  if (!verb.includes("-")) {
+    // 未知核心动词 → 用法错误（did-you-mean）
+    if (!(CORE_VERBS as readonly string[]).includes(verb)) {
+      throw new UsageError(
+        `未知命令 "${verb}"${unknownVerbSuggestion(verb)}`,
+        "toporealm help",
+      );
+    }
+  }
+
+  switch (verb) {
+    // ---- 图生命周期（工作区文件操作，不进 daemon 缝） ----
+    case "new": {
+      const a = new Argv(args);
+      const name = a.positionals()[0];
+      if (!name) throw new UsageError("用法：toporealm new <graph> [--label L]");
+      if (!isValidGraphId(name)) {
+        throw new UsageError(
+          `图 id 非法："${name}"（将用作目录名，禁 / \\ : 空格与控制字符）`,
+        );
+      }
+      const label = a.value("--label");
+      const root = g.root ?? defaultRoot(deps);
+      await provisionGraph(root, name, label);
+      return {
+        envelope: { ok: true, data: { graph: name } },
+        human: `created graph "${name}" — selected`,
+      };
+    }
+    case "use": {
+      const a = new Argv(args);
+      const name = a.positionals()[0];
+      if (!name) throw new UsageError("用法：toporealm use <graph>");
+      if (!isValidGraphId(name)) throw new UsageError(`图 id 非法："${name}"`);
+      const root = g.root ?? defaultRoot(deps);
+      await activateGraph(root, name);
+      return {
+        envelope: { ok: true, data: { graph: name } },
+        human: `switched to graph "${name}"`,
+      };
+    }
+    case "graphs": {
+      const root = g.root ?? defaultRoot(deps);
+      let current: string | undefined;
+      try {
+        current = (
+          await resolveTarget({
+            root,
+            ...(g.graph !== undefined ? { graph: g.graph } : {}),
+            env,
+          })
+        ).graphId;
+      } catch {
+        current = undefined;
+      }
+      const graphs = await listGraphs(root, current);
+      return {
+        envelope: { ok: true, data: { graphs } },
+        human:
+          graphs.map(
+            (e) =>
+              `${e.current ? "* " : "  "}${e.id}${e.label !== undefined ? ` — ${e.label}` : ""} (rev ${e.revision})`,
+          ).join("\n") || "  (no graphs)",
+      };
+    }
+
+    // ---- 图事实面（经单属主 daemon） ----
+    case "status": {
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const st = await s.status();
+        return { data: st, human: humanSummary(st), revision: st.revision };
+      });
+    }
+    case "read": {
+      const a = new Argv(args);
+      // 先吃 flag，再取位置参数（否则 flag 会被误当实体 id）
+      const kinds = a.values("--kind");
+      const wheres = a.values("--where");
+      const fields = a.values("--fields");
+      const limit = a.numberValue("--limit");
+      const pos = a.positionals();
+      const id = pos[0];
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        if (id !== undefined) {
+          // 单点邻域：实体 + 触达它的关系
+          const res = await s.read({ ids: [id] });
+          if (res.entities.length === 0) {
+            const all = await s.read({ fields: ["id"] });
+            const candidates = all.entities.map((e) => e.id);
+            const suggestions = suggestClosest(id, candidates);
+            throw new TopoError({
+              code: "UNKNOWN_ID",
+              message: `实体不存在："${id}"`,
+              hint:
+                suggestions.length > 0
+                  ? `是不是想用 "${suggestions[0] as string}"？`
+                  : "用 toporealm find 查现存实体",
+              details: { id, suggestions },
+            });
+          }
+          const entity = res.entities[0] as EntityRecord;
+          const allRels = await s.read();
+          const relations = allRels.entities
+            .filter(isRelation)
+            .filter((r) => r.source === id || r.target === id);
+          return {
+            data: { entity, relations },
+            human: humanEntities([entity]) + `\n  · ${relations.length} relation(s)`,
+            revision: res.revision,
+          };
+        }
+        const query: ReadQuery = {};
+        if (kinds.length > 0) query.kinds = kinds;
+        if (wheres.length > 0) {
+          query.where = wheres.map((w) => {
+            const eq = parseKvPairs([w]);
+            const [k, v] = Object.entries(eq)[0] as [string, unknown];
+            return { eq: { [k]: v } };
+          });
+        }
+        if (fields.length > 0) query.fields = fields as ReadQuery["fields"];
+        const res = await s.read(query);
+        const entities =
+          limit !== undefined ? res.entities.slice(0, limit) : res.entities;
+        return {
+          data: { revision: res.revision, entities },
+          human: `${entities.length} entity(ies) @ rev ${res.revision}\n${humanEntities(entities)}`,
+          revision: res.revision,
+        };
+      });
+    }
+    case "find": {
+      const a = new Argv(args);
+      const kinds = a.values("--kind");
+      const fields = a.values("--fields");
+      const kvArgs = a.positionals();
+      if (kvArgs.length === 0) {
+        throw new UsageError("用法：toporealm find <k=v>... [--kind K] [--fields f]");
+      }
+      const eq = parseKvPairs(kvArgs);
+      const where = [
+        ...kinds.map((kind) => ({ kind, eq })),
+        ...(kinds.length > 0 ? [] : [{ eq }]),
+      ];
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const res = await s.read({
+          where,
+          ...(fields.length > 0 ? { fields: fields as ReadQuery["fields"] } : {}),
+        });
+        return {
+          data: { revision: res.revision, entities: res.entities },
+          human: `${res.entities.length} hit(s) @ rev ${res.revision}\n${humanEntities(res.entities)}`,
+          revision: res.revision,
+        };
+      });
+    }
+    case "add": {
+      const a = new Argv(args);
+      const id = a.value("--id");
+      const payload = parseJsonObject(a.value("--payload"), "--payload") ?? {};
+      const kind = a.positionals()[0];
+      if (!kind) {
+        throw new UsageError("用法：toporealm add <kind> [--id X] [--payload '<json>']");
+      }
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const r = await s.commit({
+          changes: [
+            { op: "put", kind, ...(id !== undefined ? { id } : {}), payload },
+          ],
+          label: `add ${kind}`,
+        });
+        const createdId = r.created[0] ?? id ?? "";
+        return {
+          data: { id: createdId, created: r.created },
+          human: `created ${createdId} (revision ${r.revision})`,
+          revision: r.revision,
+        };
+      });
+    }
+    case "set": {
+      const a = new Argv(args);
+      const replace = a.flag("--replace");
+      const payloadJson = parseJsonObject(a.value("--payload"), "--payload");
+      const pos = a.positionals();
+      const id = pos[0];
+      if (!id) {
+        throw new UsageError(
+          "用法：toporealm set <id> [k=v]... [--payload '<json>'] [--replace]",
+        );
+      }
+      const kv = parseKvPairs(pos.slice(1));
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        let changes: Change[];
+        if (replace) {
+          const payload = { ...(payloadJson ?? {}), ...kv };
+          if (Object.keys(payload).length === 0) {
+            throw new UsageError(
+              "--replace 需要提供完整载荷（k=v 或 --payload '<json>'）",
+            );
+          }
+          changes = [{ op: "put", id, payload }];
+        } else {
+          const payload = { ...kv, ...(payloadJson ?? {}) };
+          if (Object.keys(payload).length === 0) {
+            throw new UsageError("set 需要至少一个 k=v 或 --payload '<json>'");
+          }
+          changes = [{ op: "merge", id, payload }];
+        }
+        const r = await s.commit({ changes, label: `set ${id}` });
+        return {
+          data: { id },
+          human: `ok ${id} (revision ${r.revision})`,
+          revision: r.revision,
+        };
+      });
+    }
+    case "link": {
+      const a = new Argv(args);
+      const kindFlag = a.value("--kind");
+      const id = a.value("--id");
+      const pos = a.positionals();
+      const src = pos[0];
+      const tgt = pos[1];
+      if (!src || !tgt) {
+        throw new UsageError("用法：toporealm link <src> <tgt> [--kind ns.rel] [--id X]");
+      }
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        let kind = kindFlag;
+        if (kind === undefined) {
+          // 仅一种关系类型时可省 --kind（story 10）
+          const all = await s.read();
+          const relKinds = [
+            ...new Set(all.entities.filter(isRelation).map((r) => r.kind)),
+          ];
+          if (relKinds.length === 1) kind = relKinds[0] as string;
+          else if (relKinds.length === 0) {
+            throw new UsageError(
+              "图中尚无关系类型；请用 --kind 指定（如 --kind ns.rel）",
+            );
+          } else {
+            throw new UsageError(
+              `图中存在多种关系类型（${relKinds.join(", ")}）；请用 --kind 指定`,
+            );
+          }
+        }
+        const r = await s.commit({
+          changes: [
+            {
+              op: "rel",
+              kind,
+              ...(id !== undefined ? { id } : {}),
+              source: src,
+              target: tgt,
+            },
+          ],
+          label: `link ${src}->${tgt}`,
+        });
+        const relId = r.created[0] ?? id ?? "";
+        return {
+          data: { id: relId },
+          human: `linked ${relId} (${kind}: ${src} -> ${tgt}, revision ${r.revision})`,
+          revision: r.revision,
+        };
+      });
+    }
+    case "rm": {
+      const a = new Argv(args);
+      const id = a.positionals()[0];
+      if (!id) throw new UsageError("用法：toporealm rm <id>");
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const r = await s.commit({ changes: [{ op: "del", id }], label: `rm ${id}` });
+        return {
+          data: { id },
+          human: `deleted ${id} (revision ${r.revision})`,
+          revision: r.revision,
+        };
+      });
+    }
+    case "log": {
+      const a = new Argv(args);
+      const n = a.numberValue("-n") ?? 20;
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const entries = await s.log({ limit: n });
+        const rows = entries
+          .map(
+            (e) =>
+              `  ${e.revision}\t${e.kind}\t${e.origin}${e.label !== undefined ? `\t${e.label}` : ""}\t${e.time}`,
+          )
+          .join("\n");
+        return {
+          data: { entries },
+          human: `${entries.length} entr(ies):\n${rows || "  (empty)"}`,
+        };
+      });
+    }
+    case "undo":
+    case "redo": {
+      const a = new Argv(args);
+      const pos = a.positionals()[0];
+      let steps = 1;
+      if (pos !== undefined) {
+        steps = Number(pos);
+        if (!Number.isInteger(steps) || steps < 1) {
+          throw new UsageError(`${verb} 步数需要正整数，得到 "${pos}"`);
+        }
+      }
+      const root = g.root ?? defaultRoot(deps);
+      return withSession(deps, root, g.graph, async (s) => {
+        const r =
+          verb === "undo" ? await s.undo(steps) : await s.redo(steps);
+        return {
+          data: { revision: r.revision, canUndo: r.canUndo, canRedo: r.canRedo },
+          human: `${verb === "undo" ? "undid" : "redid"} ${steps} step(s) → revision ${r.revision} (undo ${r.canUndo ? "✓" : "✗"} / redo ${r.canRedo ? "✓" : "✗"})`,
+          revision: r.revision,
+        };
+      });
+    }
+    default:
+      throw new UsageError(
+        `未知命令 "${verb}"${unknownVerbSuggestion(verb)}`,
+        "toporealm help",
+      );
+  }
+}
+
+/** CLI 入口：返回退出码（0/1/2） */
+export async function run(argv: string[], deps: CliDeps = {}): Promise<number> {
+  const out = deps.out ?? (() => {});
+  const err = deps.err ?? (() => {});
+  const env = deps.env ?? {};
+  const g = extractGlobals(argv, env);
+  try {
+    const result = await dispatch(g, deps);
+    if (g.json) out(JSON.stringify(result.envelope) + "\n");
+    else out(result.human.endsWith("\n") ? result.human : result.human + "\n");
+    return 0;
+  } catch (e) {
+    if (e instanceof UsageError) {
+      const errorPayload = {
+        code: "INVALID_INPUT",
+        message: e.message,
+        ...(e.fix !== undefined ? { fix: e.fix } : {}),
+      };
+      if (g.json) {
+        err(JSON.stringify({ ok: false, error: errorPayload }) + "\n");
+      } else {
+        err(`toporealm: ${e.message}\n`);
+        if (e.fix !== undefined) err(`  fix: ${e.fix}\n`);
+      }
+      return 2;
+    }
+    const topo = TopoError.is(e)
+      ? e
+      : new TopoError({
+          code: "DAEMON_UNREACHABLE",
+          message: e instanceof Error ? e.message : String(e),
+        });
+    if (g.json) {
+      err(JSON.stringify({ ok: false, error: topo.toJSON() }) + "\n");
+    } else {
+      err(`toporealm: [${topo.code}] ${topo.message}\n`);
+      if (topo.hint !== undefined) err(`  hint: ${topo.hint}\n`);
+      if (topo.fix !== undefined) err(`  fix: ${topo.fix}\n`);
+    }
+    return 1;
+  }
+}
