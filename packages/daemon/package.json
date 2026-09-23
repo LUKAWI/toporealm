@@ -1,0 +1,27 @@
+{
+  "name": "@lukawi/toporealm-daemon",
+  "version": "1.0.0-alpha.1",
+  "description": "TopoRealm 1.0 single-owner daemon executable (bin: toporeald): IPC server, auto-start lifecycle, idle exit, instanceId.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "toporeald": "./bin/toporeald.mjs"
+  },
+  "files": [
+    "src",
+    "bin",
+    "dist"
+  ],
+  "dependencies": {
+    "@lukawi/toporealm-protocol": "1.0.0-alpha.1",
+    "@lukawi/toporealm-daemon-core": "1.0.0-alpha.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
