@@ -311,6 +311,42 @@ id ≠ namespace（如 id=workflow、namespace=wf），core 需要映射。裁�
    form/ui 投影按 §1 catalog（kinds.color/icon、commands.input）先行，复杂视图按 §7 预留 v1.1。
    空闲退出判定补充：打开中的 WS/IPC 连接视作活动（空闲 = 无连接且无请求）。
 
+### 1.6 实现期补遗（M4：D23）
+
+**D23（实现期补遗）：分发与迁移的落点裁决。**
+动机：§2 的 distribution 包落到代码前钉死四件事，避免安装器/host sync/migrate 各自发明落点与语义。
+
+1. **模块安装器只交付 workspace 安装**：npm 来源走 `npm pack <spec> --ignore-scripts`
+   （禁安装脚本 = 安装期唯一执法点，D2 默认值）；本地路径来源直接复制。两种来源统一
+   落位 `.toporealm/modules/<id>/` 并写 `.toporealm-source.json` 所有权标记（记录来源、
+   版本、安装时间），绑定写 `modules.yaml: { <id>: { source: workspace } }`；卸载只删
+   带标记的模块目录 + 对应绑定，无标记目录拒绝删除。`--global` 延后：CLI 显式报用法
+   错误，module-host 对 global 绑定维持跳过 + warning（§3 的 global 绑定形态保留）。
+2. **host sync 两宿主投影落点与格式**：claude-code = 自包含 plugin 目录
+   `.toporealm/hosts/claude-code/`（`.claude-plugin/plugin.json` + `skills/toporealm/SKILL.md`
+   + `hooks/hooks.json`，钩子用 Claude Code 格式：`hooks.SessionStart[].hooks[].{type:command}`）；
+   pi = 原生项目级发现位（`.pi/skills/toporealm/SKILL.md` + `.pi/extensions/toporealm/index.js`，
+   扩展用 pi 格式：`export default (pi) => pi.on("session_start", …)` 只读入场摘要）。
+   两宿主钩子格式不得混用；基座 skill 正文同源（Agent Skills 标准 frontmatter），宿主
+   差异只在包装与钩子。每个受管目录写 `.toporealm-sync.json` 所有权标记（生成器、模块
+   集、文件清单）；重同步只替换标记清单内的文件，用户手写文件永不触碰。模块自身
+   skills 的投影随 M5 交付（v2 声明层无 skills 字段，D12）。
+3. **migrate 冲突语义细化**（§6 键冲突条款的从句展开）：`data` 先落 payload；
+   `capabilities` 键与已落键冲突时更名 `cap_<键>` 落位并入冲突清单（不冲突保持原键，
+   含点号的能力 id 在 payload 中合法）；`label→title`、`meta→meta` 与已有 payload 键
+   冲突时 data/payload 优先、被放弃值记入冲突清单。0.x 实体文件顶层清单外字段与
+   graph.yaml v1 顶层 `meta` 丢弃并计入降级清单（旧图可由 0.x 随时回看）。迁移输入的
+   `.revision.json` 取 `revision` 计数（缺失按 0 并计入降级清单）。输出：新图写入
+   `<root>/graphs/<图id>/`（v2 清单最后写 = 迁移完成标记；同 `new` 选中新图），迁移
+   报告经 CLI 输出交付（--json 信封含全量报告），不向图目录写报告文件（§3 布局不变）；
+   实体文件名 ≠ id、id 非法、缺 kind、重复 id 的实体跳过并计入错误清单；悬空关系照迁
+   并单列清单（迁移是文件层机械映射，不走 commit 管线）。模块引用升级 = 报告内附每
+   模块的 v2 声明投影（id/namespace/kinds 从迁移后数据观测；version/entry 为占位，由
+   模块本体仓库回填）。
+4. **npm pack 的 Windows tar 规避**：npm 在 Windows 下可能解析到 Git Bash 的 GNU tar
+   而失败；distribution 拉起 npm 子进程时（win32）把 `C:\Windows\System32` 前置到子进程
+   PATH（系统自带 bsdtar 优先）。测试同样在用例内前置，不依赖外部 shell 环境。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
