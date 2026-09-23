@@ -17,6 +17,9 @@
     "@lukawi/toporealm-protocol": "1.0.0-alpha.1",
     "@lukawi/toporealm-daemon-core": "1.0.0-alpha.1"
   },
+  "devDependencies": {
+    "@lukawi/toporealm-daemon": "1.0.0-alpha.1"
+  },
   "publishConfig": {
     "access": "public"
   }

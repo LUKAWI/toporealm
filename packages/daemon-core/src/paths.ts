@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fsp from "node:fs/promises";
 import path from "node:path";
 
 // ---------- 工作区与图目录布局（blueprint §3） ----------
@@ -44,6 +45,27 @@ export function graphPaths(root: string, graphId: string): GraphPaths {
     relations: path.join(dir, "relations"),
     log: path.join(dir, ".log"),
   };
+}
+
+// ---------- active 指针（文件层操作；cli 的 new/use 写入，daemon 启动与客户端解析时读取） ----------
+
+export async function readActiveGraphId(activeFile: string): Promise<string | null> {
+  let text: string;
+  try {
+    text = await fsp.readFile(activeFile, "utf8");
+  } catch {
+    return null;
+  }
+  const id = text.trim();
+  return id.length > 0 ? id : null;
+}
+
+export async function writeActiveGraphId(
+  activeFile: string,
+  graphId: string,
+): Promise<void> {
+  await fsp.mkdir(path.dirname(activeFile), { recursive: true });
+  await fsp.writeFile(activeFile, graphId + "\n", "utf8");
 }
 
 // ---------- daemon endpoint（单属主互斥 + 客户端触达） ----------

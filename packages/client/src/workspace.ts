@@ -1,7 +1,11 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { TopoError } from "@lukawi/toporealm-protocol";
-import { graphPaths, workspacePaths } from "@lukawi/toporealm-daemon-core";
+import {
+  graphPaths,
+  readActiveGraphId,
+  workspacePaths,
+} from "@lukawi/toporealm-daemon-core";
 
 // ---------- 连接目标解析（root/graph 指针，全部是文件层指针读取，不触图内容） ----------
 
@@ -16,6 +20,12 @@ export interface ResolvedTarget {
   root: string;
   graphId: string;
 }
+
+/** active 指针读写（cli 的 new/use 用；实现住 daemon-core，避免与 daemon 重复） */
+export {
+  readActiveGraphId,
+  writeActiveGraphId,
+} from "@lukawi/toporealm-daemon-core";
 
 /**
  * root = 显式参数 > TOPOREALM_ROOT > cwd；graph = 显式参数 > TOPOREALM_GRAPH > .toporealm/active。
@@ -40,7 +50,7 @@ export async function resolveTarget(
     });
   }
   const graphId =
-    opts.graph ?? env.TOPOREALM_GRAPH ?? (await readActiveFile(ws.activeFile));
+    opts.graph ?? env.TOPOREALM_GRAPH ?? (await readActiveGraphId(ws.activeFile));
   if (!graphId) {
     throw new TopoError({
       code: "NO_CURRENT_GRAPH",
@@ -56,27 +66,8 @@ export async function resolveTarget(
     throw new TopoError({
       code: "GRAPH_NOT_FOUND",
       message: `图 "${graphId}" 不存在于工作区`,
-      fix: `toporealm use <graph>`,
+      fix: "toporealm use <graph>",
     });
   }
   return { root, graphId };
-}
-
-export async function readActiveFile(activeFile: string): Promise<string | null> {
-  let text: string;
-  try {
-    text = await fsp.readFile(activeFile, "utf8");
-  } catch {
-    return null;
-  }
-  const id = text.trim();
-  return id.length > 0 ? id : null;
-}
-
-export async function writeActiveFile(
-  activeFile: string,
-  graphId: string,
-): Promise<void> {
-  await fsp.mkdir(path.dirname(activeFile), { recursive: true });
-  await fsp.writeFile(activeFile, graphId + "\n", "utf8");
 }
