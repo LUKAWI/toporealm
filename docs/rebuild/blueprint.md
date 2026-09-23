@@ -286,6 +286,31 @@ id ≠ namespace（如 id=workflow、namespace=wf），core 需要映射。裁�
 - 排队提交在外层提交广播后按序排空；排空中被钩子 veto 只记 warning，不回滚外层提交；
 - 排空深度上限 100（防模块自激死循环），超限记 warning 停止排空。
 
+### 1.5 实现期补遗（M3：D22）
+
+**D22（实现期补遗）：Web 传输缝裁决。**
+动机：§2 的 web 包与 §5 多客户端条目落到代码前钉死四件事，避免 client/daemon/web 三包各自发明语义。
+
+1. **WS 复用 IPC wire 信封**：WS 文本帧 = `IpcRequest` / `IpcResponse` / `IpcPush`
+   （protocol/wire.ts 同一套类型与编解码），事件扇出与 IPC 同源（core.events 单一订阅面）。
+   为此 `hello.root` 改为可选——浏览器不知道工作区路径：web 端 hello 可省 root/graph
+   （省略 = 即服务 daemon 自身的 root/graph，不做比对；提供了仍比对）。
+2. **web 伺服随 daemon 常开**：toporeald 启动即挂 HTTP（静态产物，目录
+   `TOPOREALM_WEB_STATIC` > web-ui 包内 dist）+ WS（`/ws` 路径）。端口解析序
+   `--web-port > TOPOREALM_WEB_PORT > 0（临时口）`；实际端口写入
+   `.toporealm/daemon/endpoint.json` 的 `webPort` 字段——这是 web 客户端与
+   `toporealm serve` 的发现面。端口被占回退临时口并如实记录。
+3. **WsClient 重连语义**：异常断线自动重连（指数退避，次数可配）；重连成功后带
+   `fromRevision = 本地最后 revision` 重新订阅——daemon 按事件回放语义补洞，无法回放时发
+   reset，客户端据此全量重读（不变量 I3 自愈）。重连握手发现 `instanceId` 变化 =
+   SESSION_STALE：在途请求失败 + 向监听者广播 `reset(daemon-restarted)`（目录缓存作废重拉，
+   §5）；会话对象透明续用于新 daemon（浏览器不刷新页面）。
+4. **web-ui 的 0.x REST 面（/api/*）与 MutationPlan 不迁移**（replace, don't layer）：
+   web-ui 一律走 Session 契约（status/read/commit/undo/redo/catalog/run/events）。
+   多图切换与 validate 面板随 REST 面死亡（daemon 单图服务；validate 不是 core 操作）；
+   form/ui 投影按 §1 catalog（kinds.color/icon、commands.input）先行，复杂视图按 §7 预留 v1.1。
+   空闲退出判定补充：打开中的 WS/IPC 连接视作活动（空闲 = 无连接且无请求）。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
@@ -381,7 +406,7 @@ packages/
   → 原子应用 + .log 追加 + 游标维护（undo/redo 移游标；undo 后新提交截断 redo 段）
   → after-commit 钩子（其 commit 排队追加）→ 事件广播（commit 事件，origin 如实）
   ```
-- **多客户端**：IPC（CLI）与 WS（Web）共用同一事件扇出；instanceId 在 daemon 重启后变化，client 检测到即作废目录缓存并重拉。
+- **多客户端**：IPC（CLI）与 WS（Web）共用同一事件扇出；instanceId 在 daemon 重启后变化，client 检测到即作废目录缓存并重拉。web 伺服（HTTP 静态产物 + `/ws`）随 daemon 常开，端口/重连/发现语义见 D22；`toporealm serve [--port P] [--no-open]` = 确保 daemon 在跑（自动拉起带 `--web-port`）→ 打开浏览器即退（daemon detached 常驻）。
 
 ## 6. 迁移 CLI（`toporealm migrate`）
 
