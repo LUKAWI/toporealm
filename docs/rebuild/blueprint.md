@@ -69,10 +69,18 @@ export interface GraphSummary {
 
 // ---------- 变更词汇（三条缝共用，学一次用三处） ----------
 export type Change =
-  | { op: "put";   kind: Kind; id?: EntityId; payload?: Payload }              // upsert 对象；匿名 id 由 daemon 生成
+  | { op: "put";   kind?: Kind; id?: EntityId; payload?: Payload }           // upsert 对象；匿名 id 由 daemon 生成；kind 规则见下方 D18
   | { op: "rel";   kind: Kind; id?: EntityId; source: EntityId; target: EntityId; payload?: Payload; direction?: "directed" | "undirected" }
   | { op: "merge"; id: EntityId; payload: Payload }                            // 浅合并顶层键；值 null = 删键 ★主路径
   | { op: "del";   id: EntityId };                                             // 统一删除对象与关系（id 空间唯一）
+
+/**
+ * D18（实现期补遗，记录于 §1）：put.kind 可选（upsert 保型）。
+ * 动机：改对象不必重述 kind——caller 拿到 id 就能改载荷，不应被迫先 read 回 kind 再原样带回。
+ * 语义：① 新建对象（id 不存在）仍必须提供 kind；
+ *      ② id 已存在时 kind 可省，以存量 kind 为准；
+ *      ③ id 与 kind 同给时必须一致，否则 UNKNOWN_KIND。
+ */
 
 export interface CommitInput {
   changes: readonly Change[];           // 原子单位；一次 undo 整体撤销
