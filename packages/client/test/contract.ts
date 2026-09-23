@@ -113,20 +113,23 @@ export function runSessionContractSuite(
       ).toContain(a);
     });
 
-    it("rel：direction 缺省 directed；undirected 持久化", async () => {
+    it("rel：direction 缺省 directed；undirected 持久化；匿名关系 id 回显 created", async () => {
       const a = uniq("ra");
       const b = uniq("rb");
       const r1 = uniq("rr1");
       const r2 = uniq("rr2");
-      await s.commit({
+      const rc = await s.commit({
         changes: [
           { op: "put", kind: "rl", id: a },
           { op: "put", kind: "rl", id: b },
           { op: "rel", kind: "rl.rel", id: r1, source: a, target: b },
           { op: "rel", kind: "rl.rel", id: r2, source: b, target: a, direction: "undirected" },
+          { op: "rel", kind: "rl.rel", source: a, target: b }, // 匿名
         ],
       });
-      const got = await s.read({ ids: [r1, r2] });
+      expect(rc.created).toHaveLength(1); // 只有 daemon 分配的匿名 id 入 created
+      const got = await s.read({ ids: [r1, r2, ...(rc.created as string[])] });
+      expect(got.entities).toHaveLength(3); // 匿名关系也真实入图
       const e1 = got.entities.find((e) => e.id === r1) as Record<string, unknown>;
       const e2 = got.entities.find((e) => e.id === r2) as Record<string, unknown>;
       expect(e1).toMatchObject({ source: a, target: b });

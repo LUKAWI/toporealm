@@ -722,7 +722,11 @@ export class DaemonCore {
         };
         if (c.direction !== undefined) next.direction = c.direction;
         if (prev) patchRelations.updated.push(next);
-        else patchRelations.added.push(next);
+        else {
+          patchRelations.added.push(next);
+          // created 回显一切 daemon 分配的匿名 id（blueprint §1 CommitResult）
+          if (c.id === undefined) created.push(id);
+        }
         relations.set(id, next);
         upserts.set(id, next);
         deletes.delete(id);
