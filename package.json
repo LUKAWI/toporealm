@@ -17,7 +17,7 @@
     "node": ">=20.6"
   },
   "scripts": {
-    "typecheck": "tsc -p packages/protocol --noEmit && tsc -p packages/module-sdk --noEmit && tsc -p packages/daemon-core --noEmit && tsc -p packages/module-host --noEmit && tsc -p packages/web --noEmit && tsc -p packages/client --noEmit && tsc -p packages/daemon --noEmit && tsc -p packages/cli --noEmit",
+    "typecheck": "tsc -p packages/protocol --noEmit && tsc -p packages/module-sdk --noEmit && tsc -p packages/daemon-core --noEmit && tsc -p packages/module-host --noEmit && tsc -p packages/web --noEmit && tsc -p packages/client --noEmit && tsc -p packages/daemon --noEmit && tsc -p packages/distribution --noEmit && tsc -p packages/cli --noEmit",
     "test": "vitest run",
     "demo": "node --import tsx scripts/demo.ts"
   },

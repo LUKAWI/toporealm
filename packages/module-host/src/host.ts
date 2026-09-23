@@ -104,8 +104,8 @@ export class ModuleHost {
     const resolved = new Map<string, { manifest: ModuleManifestV2; dir: string }>();
     for (const [id, binding] of Object.entries(bindings)) {
       if (binding.source === "global") {
-        // M4 安装器交付前的已知空档：跳过并点名，不静默
-        host.warn(`模块 "${id}" 是 global 来源：M4 安装器交付前跳过`);
+        // D23①：global 来源延后（安装器只交付 workspace），跳过并点名，不静默
+        host.warn(`模块 "${id}" 是 global 来源：global 安装延后，跳过`);
         continue;
       }
       const dir = resolveModuleDir(opts.root, id, binding);

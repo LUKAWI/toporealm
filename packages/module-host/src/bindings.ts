@@ -6,8 +6,8 @@ import { workspacePaths } from "@lukawi/toporealm-daemon-core";
 import { parse } from "yaml";
 
 // ---------- modules.yaml 绑定（blueprint §3）：{ [id]: { source, path? } } ----------
-// M2 支持本地来源：path（任意目录）与 workspace（.toporealm/modules/<id>/）；
-// npm/global 来源由 M4 安装器交付，装载时跳过并记 warning。
+// M2 支持本地来源：path（任意目录）与 workspace（.toporealm/modules/<id>/，M4 安装器
+// 落位）；global 来源延后（D23①），装载时跳过并记 warning。
 
 export interface ModuleBinding {
   source: "workspace" | "global" | "path";

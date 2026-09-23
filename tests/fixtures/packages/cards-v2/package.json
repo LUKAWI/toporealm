@@ -1,0 +1,9 @@
+{
+  "name": "@toporealm/cards-v2",
+  "version": "1.0.0",
+  "description": "TopoRealm M4 installer fixture: npm-package-shaped v2 module",
+  "license": "MIT",
+  "type": "module",
+  "toporealm": "./module.yaml",
+  "files": ["module.yaml", "index.js"]
+}

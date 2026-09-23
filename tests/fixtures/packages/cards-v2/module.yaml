@@ -1,0 +1,11 @@
+format: toporealm.module/v2
+id: cards
+namespace: cards
+version: "1.0.0"
+kinds:
+  objects: [card]
+ui:
+  color: "#0ea5e9"
+  icon: "layers"
+  titleKey: title
+entry: ./index.js
