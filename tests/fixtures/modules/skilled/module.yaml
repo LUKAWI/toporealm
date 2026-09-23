@@ -1,0 +1,7 @@
+format: toporealm.module/v2
+id: skilled
+namespace: skilled
+version: "1.0.0"
+kinds:
+  objects: [note]
+entry: ./index.js

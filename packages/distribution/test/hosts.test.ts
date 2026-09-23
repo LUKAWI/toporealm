@@ -139,3 +139,95 @@ describe("host sync（claude-code plugin / pi extension+skills）", () => {
     expect(skill).toContain("尚未绑定模块");
   });
 });
+
+describe("host sync 模块自身 skills 投影（M5，D23② 的既定延后项）", () => {
+  const roots: string[] = [];
+  afterAll(async () => {
+    for (const r of roots.splice(0)) await fsp.rm(r, { recursive: true, force: true }).catch(() => {});
+  });
+
+  async function workspaceWithSkilled(): Promise<string> {
+    const root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-modskills-"));
+    roots.push(root);
+    await fsp.mkdir(path.join(root, ".toporealm"), { recursive: true });
+    const mod = fixtures("modules/skilled");
+    await fsp.writeFile(
+      path.join(root, ".toporealm", "modules.yaml"),
+      `skilled:\n  source: path\n  path: ${JSON.stringify(mod)}\n`,
+      "utf8",
+    );
+    return root;
+  }
+
+  it("claude-code：模块 skills 投影进 plugin skills/ 同层，随标记管理", async () => {
+    const root = await workspaceWithSkilled();
+    const r = await hostSync({ root, hosts: ["claude-code"] });
+    expect(r.warnings).toEqual([]);
+    const projected = path.join(root, ".toporealm", "hosts", "claude-code", "skills", "skilled-demo", "SKILL.md");
+    const content = await fsp.readFile(projected, "utf8");
+    expect(content).toContain("name: skilled-demo");
+    expect(r.hosts[0]?.files).toContain("skills/skilled-demo/SKILL.md");
+    // 标记清单收录投影：重同步可管理
+    const marker = JSON.parse(
+      await fsp.readFile(path.join(root, ".toporealm", "hosts", "claude-code", SYNC_MARKER), "utf8"),
+    ) as { files: string[] };
+    expect(marker.files).toContain("skills/skilled-demo/SKILL.md");
+  });
+
+  it("pi：模块 skills 落 .pi/skills/<技能名>/，与基座同一受管目录；卸载后重同步即消失", async () => {
+    const root = await workspaceWithSkilled();
+    await hostSync({ root, hosts: ["pi"] });
+    const skill = await fsp.readFile(path.join(root, ".pi", "skills", "skilled-demo", "SKILL.md"), "utf8");
+    expect(skill).toContain("name: skilled-demo");
+    // 基座仍在原生发现位
+    await fsp.access(path.join(root, ".pi", "skills", "toporealm", "SKILL.md"));
+    // 用户手写文件进受管目录不受影响
+    await fsp.writeFile(path.join(root, ".pi", "skills", "skilled-demo", "mine.md"), "mine", "utf8");
+    // 模块集收窄 → 投影消失，用户文件保留
+    const mod = fixtures("modules/example");
+    await fsp.writeFile(
+      path.join(root, ".toporealm", "modules.yaml"),
+      `example:\n  source: path\n  path: ${JSON.stringify(mod)}\n`,
+      "utf8",
+    );
+    await hostSync({ root, hosts: ["pi"] });
+    await expect(fsp.access(path.join(root, ".pi", "skills", "skilled-demo", "SKILL.md"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(fsp.access(path.join(root, ".pi", "skills", "skilled-demo", "mine.md"))).resolves.toBeUndefined();
+  });
+
+  it("技能名与基座冲突 → 跳过并记 warning，不静默覆盖", async () => {
+    const root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-skillclash-"));
+    roots.push(root);
+    await fsp.mkdir(path.join(root, ".toporealm"), { recursive: true });
+    const src = fixtures("modules/skilled");
+    const clash = path.join(root, "clash-mod");
+    await fsp.cp(src, clash, { recursive: true });
+    // 换 id，但技能目录名 = 基座名
+    await fsp.writeFile(
+      path.join(clash, "module.yaml"),
+      await fsp.readFile(path.join(clash, "module.yaml"), "utf8").then((t) => t.replace("id: skilled", "id: clash").replace("namespace: skilled", "namespace: clash")),
+      "utf8",
+    );
+    await fsp.rm(path.join(clash, "skills", "skilled-demo"), { recursive: true });
+    await fsp.mkdir(path.join(clash, "skills", "toporealm"));
+    await fsp.writeFile(path.join(clash, "skills", "toporealm", "SKILL.md"), "---\nname: toporealm\ndescription: clash\n---\n", "utf8");
+    await fsp.writeFile(
+      path.join(root, ".toporealm", "modules.yaml"),
+      `clash:\n  source: path\n  path: ${JSON.stringify(clash)}\n`,
+      "utf8",
+    );
+    const r = await hostSync({ root, hosts: ["claude-code"] });
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toContain("toporealm");
+    expect(r.warnings[0]).toContain("clash");
+    // 基座正文未被覆盖
+    const base = await fsp.readFile(
+      path.join(root, ".toporealm", "hosts", "claude-code", "skills", "toporealm", "SKILL.md"),
+      "utf8",
+    );
+    expect(base).toContain("name: toporealm");
+    expect(base).not.toContain("description: clash");
+  });
+});

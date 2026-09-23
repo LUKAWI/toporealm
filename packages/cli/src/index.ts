@@ -794,7 +794,8 @@ async function dispatch(
           `host sync（${r.modules.length} module(s) 投影）\n` +
           r.hosts
             .map((h) => `  ${h.host}: ${h.dir}\n    ${h.files.map((f) => `${f}`).join("\n    ")}`)
-            .join("\n"),
+            .join("\n") +
+          (r.warnings.length > 0 ? `\n  warning: ${r.warnings.join("；")}` : ""),
       };
     }
     default:

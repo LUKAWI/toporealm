@@ -41,6 +41,8 @@ export interface HostSyncResult {
   hosts: HostSyncReport[];
   /** 参与投影的模块集（来自 modules.yaml 绑定；global 跳过） */
   modules: { id: string; version: string; namespace: string }[];
+  /** M5：模块 skills 投影的跳过说明（技能名与基座/其他模块冲突等） */
+  warnings: string[];
 }
 
 interface SyncMarker {
@@ -100,9 +102,55 @@ ${moduleLines}
 `;
 }
 
+// ---------- 模块自身 skills 投影（M5 交付，D23② 的既定延后项） ----------
+//
+// 约定：模块包内 skills/<技能名>/SKILL.md（Agent Skills 标准 frontmatter）即模块技能；
+// 装载面不读它，host sync 把它投影进两宿主的技能发现位：
+//   claude-code → plugin 目录 skills/<技能名>/SKILL.md（与基座 toporealm 同层）
+//   pi          → .pi/skills/<技能名>/SKILL.md（原生项目级发现位）
+// 技能名与基座（toporealm）或其他模块冲突时后到跳过并记 warning——投影永不静默覆盖。
+
+const BASE_SKILL_NAME = "toporealm";
+
+/** 收集一个模块的 skills（相对键 `<技能名>/SKILL.md` → 正文）；无 skills/ 目录 = 空投影。 */
+async function collectModuleSkills(
+  moduleDir: string,
+  moduleId: string,
+  taken: Set<string>,
+  warnings: string[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await fsp.readdir(path.join(moduleDir, "skills"), { withFileTypes: true });
+  } catch {
+    return out; // 模块不带 skills：合法
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const file = path.join(moduleDir, "skills", entry.name, "SKILL.md");
+    let content: string;
+    try {
+      content = await fsp.readFile(file, "utf8");
+    } catch {
+      continue; // 目录无 SKILL.md：不是技能，跳过
+    }
+    if (taken.has(entry.name)) {
+      warnings.push(`模块 "${moduleId}" 的技能 "${entry.name}" 与已有投影重名，跳过`);
+      continue;
+    }
+    taken.add(entry.name);
+    out[`${entry.name}/SKILL.md`] = content;
+  }
+  return out;
+}
+
 // ---------- claude-code：plugin 打包（Claude Code 钩子格式） ----------
 
-function claudePluginFiles(modules: { id: string; version: string; namespace: string }[]): Record<string, string> {
+function claudePluginFiles(
+  modules: { id: string; version: string; namespace: string }[],
+  moduleSkillFiles: Record<string, string>,
+): Record<string, string> {
   const plugin = {
     name: "toporealm",
     description:
@@ -119,11 +167,16 @@ function claudePluginFiles(modules: { id: string; version: string; namespace: st
       ],
     },
   };
-  return {
+  const files: Record<string, string> = {
     ".claude-plugin/plugin.json": JSON.stringify(plugin, null, 2) + "\n",
     "skills/toporealm/SKILL.md": baseSkill(modules),
     "hooks/hooks.json": JSON.stringify(hooks, null, 2) + "\n",
   };
+  // M5：模块 skills 与基座同层（skills/<技能名>/SKILL.md），由同一所有权标记管理
+  for (const [rel, content] of Object.entries(moduleSkillFiles)) {
+    files[`skills/${rel}`] = content;
+  }
+  return files;
 }
 
 // ---------- pi：extension/skills 打包（pi 扩展格式；原生项目级发现位） ----------
@@ -146,14 +199,20 @@ export default function (pi) {
 }
 `;
 
-function piFiles(modules: { id: string; version: string; namespace: string }[]): { skillsDir: string; extDir: string; files: Record<string, string> } {
+function piFiles(
+  modules: { id: string; version: string; namespace: string }[],
+  moduleSkillFiles: Record<string, string>,
+): { skillsDir: string; extDir: string; files: Record<string, string> } {
+  const skillFiles: Record<string, string> = {
+    // M5：.pi/skills/ 整目录作为单一受管目录——基座 + 模块 skills 同标记管理，
+    // 模块卸载后重同步即从发现位消失
+    [`${BASE_SKILL_NAME}/SKILL.md`]: baseSkill(modules),
+    ...moduleSkillFiles,
+  };
   return {
-    skillsDir: path.join(".pi", "skills", "toporealm"),
+    skillsDir: path.join(".pi", "skills"),
     extDir: path.join(".pi", "extensions", "toporealm"),
-    files: {
-      "SKILL.md": baseSkill(modules),
-      "index.js": PI_EXTENSION_INDEX,
-    },
+    files: skillFiles,
   };
 }
 
@@ -221,8 +280,11 @@ export async function hostSync(opts: HostSyncOptions): Promise<HostSyncResult> {
       throw new TypeError(`未知宿主 "${h}"（合法：${ALL_HOSTS.join(" | ")}）`);
     }
   }
+  const warnings: string[] = [];
   const bindings = await readBindingsRaw(path.join(workspacePaths(opts.root).topoDir, "modules.yaml"));
   const modules: { id: string; version: string; namespace: string }[] = [];
+  const taken = new Set<string>([BASE_SKILL_NAME]); // 基座技能名保留
+  let moduleSkillFiles: Record<string, string> = {};
   for (const [id, binding] of Object.entries(bindings)) {
     if (binding.source === "global") continue; // 与装载面同口径：global 跳过
     const dir =
@@ -236,23 +298,24 @@ export async function hostSync(opts: HostSyncOptions): Promise<HostSyncResult> {
       }
     } catch {
       // 绑定在、清单读不到：不进投影（安装器/装载面会另行点名）
+      continue;
     }
+    moduleSkillFiles = { ...moduleSkillFiles, ...(await collectModuleSkills(dir, id, taken, warnings)) };
   }
 
   const out: HostSyncReport[] = [];
   for (const host of hosts) {
     if (host === "claude-code") {
       const dir = path.join(workspacePaths(opts.root).topoDir, "hosts", "claude-code");
-      const files = claudePluginFiles(modules);
+      const files = claudePluginFiles(modules, moduleSkillFiles);
       const written = await syncManagedDir(dir, host, files, modules);
       out.push({ host, dir, files: written });
     } else {
-      const { skillsDir, extDir, files } = piFiles(modules);
+      const { skillsDir, extDir, files } = piFiles(modules, moduleSkillFiles);
       const ws = workspacePaths(opts.root).root;
-      // pi 用原生项目级发现位：两个受管目录各带一份标记
-      const skillFiles = { "SKILL.md": files["SKILL.md"] as string };
-      const extFiles = { "index.js": files["index.js"] as string };
-      const w1 = await syncManagedDir(path.join(ws, skillsDir), host, skillFiles, modules);
+      // pi 用原生项目级发现位：skills 整目录一个受管标记 + 扩展目录一个受管标记
+      const extFiles = { "index.js": PI_EXTENSION_INDEX };
+      const w1 = await syncManagedDir(path.join(ws, skillsDir), host, files, modules);
       const w2 = await syncManagedDir(path.join(ws, extDir), host, extFiles, modules);
       out.push({
         host,
@@ -261,5 +324,5 @@ export async function hostSync(opts: HostSyncOptions): Promise<HostSyncResult> {
       });
     }
   }
-  return { hosts: out, modules };
+  return { hosts: out, modules, warnings };
 }
