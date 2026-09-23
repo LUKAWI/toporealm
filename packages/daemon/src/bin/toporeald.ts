@@ -82,8 +82,11 @@ async function main(): Promise<number> {
     startedAt: new Date().toISOString(),
   });
   process.stderr.write(
-    `[toporeald] graph "${running.graphId}" ready (pid ${process.pid}, cold ${running.loadMs.toFixed(1)}ms, idle ${idleMs}ms)\n`,
+    `[toporeald] graph "${running.graphId}" ready (pid ${process.pid}, cold ${running.loadMs.toFixed(1)}ms, idle ${idleMs}ms, modules ${running.modules.length}${running.modules.length > 0 ? `: ${running.modules.join(", ")}` : ""})\n`,
   );
+  for (const w of running.warnings) {
+    process.stderr.write(`[toporeald] warning: ${w}\n`);
+  }
 
   const cleanup = (): void => {
     void running.stop();

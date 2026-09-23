@@ -14,6 +14,7 @@ import type {
   Unsubscribe,
 } from "@lukawi/toporealm-protocol";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
+import { ModuleHost } from "@lukawi/toporealm-module-host";
 import { resolveTarget, type ResolveOptions } from "./workspace.js";
 
 // ---------- MemoryClient：进程内完整 daemon 语义（测试主缝 / 嵌入式集成，blueprint §8） ----------
@@ -35,13 +36,16 @@ export class MemoryClient implements DaemonClient {
       graphId: target.graphId,
       watch: this.opts.watch,
     });
-    return new MemorySession(core, this.opts.origin ?? "cli");
+    // 模块装载与 daemon 同构（模块集启动冻结；requires 缺失 → 大声失败）
+    const host = await ModuleHost.load(core, { root: target.root });
+    return new MemorySession(core, host, this.opts.origin ?? "cli");
   }
 }
 
 export class MemorySession implements Session {
   constructor(
     private readonly core: DaemonCore,
+    private readonly host: ModuleHost,
     private readonly origin: Origin,
   ) {}
 
@@ -77,12 +81,15 @@ export class MemorySession implements Session {
     return this.core.redo(steps ?? 1, this.origin);
   }
 
-  async catalog(): Promise<Catalog> {
-    return this.core.catalog();
+  async catalog(module?: string): Promise<Catalog> {
+    return this.host.catalog(module);
   }
 
-  async run(commandId: string): Promise<CommandRunResult> {
-    return this.core.run(commandId);
+  async run(
+    commandId: string,
+    opts?: { target?: string; input?: unknown },
+  ): Promise<CommandRunResult> {
+    return this.host.run(commandId, opts);
   }
 
   async events(
@@ -99,5 +106,10 @@ export class MemorySession implements Session {
   /** 测试辅助：确定性触发外部编辑吸收（IPC adapter 用真实 fs.watch） */
   reconcileNow(): Promise<boolean> {
     return this.core.reconcileExternal();
+  }
+
+  /** 测试/S2 缝：模块运行时访问（目录 warning、form 投影等） */
+  get moduleRuntime(): ModuleHost {
+    return this.host;
   }
 }

@@ -358,8 +358,12 @@ class IpcSession implements Session {
     })) as CommitResult;
   }
 
-  async catalog(): Promise<Catalog> {
-    return (await this.request({ id: this.nextId(), op: "catalog" })) as Catalog;
+  async catalog(module?: string): Promise<Catalog> {
+    return (await this.request({
+      id: this.nextId(),
+      op: "catalog",
+      ...(module !== undefined ? { module } : {}),
+    })) as Catalog;
   }
 
   async run(

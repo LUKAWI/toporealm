@@ -12,6 +12,10 @@ import {
   type TopoEvent,
 } from "@lukawi/toporealm-protocol";
 import { DaemonCore, endpointAddress } from "@lukawi/toporealm-daemon-core";
+import {
+  ModuleHost,
+  currentModuleBindingDigest,
+} from "@lukawi/toporealm-module-host";
 
 // ---------- IpcServer：单属主 daemon 的接入面（CLI 现，Web M3 复用同一扇出） ----------
 
@@ -27,6 +31,10 @@ export interface ServeDaemonOptions {
 export interface RunningDaemon {
   instanceId: string;
   graphId: string;
+  /** 已装载模块 id（模块集启动冻结） */
+  modules: readonly string[];
+  /** 装载期 warning（声明词汇偏差等） */
+  warnings: readonly string[];
   /** 图装载耗时（冷启动断言用） */
   loadMs: number;
   stopped: Promise<void>;
@@ -47,6 +55,8 @@ export async function serveDaemon(
     graphId: opts.graph,
     watch: true,
   });
+  // 模块装载（模块集启动冻结）：requires 缺失/声明损坏 → 启动大声失败（M6）
+  const host = await ModuleHost.load(core, { root: opts.root });
 
   let resolveStopped!: () => void;
   const stopped = new Promise<void>((r) => (resolveStopped = r));
@@ -122,6 +132,22 @@ export async function serveDaemon(
             setTimeout(() => void stop(), 50);
             return;
           }
+          // 模块集失效检测（blueprint §5）：modules.yaml 摘要变化 = 模块集过期 →
+          // 如实拒绝 + 自旋退出，客户端下次触达拉起装载新模块集的 daemon
+          if ((await currentModuleBindingDigest(opts.root)) !== host.digest) {
+            respond({
+              id: req.id,
+              ok: false,
+              instanceId: core.instanceId,
+              error: {
+                code: "SESSION_STALE",
+                message: "工作区模块集已变化（modules.yaml），本 daemon 的模块集已过期",
+                fix: "直接重试：客户端会自动拉起装载新模块集的 daemon",
+              },
+            });
+            setTimeout(() => void stop(), 50);
+            return;
+          }
           ok(req.id, { graphId: core.graphId, revision: core.revision });
           return;
         }
@@ -145,10 +171,10 @@ export async function serveDaemon(
             ok(req.id, await core.redo(req.steps ?? 1, origin));
             return;
           case "catalog":
-            ok(req.id, core.catalog());
+            ok(req.id, host.catalog(req.module));
             return;
           case "run":
-            ok(req.id, core.run(req.commandId));
+            ok(req.id, await host.run(req.commandId, req.opts));
             return;
           case "events": {
             const token = crypto.randomUUID();
@@ -210,6 +236,8 @@ export async function serveDaemon(
   return {
     instanceId: core.instanceId,
     graphId: core.graphId,
+    modules: host.loadedIds,
+    warnings: host.warnings,
     loadMs: core.loadMs,
     stopped,
     stop,
