@@ -14,6 +14,10 @@ export const TOPO_ERROR_CODES = [
   "OWNERSHIP_VIOLATION",
   // 钩子
   "VETOED",
+  // 模块（blueprint §1.4 D19：注册冻结 / 钩子再入 / requires 缺失）
+  "LATE_REGISTRATION",
+  "REENTRANT_COMMIT",
+  "MISSING_MODULE",
   // 命令
   "UNKNOWN_COMMAND",
   "INVALID_INPUT",
