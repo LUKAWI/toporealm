@@ -82,6 +82,37 @@ export function runSessionContractSuite(
       expect(log.map((e) => e.label)).toContain("put-case");
     });
 
+    it("put：id 与 kind 同给必须与存量一致，否则 UNKNOWN_KIND（D18③）", async () => {
+      const id = uniq("uk");
+      await s.commit({ changes: [{ op: "put", kind: "uk.a", id }] });
+      const err = await s
+        .commit({ changes: [{ op: "put", kind: "uk.b", id, payload: { x: 1 } }] })
+        .catch(
+          (e: unknown) =>
+            e as {
+              code: string;
+              message: string;
+              details?: { existing?: string; submitted?: string };
+            },
+        );
+      expect(err.code).toBe("UNKNOWN_KIND");
+      expect(err.message).toContain("uk.a"); // 错误信息点名存量 vs 提交值
+      expect(err.message).toContain("uk.b");
+      expect(err.details).toMatchObject({ existing: "uk.a", submitted: "uk.b" });
+      // 拒绝后零副作用：存量 kind 与载荷原样
+      const got = await s.read({ ids: [id] });
+      expect(got.entities[0]).toMatchObject({ id, kind: "uk.a", payload: {} });
+      // id 与 kind 同给且一致 → 正常 upsert
+      const ok = await s.commit({
+        changes: [{ op: "put", kind: "uk.a", id, payload: { x: 2 } }],
+      });
+      expect(ok.revision).toBeGreaterThan(0);
+      expect((await s.read({ ids: [id] })).entities[0]).toMatchObject({
+        kind: "uk.a",
+        payload: { x: 2 },
+      });
+    });
+
     it("错误封闭集：INVALID_INPUT / ID_EXISTS / UNKNOWN_ID(带 did-you-mean)", async () => {
       // 新建对象缺 kind
       await expect(

@@ -62,6 +62,35 @@ describe("提交管线（read/commit/undo/redo 统一转换）", () => {
     core.dispose();
   });
 
+  it("put kind 一致性：已存在 id 同给不同 kind → UNKNOWN_KIND（D18③）；一致 → 正常 upsert", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    await core.commit({ changes: [{ op: "put", kind: "a", id: "x" }] }, "cli");
+    try {
+      await core.commit(
+        { changes: [{ op: "put", kind: "b", id: "x", payload: { n: 1 } }] },
+        "cli",
+      );
+      expect.fail("should throw");
+    } catch (e) {
+      expect(TopoError.is(e)).toBe(true);
+      const err = e as TopoError;
+      expect(err.code).toBe("UNKNOWN_KIND");
+      expect(err.message).toContain('"a"'); // 点名存量
+      expect(err.message).toContain('"b"'); // 点名提交值
+      expect(err.details).toMatchObject({ id: "x", existing: "a", submitted: "b" });
+    }
+    // 拒绝整批零副作用（原子性）
+    expect(core.read({ ids: ["x"] }).entities[0]).toMatchObject({ kind: "a", payload: {} });
+    // id 与 kind 同给且一致 → 正常 upsert
+    await core.commit(
+      { changes: [{ op: "put", kind: "a", id: "x", payload: { n: 2 } }] },
+      "cli",
+    );
+    expect(core.read({ ids: ["x"] }).entities[0]).toMatchObject({ kind: "a", payload: { n: 2 } });
+    core.dispose();
+  });
+
   it("merge 浅合并 + null 删键；put 整体替换", async () => {
     const root = await tmpWorkspace();
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });

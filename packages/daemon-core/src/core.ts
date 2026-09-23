@@ -623,7 +623,15 @@ export class DaemonCore {
             details: { id },
           });
         }
-        kind = prev.kind;
+        kind = prev.kind; // D18②：id 已存在可省 kind，以存量为准
+      } else if (prev && kind !== prev.kind) {
+        // D18③：id 与 kind 同给必须一致，否则 UNKNOWN_KIND（upsert 不改主类型）
+        throw new TopoError({
+          code: "UNKNOWN_KIND",
+          message: `put 主类型冲突："${id}" 存量 "${prev.kind}"，提交 "${c.kind}"`,
+          hint: "upsert 不得改主类型：省略 kind 保持存量；确需改类型先 rm（有关系先删关系）再重建",
+          details: { id, existing: prev.kind, submitted: c.kind, changeIndex: i },
+        });
       }
       if (!isValidKind(kind)) {
         throw new TopoError({
