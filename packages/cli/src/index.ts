@@ -26,6 +26,7 @@ import {
   CORE_VERBS,
   UsageError,
   helpText,
+  parseFields,
   parseJsonObject,
   parseKvPairs,
   unknownVerbSuggestion,
@@ -256,7 +257,7 @@ async function dispatch(
       // 先吃 flag，再取位置参数（否则 flag 会被误当实体 id）
       const kinds = a.values("--kind");
       const wheres = a.values("--where");
-      const fields = a.values("--fields");
+      const fields = parseFields(a.values("--fields"));
       const limit = a.numberValue("--limit");
       const pos = a.positionals();
       const id = pos[0];
@@ -313,7 +314,7 @@ async function dispatch(
     case "find": {
       const a = new Argv(args);
       const kinds = a.values("--kind");
-      const fields = a.values("--fields");
+      const fields = parseFields(a.values("--fields"));
       const kvArgs = a.positionals();
       if (kvArgs.length === 0) {
         throw new UsageError("用法：toporealm find <k=v>... [--kind K] [--fields f]");
@@ -468,6 +469,7 @@ async function dispatch(
       const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         const entries = await s.log({ limit: n });
+        const st = await s.status();
         const rows = entries
           .map(
             (e) =>
@@ -477,6 +479,7 @@ async function dispatch(
         return {
           data: { entries },
           human: `${entries.length} entr(ies):\n${rows || "  (empty)"}`,
+          revision: st.revision,
         };
       });
     }

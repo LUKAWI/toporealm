@@ -44,8 +44,8 @@ export function helpText(): string {
 
 图事实面（经单属主 daemon）：
   status                        当前图 revision/kind 计数/undo redo 可用性
-  read [id] [--kind K]... [--where k=v]... [--fields f]... [--limit N]
-                                全图 / 单点邻域 / 过滤 + 投影
+  read [id] [--kind K]... [--where k=v]... [--fields id,status] [--limit N]
+                                全图 / 单点邻域 / 过滤 + 投影（裸键 = payload.<键>；逗号或重复 flag）
   find <k=v>... [--kind K]      read --where 的糖（agent 发现动词）
   add <kind> [--id X] [--payload '<json>']      新建对象，created id 回显
   set <id> [k=v]... [--payload '<json>'] [--replace]
@@ -124,6 +124,41 @@ export class Argv {
   positionals(): string[] {
     return this.rest;
   }
+}
+
+// ---------- --fields 投影解析（blueprint §4：--fields id,status 逗号写法是契约拼写） ----------
+
+/** 结构字段（protocol ReadQuery.fields）；其余裸键一律作 payload.<键> 简写（§4 示例 status = §7 约定的 payload.status） */
+const STRUCTURAL_FIELDS = new Set(["id", "kind", "source", "target"]);
+
+/**
+ * --fields 解析：`--fields id,status`（逗号）与 `--fields id --fields status`（重复 flag）两种写法等价；
+ * 裸键解析为 payload.<键>（蓝图 §4 示例即此语义），也可显式写 payload.<键>。
+ * 非法值（空字段/空段）在本地即报用法错误（exit 2），不把坏值静默投进 core 得到空投影。
+ */
+export function parseFields(values: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const v of values) {
+    for (const piece of v.split(",")) {
+      const f = piece.trim();
+      if (f === "") {
+        throw new UsageError(
+          `--fields 字段不能为空（合法：id/kind/source/target/<payload键>/payload.<键>，得到 "${v}"）`,
+        );
+      }
+      if (STRUCTURAL_FIELDS.has(f)) {
+        out.push(f);
+      } else if (f.startsWith("payload.")) {
+        if (f === "payload.") {
+          throw new UsageError(`--fields "payload." 缺键名（例如 payload.status）`);
+        }
+        out.push(f);
+      } else {
+        out.push(`payload.${f}`); // 裸键 = payload 键简写
+      }
+    }
+  }
+  return out;
 }
 
 // ---------- k=v → 载荷（CLI 的 k=v→Change 编译器） ----------

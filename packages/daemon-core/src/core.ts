@@ -686,8 +686,8 @@ export class DaemonCore {
           throw new TopoError({
             code: "DANGLING_RELATION",
             message: `关系端点不存在：${missing.join(", ")}`,
-            hint: "先创建端点对象（同一提交内创建也可），或改指已存在的对象",
-            fix: `toporealm add ${c.kind} --id ${c.source}`,
+            hint: "先补建缺失的端点对象（同一提交内创建也可），或改指已存在的对象",
+            fix: `toporealm add <对象kind> --id ${missing[0] ?? c.source}`,
             details: {
               relations: [
                 { id, kind: c.kind, source: c.source, target: c.target },

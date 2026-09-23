@@ -171,9 +171,15 @@ export class IpcClient implements DaemonClient {
       const child = spawn(
         cmd.cmd,
         [...cmd.args, "--root", target.root, "--graph", target.graphId],
-        { stdio: "ignore", windowsHide: true },
+        {
+          // detached：daemon 必须脱离拉起者独立常驻（blueprint §5）——拉起它的
+          // CLI/中间进程退出时不得连带被杀（POSIX 入新进程组，Windows 独立作业）。
+          detached: true,
+          stdio: "ignore", // 不继承 stdio 句柄：拉起者退出关闭管道也不波及 daemon
+          windowsHide: true,
+        },
       );
-      child.unref();
+      child.unref(); // 父进程事件循环不为它保持存活；退出由空闲超时/清理路径负责
     } catch (err) {
       throw new TopoError({
         code: "DAEMON_UNREACHABLE",

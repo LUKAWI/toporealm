@@ -153,6 +153,25 @@ describe("CLI --json 信封 + 退出码", () => {
       data: { entities: { id: string }[] };
     };
     expect(found.data.entities.map((e) => e.id)).toContain("t1");
+    // --fields 逗号写法（blueprint §4 示例拼写）：逗号与重复 flag 等价
+    const comma = jsonOf(
+      await exec(["--json", "find", "status=done", "--fields", "id,status"]),
+    ) as { data: { entities: Record<string, unknown>[] } };
+    expect(comma.data.entities.length).toBeGreaterThanOrEqual(1);
+    for (const e of comma.data.entities) {
+      expect(Object.keys(e).sort()).toEqual(["id", "payload"]);
+      expect((e.payload as Record<string, unknown>).status).toBe("done");
+    }
+    const repeated = jsonOf(
+      await exec(["--json", "find", "status=done", "--fields", "id", "--fields", "status"]),
+    ) as { data: { entities: Record<string, unknown>[] } };
+    expect(repeated.data.entities).toEqual(comma.data.entities);
+    // 非法值：空字段/空段本地即报用法错误（exit 2），不静默投进 core 得到空投影
+    const emptyMid = await exec(["--json", "read", "--fields", "id,,status"]);
+    expect(emptyMid.code).toBe(2);
+    expect(jsonOf(emptyMid)).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+    const emptyTail = await exec(["--json", "read", "--fields", "id,"]);
+    expect(emptyTail.code).toBe(2);
   });
 
   it("undo/redo/log", async () => {
@@ -162,11 +181,13 @@ describe("CLI --json 信封 + 退出码", () => {
     const r = jsonOf(await exec(["--json", "redo"])) as { revision: number };
     expect(r.revision).toBe(u.revision + 1);
     const log = jsonOf(await exec(["--json", "log", "-n", "3"])) as {
+      revision: number;
       data: { entries: { kind: string; origin: string; revision: number }[] };
     };
     expect(log.data.entries.length).toBeGreaterThan(0);
     expect(log.data.entries.at(-1)?.kind).toBe("commit");
     expect(log.data.entries.at(-1)?.origin).toBe("cli");
+    expect(log.revision).toBeGreaterThan(0); // 信封补 revision 字段
   });
 
   it("用法错误(2) / 环境错误(1) / 人类模式输出", async () => {

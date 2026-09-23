@@ -31,7 +31,7 @@ export function kindNamespace(kind: Kind): string | null {
 /** graphId：成为目录名，规则同 EntityId。 */
 export const isValidGraphId = isValidEntityId;
 
-/** Ovjek edit distance（阈值用）。 */
+/** Levenshtein 编辑距离（阈值用）。 */
 export function editDistance(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
