@@ -11,7 +11,9 @@ import type { TopoErrorInit } from "./errors.js";
 // 的传输信封；按"契约类型集中在 protocol"的红线放在这里，避免 client←daemon 循环。
 
 export type IpcRequest =
-  | { id: string; op: "hello"; root: string; graph?: string }
+  // hello.root 可选（D22）：web 客户端不知道工作区路径——省略 = 即服务 daemon
+  // 自身的 root/graph，不做比对；提供了仍比对（IPC 语义不变）。
+  | { id: string; op: "hello"; root?: string; graph?: string }
   | { id: string; op: "status" }
   | { id: string; op: "read"; query?: ReadQuery }
   | { id: string; op: "log"; limit?: number }

@@ -6,6 +6,7 @@ import {
   workspacePaths,
 } from "@lukawi/toporealm-daemon-core";
 import { serveDaemon } from "../server.js";
+import { resolveWebUiDist } from "@lukawi/toporealm-web";
 import {
   clearEndpoint,
   isPidAlive,
@@ -20,17 +21,23 @@ async function main(): Promise<number> {
   let root: string = process.cwd();
   let graph: string | undefined;
   let idleMs: number | undefined;
+  let webPort: number | undefined;
+  let noWeb = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--root") root = argv[++i] ?? root;
     else if (a === "--graph") graph = argv[++i];
     else if (a === "--idle-ms") idleMs = Number(argv[++i]);
+    else if (a === "--web-port") webPort = Number(argv[++i]);
+    else if (a === "--no-web") noWeb = true;
     else if (a === "--help" || a === "-h") {
       process.stdout.write(
-        "usage: toporeald [--root <dir>] [--graph <id>] [--idle-ms <ms>]\n" +
-          "  --root     工作区目录（默认 cwd）\n" +
-          "  --graph    服务哪张图（默认 .toporealm/active）\n" +
-          "  --idle-ms  空闲退出毫秒；0 = 永不（默认 TOPOREALM_IDLE_MS 或 30000）\n",
+        "usage: toporeald [--root <dir>] [--graph <id>] [--idle-ms <ms>] [--web-port <p>] [--no-web]\n" +
+          "  --root      工作区目录（默认 cwd）\n" +
+          "  --graph     服务哪张图（默认 .toporealm/active）\n" +
+          "  --idle-ms   空闲退出毫秒；0 = 永不（默认 TOPOREALM_IDLE_MS 或 30000）\n" +
+          "  --web-port  web 伺服端口（默认 TOPOREALM_WEB_PORT 或 0=临时口；D22）\n" +
+          "  --no-web    关闭 web 伺服（HTTP 静态 + /ws）\n",
       );
       return 0;
     }
@@ -39,6 +46,10 @@ async function main(): Promise<number> {
   if (idleMs === undefined || Number.isNaN(idleMs)) {
     const env = Number(process.env.TOPOREALM_IDLE_MS);
     idleMs = Number.isFinite(env) ? env : 30_000;
+  }
+  if (webPort === undefined || Number.isNaN(webPort)) {
+    const env = Number(process.env.TOPOREALM_WEB_PORT);
+    webPort = Number.isFinite(env) ? env : 0;
   }
   graph ??= (await readActiveGraphId(workspacePaths(root).activeFile)) ?? undefined;
   if (!graph) {
@@ -59,7 +70,14 @@ async function main(): Promise<number> {
 
   let running;
   try {
-    running = await serveDaemon({ root, graph, idleMs });
+    running = await serveDaemon({
+      root,
+      graph,
+      idleMs,
+      ...(noWeb
+        ? { web: false }
+        : { web: { port: webPort, staticDir: resolveWebUiDist() ?? undefined } }),
+    });
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "EADDRINUSE" || code === "EACCES") {
@@ -80,9 +98,10 @@ async function main(): Promise<number> {
     instanceId: running.instanceId,
     graphId: running.graphId,
     startedAt: new Date().toISOString(),
+    ...(running.web !== null ? { webPort: running.web.port } : {}),
   });
   process.stderr.write(
-    `[toporeald] graph "${running.graphId}" ready (pid ${process.pid}, cold ${running.loadMs.toFixed(1)}ms, idle ${idleMs}ms, modules ${running.modules.length}${running.modules.length > 0 ? `: ${running.modules.join(", ")}` : ""})\n`,
+    `[toporeald] graph "${running.graphId}" ready (pid ${process.pid}, cold ${running.loadMs.toFixed(1)}ms, idle ${idleMs}ms, modules ${running.modules.length}${running.modules.length > 0 ? `: ${running.modules.join(", ")}` : ""}${running.web !== null ? `, web ${running.web.url}` : ""})\n`,
   );
   for (const w of running.warnings) {
     process.stderr.write(`[toporeald] warning: ${w}\n`);

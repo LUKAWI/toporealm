@@ -1,31 +1,33 @@
 import net from "node:net";
 import fs from "node:fs";
-import path from "node:path";
-import crypto from "node:crypto";
 import {
   createLineDecoder,
   encodeLine,
-  TopoError,
   type IpcMessage,
   type IpcRequest,
-  type IpcResponse,
-  type TopoEvent,
 } from "@lukawi/toporealm-protocol";
 import { DaemonCore, endpointAddress } from "@lukawi/toporealm-daemon-core";
+import { ModuleHost } from "@lukawi/toporealm-module-host";
 import {
-  ModuleHost,
-  currentModuleBindingDigest,
-} from "@lukawi/toporealm-module-host";
+  startWebServer,
+  createWireDispatcher,
+  type RunningWebServer,
+} from "@lukawi/toporealm-web";
 
-// ---------- IpcServer：单属主 daemon 的接入面（CLI 现，Web M3 复用同一扇出） ----------
+// ---------- IpcServer + web 伺服：单属主 daemon 的接入面（blueprint §5 + D22） ----------
+//
+// op 语义（hello 过期判定 / 订阅 token / 提交 origin）住在 @lukawi/toporealm-web 的
+// createWireDispatcher——IPC 与 WS 共用同一分发器与同一事件扇出（core.events）。
 
 export interface ServeDaemonOptions {
   root: string;
   graph: string;
   /** 空闲退出毫秒；0 = 永不（默认 30000，blueprint §5） */
   idleMs?: number;
-  /** 传输来源 → 提交 origin（M1 仅 CLI；web 在 M3 加入） */
-  origin?: "cli" | "web";
+  /** IPC 连接的提交来源（默认 "cli"；WS 连接恒为 "web"） */
+  origin?: "cli";
+  /** web 伺服（D22：随 daemon 常开）；false = 关闭 */
+  web?: { port?: number; staticDir?: string } | false;
 }
 
 export interface RunningDaemon {
@@ -37,6 +39,8 @@ export interface RunningDaemon {
   warnings: readonly string[];
   /** 图装载耗时（冷启动断言用） */
   loadMs: number;
+  /** web 伺服（未开启 = null） */
+  web: RunningWebServer | null;
   stopped: Promise<void>;
   stop(): Promise<void>;
 }
@@ -61,153 +65,64 @@ export async function serveDaemon(
   let resolveStopped!: () => void;
   const stopped = new Promise<void>((r) => (resolveStopped = r));
 
-  const refreshIdle = (): void => {
-    if (idleMs <= 0) return;
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => void stop(), idleMs);
-  };
-
   async function stop(): Promise<void> {
     if (stopRequested) return stopped;
     stopRequested = true;
     if (idleTimer) clearTimeout(idleTimer);
     for (const c of connections) c.destroy();
     await new Promise<void>((r) => server.close(() => r()));
+    if (web) await web.close();
     core.dispose();
     resolveStopped();
   }
 
+  const refreshIdle = (): void => {
+    if (idleMs <= 0) return;
+    if (idleTimer) clearTimeout(idleTimer);
+    // 空闲 = 无连接且无请求（D22 裁决④：打开中的连接视作活动）
+    idleTimer = setTimeout(() => {
+      if (connections.size > 0) {
+        refreshIdle();
+        return;
+      }
+      void stop();
+    }, idleMs);
+  };
+
+  // web 伺服（D22 裁决②）：随 daemon 常开；hello 过期判定与 shutdown → 自旋退出
+  const web =
+    opts.web === false
+      ? null
+      : await startWebServer({
+          core,
+          host,
+          port: opts.web?.port,
+          ...(opts.web?.staticDir !== undefined
+            ? { staticDir: opts.web.staticDir }
+            : {}),
+          onActivity: () => refreshIdle(),
+          onStop: () => void stop(),
+        });
+
   const server = net.createServer((socket) => {
     connections.add(socket);
     refreshIdle();
-    /** 本连接的事件订阅：token → 退订函数 */
-    const subscribers = new Map<string, () => void>();
+    const dispatcher = createWireDispatcher(
+      { core, host, origin, onStale: () => void stop() },
+      (msg) => send(encodeLine(msg)),
+    );
     socket.on("close", () => {
       connections.delete(socket);
-      for (const un of subscribers.values()) un();
-      subscribers.clear();
+      dispatcher.dispose();
     });
     const send = (line: string): void => {
       if (!socket.destroyed) socket.write(line);
     };
-    const respond = (res: IpcResponse): void => send(encodeLine(res));
-    const ok = (id: string, result: unknown): void =>
-      respond({ id, ok: true, instanceId: core.instanceId, result });
-    const fail = (id: string, err: unknown): void =>
-      respond({
-        id,
-        ok: false,
-        instanceId: core.instanceId,
-        error:
-          err instanceof TopoError
-            ? err.toJSON()
-            : {
-                code: "DAEMON_UNREACHABLE",
-                message: `daemon internal error: ${String(err)}`,
-              },
-      });
 
     const decode = createLineDecoder((raw: IpcMessage) => {
       if (!("op" in raw)) return; // 服务器只接收请求
-      void handle(raw as IpcRequest);
+      void dispatcher.handle(raw as IpcRequest);
     });
-
-    async function handle(req: IpcRequest): Promise<void> {
-      refreshIdle();
-      try {
-        if (req.op === "hello") {
-          const sameRoot = path.resolve(req.root) === path.resolve(opts.root);
-          if (!sameRoot || (req.graph !== undefined && req.graph !== core.graphId)) {
-            // 换图/换 root：如实拒绝 + 旧 daemon 自旋退出（D5：下次触达自动拉起新的）
-            respond({
-              id: req.id,
-              ok: false,
-              instanceId: core.instanceId,
-              error: {
-                code: "SESSION_STALE",
-                message: `daemon 正在服务图 "${core.graphId}"，与请求的 ${req.graph ?? "(未指定)"} 不符`,
-                fix: "直接重试：客户端会自动拉起服务目标图的 daemon",
-              },
-            });
-            setTimeout(() => void stop(), 50);
-            return;
-          }
-          // 模块集失效检测（blueprint §5）：modules.yaml 摘要变化 = 模块集过期 →
-          // 如实拒绝 + 自旋退出，客户端下次触达拉起装载新模块集的 daemon
-          if ((await currentModuleBindingDigest(opts.root)) !== host.digest) {
-            respond({
-              id: req.id,
-              ok: false,
-              instanceId: core.instanceId,
-              error: {
-                code: "SESSION_STALE",
-                message: "工作区模块集已变化（modules.yaml），本 daemon 的模块集已过期",
-                fix: "直接重试：客户端会自动拉起装载新模块集的 daemon",
-              },
-            });
-            setTimeout(() => void stop(), 50);
-            return;
-          }
-          ok(req.id, { graphId: core.graphId, revision: core.revision });
-          return;
-        }
-        switch (req.op) {
-          case "status":
-            ok(req.id, core.status());
-            return;
-          case "read":
-            ok(req.id, core.read(req.query));
-            return;
-          case "log":
-            ok(req.id, core.tailLog(req.limit ?? 50));
-            return;
-          case "commit":
-            ok(req.id, await core.commit(req.input, origin));
-            return;
-          case "undo":
-            ok(req.id, await core.undo(req.steps ?? 1, origin));
-            return;
-          case "redo":
-            ok(req.id, await core.redo(req.steps ?? 1, origin));
-            return;
-          case "catalog":
-            ok(req.id, host.catalog(req.module));
-            return;
-          case "run":
-            ok(req.id, await host.run(req.commandId, req.opts));
-            return;
-          case "events": {
-            const token = crypto.randomUUID();
-            const listener = (e: TopoEvent): void =>
-              send(encodeLine({ event: e }));
-            const un = core.events(
-              listener,
-              req.fromRevision !== undefined
-                ? { fromRevision: req.fromRevision }
-                : undefined,
-            );
-            subscribers.set(token, un);
-            ok(req.id, { token });
-            return;
-          }
-          case "unlisten": {
-            const un = subscribers.get(req.token);
-            if (un) {
-              un();
-              subscribers.delete(req.token);
-            }
-            ok(req.id, { ok: true });
-            return;
-          }
-          case "shutdown":
-            ok(req.id, { ok: true });
-            setTimeout(() => void stop(), 20);
-            return;
-        }
-      } catch (err) {
-        fail(req.id, err);
-      }
-    }
 
     socket.setEncoding("utf8");
     socket.on("data", (chunk: string) => decode.push(chunk));
@@ -239,6 +154,7 @@ export async function serveDaemon(
     modules: host.loadedIds,
     warnings: host.warnings,
     loadMs: core.loadMs,
+    web,
     stopped,
     stop,
   };

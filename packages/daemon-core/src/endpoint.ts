@@ -14,6 +14,8 @@ export interface DaemonEndpointInfo {
   instanceId: string;
   graphId: string;
   startedAt: string;
+  /** web 伺服端口（D22：HTTP 静态 + /ws；缺省 = 老 endpoint 或未开 web） */
+  webPort?: number;
 }
 
 export function endpointFile(root: string): string {
