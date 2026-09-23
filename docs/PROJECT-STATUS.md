@@ -2,9 +2,9 @@
 
 状态快照：2026-09-23。
 
-## 当前阶段：M1–M3 完成（骨架 / 模块系统 / Web），进入 M4 分发与迁移
+## 当前阶段：M1–M4 完成（骨架 / 模块系统 / Web / 分发与迁移），进入 M5 Workflow 首发移植
 
-决策（D1–D17，另有 D18–D22 实现期补遗记录于 blueprint §1.4/§1.5）、ADR、接口设计与完整开发 Spec 已收口。重建为 npm workspaces monorepo，八个后端包 + web-ui 前端包就位：
+决策（D1–D17，另有 D18–D23 实现期补遗记录于 blueprint §1.4–§1.6）、ADR、接口设计与完整开发 Spec 已收口。重建为 npm workspaces monorepo，九个后端包 + web-ui 前端包就位：
 
 | 包 | 职责 |
 |---|---|
@@ -15,26 +15,27 @@
 | `packages/client` | DaemonClient port 三 adapter：MemoryClient（测试主缝）/ IpcClient（自动拉起守护）/ WsClient（浏览器同源 WS，断线重连 + I3 自愈；`./browser` 零 node 依赖出口） |
 | `packages/web` | daemon 内 web 伺服：HTTP 静态产物 + `/ws` 端点（与 IPC 共用同一 wire 分发器与事件扇出，D22） |
 | `packages/daemon` | IPC 服务器 + `toporeald` 入口（单属主互斥、空闲退出、detached 常驻、web 伺服常开） |
-| `packages/cli` | 核心动词 + `cmds`/`<ns.name>` 目录自省 + `serve` + `--json` 信封 + 退出码 0/1/2 + did-you-mean |
+| `packages/distribution` | 模块安装器（npm pack --ignore-scripts + 本地路径 → `.toporealm/modules/<id>/` + 所有权标记）、host sync（claude-code plugin / pi extension+skills，钩子格式不混用）、0.x migrate（D23） |
+| `packages/cli` | 核心动词 + `module add/rm/list` + `migrate` + `host sync` + `cmds`/`<ns.name>` 目录自省 + `serve` + `--json` 信封 + 退出码 0/1/2 + did-you-mean |
 | `web-ui` | Svelte 5 + D3 浏览器编辑器（继承资产适配：store 层走 Session 契约，filter/projection/layout 分层保留） |
 
 里程碑完成记录（blueprint §9）：
 
 - **M1 骨架** ✅：monorepo 起步 → 核心动词 + MemoryClient/IpcClient + 守护进程生命周期（`31c98ee` → `7ab8da9`）。
 - **M2 模块系统** ✅：module-host/module-sdk + 所有权法 + 钩子相位执法 + catalog/run + fixture 模块（example/workflow-mini）activate→命令→钩子 veto 全链路（`31c9630` → `837fb73`）。
-- **M3 Web** ✅：web（HTTP+WS，D22）+ WsClient + web-ui 适配 + `serve` 动词；验收以 node WS 客户端 e2e 证明无刷新实时同步（双客户端 IPC+WS 互见、外部编辑 → reset → 全量重读自愈）与断线自愈（重连 + instanceId 失效 + fromRevision 补洞）；真实浏览器人工验收待 M4 期间补做（`1651ebc` → `3c7238d` 及后续修复）。
+- **M3 Web** ✅：web（HTTP+WS，D22）+ WsClient + web-ui 适配 + `serve` 动词；验收以 node WS 客户端 e2e 证明无刷新实时同步（双客户端 IPC+WS 互见、外部编辑 → reset → 全量重读自愈）与断线自愈（重连 + instanceId 失效 + fromRevision 补洞）；真实浏览器人工验收待 M5 期间补做（`1651ebc` → `3c7238d` 及后续修复）。
+- **M4 分发与迁移** ✅：安装器（npm 包真实 `npm pack --ignore-scripts` 安装 → daemon 装载全链路；本地路径来源；所有权标记卸载）、host sync（claude-code 自包含 plugin 目录 / pi 原生项目级 `.pi` 发现位，所有权标记管理重同步）、migrate（合成 0.x fixture 图 → 迁移报告零意外：错误清单空、悬空边逐条点名、冲突/降级逐条在案，迁移后图 daemon 装载可读、undo 游标清零）；CLI 三动词接线（`deb6af9` → `cd0ac34`）。
 
-验收证据（2026-09-23 实测根目录 `npm test`，vitest 单一门禁：packages 后端缝 + web-ui jsdom 双工程）：23 个测试文件、178 个用例全绿；`npm run typecheck`（8 包 tsc --noEmit）全绿。
+验收证据（2026-09-23 实测根目录 `npm test`，vitest 单一门禁：packages 后端缝 + web-ui jsdom 双工程）：27 个测试文件、202 个用例全绿；`npm run typecheck`（9 包 tsc --noEmit）全绿。
 
 剩余里程碑：
 
-- **M4 分发与迁移**（下一步）：安装器 + host sync（claude-code/pi，钩子格式不得混用）+ migrate；验收为 npm 包安装模块、旧 fixture 图迁移报告零意外。
-- **M5 Workflow 首发移植**：workflow 模块移植 + 双宿主 skills + 文档；workflow 全部语义等价用例通过即发布 `1.0.0`（含 FormSpec 目录投影通道的补课，见 D22④）。
+- **M5 Workflow 首发移植**（下一步）：workflow 模块移植 + 模块 skills 投影（双宿主，host sync 缝已就位）+ 文档；workflow 全部语义等价用例通过即发布 `1.0.0`（含 FormSpec 目录投影通道的补课，见 D22④）。
 
 | 产物 | 位置 |
 |---|---|
 | 设计哲学 | `Toporealm设计构想.md` |
-| 重建决策档案 | `docs/rebuild/decisions-draft.md`（D1–D17；D18–D22 见 blueprint §1.4/§1.5） |
+| 重建决策档案 | `docs/rebuild/decisions-draft.md`（D1–D17；D18–D23 见 blueprint §1.4–§1.6） |
 | 现行 ADR | `docs/adr/0003` ~ `0006`（0001/0002 为 0.x 历史，已标废弃） |
 | 实现规范（唯一规范来源） | `docs/rebuild/blueprint.md` |
 | 开发 Spec | [issue #1](https://github.com/LUKAWI/toporealm/issues/1)（`ready-for-agent`） |
