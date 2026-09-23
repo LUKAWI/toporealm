@@ -1,337 +1,185 @@
 import { describe, expect, it, vi } from "vitest";
-import { GraphApiError, type GraphPatchEvent, type GraphSnapshot, type HistoryStatus, type MutationPlan, type MutationResult } from "./protocol";
+import { TopoError, type Change, type TopoEvent } from "./protocol";
 import { WebGraphStore } from "./store.svelte";
+import { makeFakeSession, obj, rel, type FakeSessionState } from "./test-support";
 
-function snapshot(revision = 5, objects = [{ id: "q-1", kind: "research.question", label: "问题" }]): GraphSnapshot {
+function initialState(): FakeSessionState {
   return {
-    manifest: { format: "toporealm.graph/v1", id: "demo", label: "Demo", sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" } },
-    objects,
+    revision: 5,
+    objects: [obj("q-1", "research.question", "问题")],
     relations: [],
-    revision,
+    canUndo: true,
+    canRedo: false,
   };
 }
 
-function history(canUndo = true, canRedo = false): HistoryStatus {
-  return { canUndo, canRedo };
+async function loadedStore(overrides: {
+  state?: FakeSessionState;
+  onCommit?: (changes: readonly Change[]) => Promise<void> | void;
+  failUndoWith?: TopoError;
+} = {}) {
+  const session = makeFakeSession(overrides.state ?? initialState(), {
+    ...(overrides.onCommit !== undefined ? { onCommit: overrides.onCommit } : {}),
+    ...(overrides.failUndoWith !== undefined ? { failUndoWith: overrides.failUndoWith } : {}),
+  });
+  const store = new WebGraphStore(async () => session);
+  await store.load();
+  return { store, session };
 }
 
-function resultFor(next: GraphSnapshot): MutationResult {
-  return {
-    snapshot: next,
-    patch: {
-      fromRevision: next.revision - 1,
-      toRevision: next.revision,
-      objects: { added: next.objects, updated: [], deleted: [] },
-      relations: { added: [], updated: [], deleted: [] },
-      manifestChanged: false,
-    },
-    history: history(next.revision > 0, true),
-  };
-}
-
-function fakeApi(overrides: Partial<Parameters<typeof Object.assign>[1]> = {}) {
-  const calls: Record<string, number> = {};
-  const base = {
-    calls,
-    async readGraph() {
-      calls.readGraph = (calls.readGraph ?? 0) + 1;
-      return snapshot();
-    },
-    async apply(plan: MutationPlan) {
-      calls.apply = (calls.apply ?? 0) + 1;
-      const nextRevision = (plan.expectedRevision ?? 0) + 1;
-      const added = plan.mutations.flatMap((mutation) => (mutation.op === "upsert_object" ? [mutation.object] : []));
-      return resultFor(snapshot(nextRevision, [...snapshot().objects, ...added]));
-    },
-    async undo() {
-      calls.undo = (calls.undo ?? 0) + 1;
-      return resultFor(snapshot(6));
-    },
-    async redo() {
-      calls.redo = (calls.redo ?? 0) + 1;
-      return resultFor(snapshot(6));
-    },
-    async history() {
-      return history();
-    },
-    async listGraphs() {
-      return { currentId: "demo", graphs: [{ id: "demo", label: "Demo", revision: 5, objectCount: 1, relationCount: 0 }] };
-    },
-    async switchGraph(id: string) {
-      calls.switchGraph = (calls.switchGraph ?? 0) + 1;
-      return { snapshot: snapshot(), history: history(), graph: { id, label: "Demo", revision: 5, objectCount: 1, relationCount: 0 }, diagnostics: [], complete: true };
-    },
-    async modules() {
-      return { registryRevision: 1, modules: [], ui: {}, operations: [] };
-    },
-    async executeAction() {
-      throw new Error("not expected in this test");
-    },
-    async validate() {
-      return { ok: true, complete: false, errors: [], warnings: [] };
-    },
-    async validateComplete() {
-      return { ok: true, complete: true, errors: [], warnings: [] };
-    },
-  };
-  return Object.assign(base, overrides);
-}
-
-describe("WebGraphStore", () => {
-  it("load 接入真实协议形状：快照、历史、图列表与模块状态", async () => {
-    const store = new WebGraphStore(fakeApi());
-    await store.load();
-    expect(store.snapshot).toMatchObject({ revision: 5, objects: [{ id: "q-1" }] });
+describe("WebGraphStore（1.0 Session 契约）", () => {
+  it("load：read 拆桶为快照、status 供 undo/redo 可用性、catalog 进目录", async () => {
+    const { store, session } = await loadedStore();
+    expect(store.snapshot).toMatchObject({ graphId: "demo", revision: 5, objects: [{ id: "q-1" }], relations: [] });
     expect(store.history).toEqual({ canUndo: true, canRedo: false });
-    expect(store.graphs).toHaveLength(1);
+    expect(store.catalog?.commands).toHaveLength(1);
     expect(store.error).toBe("");
+    expect(session.calls.catalog).toBe(1);
   });
 
-  it("commit 连续推进 revision 并把 patch 写入本地视图", async () => {
-    const api = fakeApi();
-    const store = new WebGraphStore(api);
-    await store.load();
-    const result = await store.commit({ mutations: [{ op: "upsert_object", object: { id: "n-1", kind: "plain", label: "新对象" } }] });
-    expect(result.snapshot.revision).toBe(6);
+  it("commit：Change[] + ifRevision 乐观护航；回执 patch 应用本地视图", async () => {
+    const { store, session } = await loadedStore();
+    const result = await store.commit({
+      changes: [{ op: "put", kind: "plain", id: "n-1", payload: { title: "新对象" } }],
+      label: "add",
+    });
+    expect(result.revision).toBe(6);
     expect(store.revision).toBe(6);
-    expect(store.objects.map((object) => object.id)).toContain("n-1");
-    expect(api.calls.apply).toBe(1);
+    expect(store.objects.map((o) => o.id)).toContain("n-1");
+    expect(store.history.canUndo).toBe(true);
+    expect(session.calls.commit).toBe(1);
+    // 读回假件状态：payload 整体替换 + title 约定键
+    expect(session.state.objects.find((o) => o.id === "n-1")?.payload).toMatchObject({ title: "新对象" });
   });
 
-  it("409 冲突进入 recovery 态：本地快照不变，reload 恢复并清除", async () => {
-    const conflict = new GraphApiError("REVISION_CONFLICT", "版本已变化", 409);
-    const store = new WebGraphStore(fakeApi({
-      async apply() {
-        throw conflict;
-      },
-    }));
-    await store.load();
+  it("IF_REVISION_MISMATCH 进 recovery：本地快照不变，reload 恢复并清除", async () => {
+    const conflict = new TopoError({ code: "IF_REVISION_MISMATCH", message: "版本已变化" });
+    const { store } = await loadedStore({ onCommit: () => { throw conflict; } });
     const before = store.snapshot;
-    await expect(store.commit({ mutations: [{ op: "delete_object", id: "q-1" }] })).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
-    expect(store.recovery).toMatchObject({ code: "REVISION_CONFLICT" });
+    await expect(store.commit({ changes: [{ op: "del", id: "q-1" }] })).rejects.toMatchObject({ code: "IF_REVISION_MISMATCH" });
+    expect(store.recovery).toMatchObject({ code: "IF_REVISION_MISMATCH" });
     expect(store.snapshot).toEqual(before);
     await store.reload();
     expect(store.recovery).toBeNull();
     expect(store.snapshot).toMatchObject({ revision: 5 });
   });
 
-  it("patch gap（本地 revision 不连续）同样进入 recovery 态且不改写本地快照", async () => {
-    const store = new WebGraphStore(fakeApi({
-      async apply() {
-        return {
-          snapshot: snapshot(9),
-          patch: {
-            fromRevision: 8,
-            toRevision: 9,
-            objects: { added: [], updated: [], deleted: [] },
-            relations: { added: [], updated: [], deleted: [] },
-            manifestChanged: false,
-          },
-          history: history(),
-        };
-      },
-    }));
+  it("实时 commit 事件应用本地视图；缺口触发全量重读自愈（I3）", async () => {
+    const state = initialState();
+    const session = makeFakeSession(state);
+    const store = new WebGraphStore(async () => session);
     await store.load();
-    await expect(store.commit({ mutations: [{ op: "upsert_object", object: { id: "x", kind: "plain", label: "x" } }] })).rejects.toMatchObject({ code: "PATCH_GAP" });
-    expect(store.recovery).toMatchObject({ code: "PATCH_GAP" });
-    expect(store.snapshot).toMatchObject({ revision: 5 });
-    expect(store.objects.map((object) => object.id)).toEqual(["q-1"]);
+
+    // 连续事件：正常推进
+    const before = JSON.parse(JSON.stringify(session.state)) as FakeSessionState;
+    state.revision += 1;
+    state.objects = [...state.objects, obj("live-1", "plain", "实时")];
+    session.emit({
+      type: "commit",
+      revision: state.revision,
+      patch: {
+        fromRevision: before.revision,
+        toRevision: state.revision,
+        objects: { added: [obj("live-1", "plain", "实时")], updated: [], deleted: [] },
+        relations: { added: [], updated: [], deleted: [] },
+      },
+      origin: "cli",
+    });
+    await vi.waitFor(() => expect(store.revision).toBe(6));
+    expect(store.objects.map((o) => o.id)).toContain("live-1");
+
+    // 缺口事件（fromRevision 跳号）→ recovery + 全量重读自愈
+    state.revision += 2; // 本地 6 → 服务器顶 8
+    state.objects = [obj("fresh", "plain", "服务器快照")];
+    const readCount = session.calls.read;
+    session.emit({
+      type: "commit",
+      revision: state.revision,
+      patch: { fromRevision: 7, toRevision: state.revision, objects: { added: [], updated: [], deleted: [] }, relations: { added: [], updated: [], deleted: [] } },
+      origin: "cli",
+    });
+    await vi.waitFor(() => expect(store.revision).toBe(8));
+    expect(store.objects.map((o) => o.id)).toEqual(["fresh"]);
+    expect(session.calls.read).toBeGreaterThan(readCount);
+    // 自愈完成：recovery 清除，留下一句可见的状态说明
+    expect(store.recovery).toBeNull();
+    expect(store.actionMessage).toContain("完整快照");
   });
 
-  it("undo 409 进入 recovery；只读模式不发请求", async () => {
-    const store = new WebGraphStore(fakeApi({
-      async undo() {
-        throw new GraphApiError("REVISION_CONFLICT", "版本已变化", 409);
-      },
-    }));
+  it("reset 事件（外部编辑/daemon 重启）→ 全量重读 + 目录缓存作废重拉", async () => {
+    const state = initialState();
+    const session = makeFakeSession(state);
+    const store = new WebGraphStore(async () => session);
     await store.load();
+    expect(session.calls.catalog).toBe(1);
+
+    state.revision += 1;
+    state.objects = [obj("hand-1", "hand", "人手改"), rel("r-1", "supports", "hand-1", "q-1")];
+    session.emit({ type: "reset", reason: "external-edit" });
+    await vi.waitFor(() => expect(session.calls.read).toBe(2));
+    expect(store.objects.map((o) => o.id)).toContain("hand-1");
+    expect(store.relations).toHaveLength(1);
+    expect(session.calls.catalog).toBe(2); // 目录缓存作废重拉（blueprint §5）
+    expect(store.recovery).toBeNull();
+  });
+
+  it("undo 冲突进 recovery；只读模式不发请求", async () => {
+    const { store, session } = await loadedStore({
+      failUndoWith: new TopoError({ code: "IF_REVISION_MISMATCH", message: "版本已变化" }),
+    });
     await store.undo();
-    expect(store.recovery).toMatchObject({ code: "REVISION_CONFLICT" });
+    expect(store.recovery).toMatchObject({ code: "IF_REVISION_MISMATCH" });
     expect(store.snapshot).toMatchObject({ revision: 5 });
 
-    const roApi = fakeApi();
-    const roStore = new WebGraphStore(roApi);
+    const roSession = makeFakeSession(initialState());
+    const roStore = new WebGraphStore(async () => roSession);
     await roStore.load();
     roStore.readOnly = true;
     await roStore.undo();
     expect(roStore.actionMessage).toContain("只读");
-    expect(roApi.calls.undo).toBeUndefined();
+    expect(roSession.calls.undo).toBeUndefined();
   });
 
-  it("switchGraph 清空选择、过滤与校验状态", async () => {
-    let releaseSwitch!: () => void;
-    const switchGate = new Promise<void>((resolve) => {
-      releaseSwitch = resolve;
-    });
-    const api = fakeApi({
-      async switchGraph(id: string) {
-        await switchGate;
-        return { snapshot: snapshot(), history: history(), graph: { id, label: "Demo", revision: 5, objectCount: 1, relationCount: 0 }, diagnostics: [{ code: "LEGACY_SCHEMA_ADAPTED", message: "compat", severity: "warning" as const, privatePath: "D:/secret" }], complete: false, notice: { code: "LEGACY_SCHEMA_ADAPTED", message: "compat", privatePath: "D:/secret" } };
-      },
-    });
-    const store = new WebGraphStore(api);
+  it("run：目录命令的 commits 按序回灌本地视图", async () => {
+    const state = initialState();
+    const session = makeFakeSession(state);
+    const store = new WebGraphStore(async () => session);
     await store.load();
-    store.selection = { type: "object", id: "q-1" };
-    store.searchQuery = "问题";
-    store.kindFilter = "research.question";
-    store.openEditor("edit-object", { targetId: "q-1" });
-    const switching = store.switchGraph("other");
-    expect(store.switching).toBe(true);
-    expect(store.editor).toBeNull();
-    expect(store.selection).toBeNull();
-    store.openEditor("edit-object", { targetId: "q-1" });
-    expect(store.editor).toBeNull();
-    await expect(store.commit({ mutations: [{ op: "upsert_object", object: { id: "q-1", kind: "plain", label: "旧图修改" } }] })).rejects.toMatchObject({ code: "GRAPH_SWITCHING" });
-    expect(api.calls.apply).toBeUndefined();
-    await store.undo();
-    expect(api.calls.undo).toBeUndefined();
-    await expect(store.executeAction("research.expand-question", "q-1", {})).rejects.toMatchObject({ code: "GRAPH_SWITCHING" });
-    releaseSwitch();
-    await switching;
-    expect(store.snapshot?.manifest.id).toBe("demo");
-    expect(store.selection).toBeNull();
-    expect(store.searchQuery).toBe("");
-    expect(store.kindFilter).toBe("");
-    expect(store.validation).toBeNull();
-    expect(store.editor).toBeNull();
-    expect(store.complete).toBe(false);
-    expect(store.diagnostics).toMatchObject([{ code: "LEGACY_SCHEMA_ADAPTED" }]);
-    expect(store.notice).toMatchObject({ code: "LEGACY_SCHEMA_ADAPTED" });
-    expect(JSON.stringify({ diagnostics: store.diagnostics, notice: store.notice })).not.toContain("secret");
+    // 直接构造带 commits 的 run 结果：命令内两次提交
+    const s = session as unknown as { run: (id: string, opts?: object) => Promise<{ message?: string; commits?: unknown[] }> };
+    s.run = async () => {
+      const c1 = session.commit({ changes: [{ op: "put", kind: "wf.task", id: "t-1" }] });
+      const c2 = session.commit({ changes: [{ op: "merge", id: "t-1", payload: { status: "ready" } }] });
+      return { message: "done", commits: [await c1, await c2] };
+    };
+    const result = await store.run("research.expand", { target: "q-1", input: {} });
+    expect(result.message).toBe("done");
+    expect(store.revision).toBe(7);
+    expect(store.objects.map((o) => o.id)).toContain("t-1");
   });
 
-  it("写请求在途时拒绝切图，避免旧写入落到新 activeStore", async () => {
-    let releaseApply!: () => void;
-    const applyGate = new Promise<void>((resolve) => {
-      releaseApply = resolve;
-    });
-    const api = fakeApi({
-      async apply() {
-        await applyGate;
-        return resultFor(snapshot(6));
-      },
-    });
-    const store = new WebGraphStore(api);
-    await store.load();
-    const committing = store.commit({ mutations: [{ op: "upsert_object", object: { id: "q-1", kind: "plain", label: "旧图修改" } }] });
-    expect(store.writing).toBe(true);
-    await store.switchGraph("other");
-    expect(store.switching).toBe(false);
-    expect(api.calls.switchGraph).toBeUndefined();
-    releaseApply();
-    await committing;
-    expect(store.writing).toBe(false);
-  });
-
-  it("模块 action 请求在途时拒绝切图与第二次写入", async () => {
-    let releaseAction!: () => void;
-    const actionGate = new Promise<void>((resolve) => { releaseAction = resolve; });
-    const api = fakeApi({
-      async executeAction() {
-        await actionGate;
-        return { kind: "result", operation: "workflow.next-actions", result: {}, effects: "none" as const };
-      },
-    });
-    const store = new WebGraphStore(api);
-    await store.load();
-    const executing = store.executeAction("workflow.next-actions", undefined, {});
-    expect(store.writing).toBe(true);
-    await store.switchGraph("other");
-    expect(api.calls.switchGraph).toBeUndefined();
-    await expect(store.executeAction("workflow.transition-task", "task-a", { status: "ready" })).rejects.toMatchObject({ code: "WRITE_IN_PROGRESS" });
-    releaseAction();
-    await executing;
-    expect(store.writing).toBe(false);
-  });
-
-  it("模块缺失与恢复只刷新 registry，不重载或改写当前图数据", async () => {
-    let available = false;
-    const api = fakeApi({
-      async modules() {
-        return {
-          registryRevision: 5,
-          modules: [{ id: "workflow", namespace: "workflow", status: available ? "available" as const : "unavailable" as const, ...(available ? {} : { reason: "模块目录缺失" }) }],
-          ui: available ? { workflow: { entry: "./web/index.js", tag: "toporealm-workflow-view" } } : {},
-          operations: [],
-        };
-      },
-    });
-    const store = new WebGraphStore(api);
-    await store.load();
-    const before = JSON.parse(JSON.stringify(store.snapshot));
-    expect(store.moduleStatus?.modules[0]).toMatchObject({ status: "unavailable" });
-    available = true;
-    await store.refreshModules();
-    expect(store.moduleStatus?.modules[0]).toMatchObject({ status: "available" });
-    expect(store.moduleStatus?.ui).toHaveProperty("workflow");
-    expect(store.snapshot).toEqual(before);
-    expect(api.calls.readGraph).toBe(1);
-  });
-
-  it("WebSocket 先到、HTTP 后到时同一 patch 只应用一次", async () => {
-    let emit!: (event: GraphPatchEvent) => void;
-    const mutation = resultFor(snapshot(6, [...snapshot().objects, { id: "n-1", kind: "plain", label: "新对象" }]));
-    const api = fakeApi({
-      subscribe(onEvent: (event: GraphPatchEvent) => void) {
-        emit = onEvent;
-        return () => undefined;
-      },
-      async apply() {
-        emit({ type: "graph:patch", graphId: "demo", revision: 6, patch: mutation.patch, diagnostics: [], complete: true });
-        return mutation;
-      },
-    });
-    const store = new WebGraphStore(api);
-    await store.load();
-    await store.commit({ mutations: [{ op: "upsert_object", object: { id: "n-1", kind: "plain", label: "新对象" } }] });
-    expect(store.revision).toBe(6);
-    expect(store.objects.filter((item) => item.id === "n-1")).toHaveLength(1);
+  it("非恢复错误不进 recovery，原样上抛", async () => {
+    const veto = new TopoError({ code: "VETOED", message: "模块否决" });
+    const { store } = await loadedStore({ onCommit: () => { throw veto; } });
+    await expect(store.commit({ changes: [{ op: "put", kind: "x", id: "y" }] })).rejects.toMatchObject({ code: "VETOED" });
     expect(store.recovery).toBeNull();
   });
 
-  it("实时 patch 出现 revision gap 时只通过完整快照恢复", async () => {
-    let emit!: (event: GraphPatchEvent) => void;
-    let current = snapshot();
-    const api = fakeApi({
-      async readGraph() {
-        api.calls.readGraph = (api.calls.readGraph ?? 0) + 1;
-        return current;
-      },
-      subscribe(onEvent: (event: GraphPatchEvent) => void) {
-        emit = onEvent;
-        return () => undefined;
+  it("写请求在途时拒绝第二次写入", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const state = initialState();
+    const session = makeFakeSession(state, {
+      onCommit: async () => {
+        await gate;
       },
     });
-    const store = new WebGraphStore(api);
+    const store = new WebGraphStore(async () => session);
     await store.load();
-    current = snapshot(9, [{ id: "fresh", kind: "plain", label: "服务器快照" }]);
-    emit({
-      type: "graph:patch",
-      graphId: "demo",
-      revision: 8,
-      patch: { fromRevision: 7, toRevision: 8, objects: { added: [], updated: [], deleted: [] }, relations: { added: [], updated: [], deleted: [] }, manifestChanged: false },
-    });
-    await vi.waitFor(() => expect(store.revision).toBe(9));
-    expect(store.objects.map((item) => item.id)).toEqual(["fresh"]);
-    expect(api.calls.readGraph).toBe(2);
-    expect(store.actionMessage).toContain("完整快照");
-  });
-
-  it("读取结果公开不完整校验、诊断和外部采纳提示，但丢弃额外私有字段", async () => {
-    const store = new WebGraphStore(fakeApi({
-      async readGraph() {
-        return {
-          ...snapshot(),
-          complete: false,
-          diagnostics: [{ code: "MODULE_MISSING", message: "workflow 模块缺失", severity: "warning" as const, privatePath: "D:/secret" }],
-          notice: { code: "EXTERNAL_EDIT_ADOPTED", message: "已采纳外部编辑", fromRevision: 4, toRevision: 5, privatePath: "D:/secret" },
-        };
-      },
-    }));
-    await store.load();
-    expect(store.complete).toBe(false);
-    expect(store.diagnostics).toEqual([{ code: "MODULE_MISSING", message: "workflow 模块缺失", severity: "warning" }]);
-    expect(store.notice).toEqual({ code: "EXTERNAL_EDIT_ADOPTED", message: "已采纳外部编辑", fromRevision: 4, toRevision: 5 });
-    expect(JSON.stringify({ diagnostics: store.diagnostics, notice: store.notice })).not.toContain("secret");
+    const first = store.commit({ changes: [{ op: "put", kind: "x", id: "a" }] });
+    await expect(store.commit({ changes: [{ op: "put", kind: "x", id: "b" }] })).rejects.toMatchObject({ code: "WRITE_IN_PROGRESS" });
+    release();
+    await first;
+    expect(store.writing).toBe(false);
   });
 });

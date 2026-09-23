@@ -1,55 +1,34 @@
-import type { ModuleOperation, ModuleStatusResult } from "./protocol";
+// 目录投影（blueprint §1 Catalog + D22 裁决④）：kind 的色彩/图标与 appliesTo 命令
+// 全部来自 daemon 目录真相（catalog()），Web 不硬编码任何领域分支。
+// 声明层的 forms/titleKey 等 ui 投影按 §7 预留（复杂视图 v1.1）。
+import type { Catalog } from "./protocol";
 
 export interface ModulePresentation {
   color?: string;
   icon?: string;
 }
 
-export interface ModuleOperationProjection {
-  operation: string;
-  inputSchema?: string;
-  inputTemplate?: unknown;
+export interface KindCommandProjection {
+  /** 目录全名（恒含点号）：wf.start */
+  commandId: string;
+  title: string;
+  /** JSON Schema 说明书（不是门禁）；M3 以空 input 直发 */
+  input?: object;
 }
 
 export interface ModuleProjection {
   kind: string;
+  /** 拥有该命名空间的模块 id（目录 modules 匹配） */
   moduleId?: string;
+  /** 命名空间有属主模块 = 可用（1.0 目录里模块在场即已装载） */
   available: boolean;
-  reason?: string;
+  /** 目录 kinds 声明的样式（kinds.color/icon） */
   presentation?: ModulePresentation;
-  fields: string[];
-  operations: ModuleOperationProjection[];
+  commands: KindCommandProjection[];
 }
 
-function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function moduleForKind(kind: string, registry: ModuleStatusResult): { id: string; available: boolean; reason?: string } | undefined {
-  const namespace = kind.includes(".") ? kind.slice(0, kind.indexOf(".")) : undefined;
-  if (!namespace) return undefined;
-  const module = registry.modules.find((candidate) => candidate.id === namespace || candidate.namespace === namespace);
-  if (!module) return { id: namespace, available: false, reason: "当前图未注册此命名空间。" };
-  return { id: module.id, available: module.status === "available", reason: module.reason };
-}
-
-function projectionForUi(kind: string, moduleId: string, registry: ModuleStatusResult): Pick<ModuleProjection, "presentation" | "fields"> {
-  const moduleUi = record(registry.ui?.[moduleId]);
-  const presentationValue = record(record(moduleUi.presentation)[kind]);
-  const presentation: ModulePresentation = {};
-  if (typeof presentationValue.color === "string") presentation.color = presentationValue.color;
-  if (typeof presentationValue.icon === "string") presentation.icon = presentationValue.icon;
-  const fieldsValue = record(moduleUi.forms)[kind];
-  const fields = Array.isArray(fieldsValue) ? fieldsValue.filter((field): field is string => typeof field === "string") : [];
-  return { presentation: Object.keys(presentation).length ? presentation : undefined, fields };
-}
-
-function operationProjection(operation: ModuleOperation): ModuleOperationProjection {
-  const declaration = record(operation.declaration);
-  const result: ModuleOperationProjection = { operation: operation.fullId };
-  if (typeof declaration.input_schema === "string") result.inputSchema = declaration.input_schema;
-  if (declaration.input_template !== undefined) result.inputTemplate = declaration.input_template;
-  return result;
+function namespaceOf(kind: string): string | undefined {
+  return kind.includes(".") ? kind.slice(0, kind.indexOf(".")) : undefined;
 }
 
 /** 未声明 presentation 时的确定性回退色（深空柔和档）：kind → 稳定色相。 */
@@ -61,26 +40,37 @@ export function fallbackKindColor(kind: string): string {
   return KIND_PALETTE[Math.abs(hash) % KIND_PALETTE.length];
 }
 
-/** 画布/图例共用的 kind 色：模块 presentation 优先，未声明时确定性回退。 */
-export function kindColorOf(kind: string, registry: ModuleStatusResult | null): string {
-  return projectModuleKind(kind, registry).presentation?.color ?? fallbackKindColor(kind);
+/** 画布/图例共用的 kind 色：目录 kinds.color 优先，未声明时确定性回退。 */
+export function kindColorOf(kind: string, catalog: Catalog | null): string {
+  return projectModuleKind(kind, catalog).presentation?.color ?? fallbackKindColor(kind);
 }
 
-/** Converts declaration data to a fixed Web slot without hard-coded domain branches. */
-export function projectModuleKind(kind: string, registry: ModuleStatusResult | null): ModuleProjection {
-  const base: ModuleProjection = { kind, available: true, fields: [], operations: [] };
-  if (!registry) return base;
-  const owner = moduleForKind(kind, registry);
-  if (!owner) return base;
+/** 目录 → 固定 Web 插槽投影（样式 + appliesTo 命令）；无目录也能降级呈现。 */
+export function projectModuleKind(kind: string, catalog: Catalog | null): ModuleProjection {
+  const base: ModuleProjection = { kind, available: true, commands: [] };
+  const ns = namespaceOf(kind);
+  if (ns === undefined) return base;
+
+  const owner = catalog?.modules.find((m) => m.namespace === ns || m.id === ns);
+  if (!owner) {
+    // 命名空间有点号但目录无属主 = 模块未装载；目录未加载（null）时不妄断降级
+    base.available = catalog === null;
+    return base;
+  }
   base.moduleId = owner.id;
-  base.available = owner.available;
-  if (owner.reason !== undefined) base.reason = owner.reason;
-  if (!owner.available) return base;
-  const ui = projectionForUi(kind, owner.id, registry);
-  if (ui.presentation !== undefined) base.presentation = ui.presentation;
-  base.fields = ui.fields;
-  base.operations = (registry.operations ?? [])
-    .filter((operation) => record(operation.declaration).applies_to === kind)
-    .map(operationProjection);
+
+  const kindEntry = (catalog?.kinds ?? []).find((k) => k.kind === kind);
+  const presentation: ModulePresentation = {};
+  if (typeof kindEntry?.color === "string") presentation.color = kindEntry.color;
+  if (typeof kindEntry?.icon === "string") presentation.icon = kindEntry.icon;
+  if (Object.keys(presentation).length > 0) base.presentation = presentation;
+
+  base.commands = (catalog?.commands ?? [])
+    .filter((command) => command.target === kind)
+    .map((command) => ({
+      commandId: command.id,
+      title: command.title,
+      ...(command.input !== undefined ? { input: command.input } : {}),
+    }));
   return base;
 }

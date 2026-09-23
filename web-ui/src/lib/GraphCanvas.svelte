@@ -7,11 +7,11 @@
   import { store } from "./store.svelte";
   import { computeFitTransform, isUserViewportInput, seedGridLayout } from "./layout";
   import { kindColorOf } from "./moduleProjection";
-  import type { GraphObject, GraphRelation } from "./protocol";
+  import { displayOf, titleOf, type Entity, type RelationEntity } from "./protocol";
 
-  type SimNode = GraphObject & d3.SimulationNodeDatum;
-  // Omit 避免与 GraphRelation 的 string 端点交叉成 never
-  type SimEdge = Omit<GraphRelation, "source" | "target"> & { source: SimNode | string; target: SimNode | string };
+  type SimNode = Entity & d3.SimulationNodeDatum;
+  // Omit 避免与 RelationEntity 的 string 端点交叉成 never
+  type SimEdge = Omit<RelationEntity, "source" | "target"> & { source: SimNode | string; target: SimNode | string };
 
   const NODE_R = 20;
 
@@ -111,7 +111,7 @@
 
   /** 当前快照中可见的 kind 集合（驱动 halo 渐变 defs 重建）。 */
   function kindColorFor(kind: string): string {
-    return kindColorOf(kind, store.moduleStatus);
+    return kindColorOf(kind, store.catalog);
   }
 
   /** 深拷贝无关的稳定序列化（内容变化判定；属性顺序不制造假更新）。 */
@@ -124,21 +124,21 @@
     return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableKey(record[key])}`).join(",")}}`;
   }
 
-  function nodeContentKey(objects: GraphObject[]): string {
-    return stableKey(objects.map((object) => ({ id: object.id, kind: object.kind, label: object.label })));
+  function nodeContentKey(objects: readonly Entity[]): string {
+    return stableKey(objects.map((object) => ({ id: object.id, kind: object.kind, title: titleOf(object) })));
   }
 
-  function edgeContentKey(relations: GraphRelation[]): string {
+  function edgeContentKey(relations: readonly RelationEntity[]): string {
     return stableKey([...relations].sort((a, b) => a.id.localeCompare(b.id)));
   }
 
   // ── 过滤（搜索 + kind）与选择着色 ──
-  function nodeMatchesFilters(node: GraphObject): boolean {
+  function nodeMatchesFilters(node: Entity): boolean {
     const kind = store.kindFilter.trim();
     if (kind && node.kind !== kind) return false;
     const query = store.searchQuery.trim().toLowerCase();
     if (!query) return true;
-    return `${node.id} ${node.kind} ${node.label}`.toLowerCase().includes(query);
+    return `${node.id} ${node.kind} ${displayOf(node)}`.toLowerCase().includes(query);
   }
 
   function relationMatchesFilters(relation: SimEdge): boolean {
@@ -148,7 +148,7 @@
     if (!nodeMatchesFilters(source) || !nodeMatchesFilters(target)) return false;
     const query = store.searchQuery.trim().toLowerCase();
     if (!query) return true;
-    return `${relation.id} ${relation.kind} ${relation.label ?? ""} ${relation.source} ${relation.target}`.toLowerCase().includes(query);
+    return `${relation.id} ${relation.kind} ${titleOf(relation)} ${relation.source} ${relation.target}`.toLowerCase().includes(query);
   }
 
   function applyFiltersAndSelection(): void {
@@ -188,7 +188,8 @@
   }
 
   function labelOf(node: SimNode): string {
-    return node.label.length > 20 ? `${node.label.slice(0, 18)}…` : node.label;
+    const label = displayOf(node);
+    return label.length > 20 ? `${label.slice(0, 18)}…` : label;
   }
 
   function applyStarVisual(selection: d3.Selection<SVGGElement, SimNode, any, any>): void {
@@ -359,7 +360,7 @@
       .attr("stroke-width", "3px")
       .attr("stroke-linejoin", "round")
       .attr("opacity", 0)
-      .text((edge) => edge.label ?? edge.kind);
+      .text((edge) => titleOf(edge) || edge.kind);
 
     all
       .on("mouseenter", (event: MouseEvent, edge: SimEdge) => {
@@ -476,7 +477,7 @@
     applyStarVisual(all);
 
     all
-      .attr("aria-label", (node) => `${node.label}（${node.kind}）`)
+      .attr("aria-label", (node) => `${displayOf(node)}（${node.kind}）`)
       .on("keydown", function (event: KeyboardEvent, node: SimNode) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -490,9 +491,9 @@
         d3.select(this).classed("is-focused", false);
       })
       .on("mouseenter", function (this: SVGGElement, event: MouseEvent, node: SimNode) {
-        if (node.label.length > 20 && tooltipEl && wrapperEl) {
+        if (displayOf(node).length > 20 && tooltipEl && wrapperEl) {
           const rect = wrapperEl.getBoundingClientRect();
-          tooltipEl.textContent = node.label;
+          tooltipEl.textContent = displayOf(node);
           tooltipEl.style.display = "block";
           tooltipEl.style.left = `${event.clientX - rect.left + 12}px`;
           tooltipEl.style.top = `${event.clientY - rect.top - 8}px`;
@@ -581,7 +582,7 @@
     const snapshot = store.snapshot;
     if (!snapshot) return;
     const { w, h } = getContainerSize();
-    const graphId = snapshot.manifest.id;
+    const graphId = snapshot.graphId;
     const isGraphSwitch = currentGraphId !== "" && currentGraphId !== graphId;
     currentGraphId = graphId;
     const positions = positionsFor(graphId);
@@ -781,7 +782,7 @@
     if (!snapshot || !svgEl) return;
     const nodeKey = nodeContentKey(snapshot.objects);
     const edgeKey = edgeContentKey(snapshot.relations);
-    const identityChanged = snapshot.manifest.id !== currentGraphId;
+    const identityChanged = snapshot.graphId !== currentGraphId;
     const nodeChanged = lastNodeKey !== null && nodeKey !== lastNodeKey;
     const edgeChanged = lastEdgeKey !== null && edgeKey !== lastEdgeKey;
     const isFirst = lastNodeKey === null;
@@ -793,7 +794,7 @@
 
   // 模块 presentation 变化 → 重刷星体与渐变
   $effect(() => {
-    void store.moduleStatus;
+    void store.catalog;
     if (!zoomGroup || !store.snapshot) return;
     const svg = d3.select(svgEl);
     const defs = svg.select("defs");

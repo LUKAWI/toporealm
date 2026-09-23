@@ -16,8 +16,6 @@ import {
   type TopoEvent,
   type Unsubscribe,
 } from "@lukawi/toporealm-protocol";
-import { readEndpoint } from "@lukawi/toporealm-daemon-core";
-
 // ---------- WsClient：浏览器/Node 的 WS 传输实现（blueprint §2/§5 + D22） ----------
 //
 // 同一 Session 契约的第三 adapter：WS 文本帧 = wire 信封（IpcRequest/IpcResponse/IpcPush），
@@ -129,34 +127,18 @@ export function defaultWsUrl(): string | undefined {
   return `ws${loc.protocol === "https:" ? "s" : ""}://${loc.host}/ws`;
 }
 
-/** Node 缺省 URL：endpoint.webPort（D22 发现面） */
-export async function wsUrlFromEndpoint(root: string): Promise<string> {
-  const ep = await readEndpoint(root);
-  if (ep?.webPort === undefined) {
-    throw new TopoError({
-      code: "DAEMON_UNREACHABLE",
-      message: "endpoint 中没有 web 伺服端口（webPort）——daemon 未运行或未开启 web",
-      hint: "toporeald 默认开启 web；用 toporealm serve 或检查 endpoint.json",
-    });
-  }
-  return `ws://127.0.0.1:${ep.webPort}/ws`;
-}
-
 export class WsClient implements DaemonClient {
   constructor(private readonly opts: WsClientOptions = {}) {}
 
   async connect(
     connectOpts?: { url?: string; root?: string; graph?: string },
   ): Promise<Session> {
-    let url = connectOpts?.url ?? this.opts.url ?? defaultWsUrl();
-    if (url === undefined && connectOpts?.root !== undefined) {
-      url = await wsUrlFromEndpoint(connectOpts.root);
-    }
+    const url = connectOpts?.url ?? this.opts.url ?? defaultWsUrl();
     if (url === undefined) {
       throw new TopoError({
         code: "DAEMON_UNREACHABLE",
         message: "无法确定 web daemon 的 WS 地址",
-        hint: "connect({ url }) 显式指定；浏览器同源可自动推导；Node 传 root 从 endpoint.webPort 推导",
+        hint: "connect({ url }) 显式指定；浏览器同源可自动推导；Node 侧用 wsUrlFromEndpoint(root) 推导",
       });
     }
     const session = new WsSession(url, this.opts);

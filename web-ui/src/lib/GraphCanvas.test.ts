@@ -3,20 +3,21 @@ import { afterEach, describe, expect, it } from "vitest";
 import GraphCanvas from "./GraphCanvas.svelte";
 import { store } from "./store.svelte";
 import type { GraphSnapshot } from "./protocol";
+import { obj, rel } from "./test-support";
 
 const snapshot: GraphSnapshot = {
-  manifest: { format: "toporealm.graph/v1", id: "demo", label: "Demo", sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" } },
+  graphId: "demo",
+  revision: 7,
   objects: [
-    { id: "a-1", kind: "research.question", label: "问题 A（超过二十个字符的很长标签用于触发截断逻辑哦）" },
-    { id: "b-1", kind: "plain", label: "对象 B" },
-    { id: "c-1", kind: "plain", label: "对象 C" },
+    obj("a-1", "research.question", "问题 A（超过二十个字符的很长标签用于触发截断逻辑哦）"),
+    obj("b-1", "plain", "对象 B"),
+    obj("c-1", "plain", "对象 C"),
   ],
   relations: [
-    { id: "r-1", kind: "supports", source: "b-1", target: "a-1", direction: "directed" },
-    { id: "r-2", kind: "related", source: "b-1", target: "c-1", direction: "undirected" },
-    { id: "r-broken", kind: "related", source: "b-1", target: "missing", direction: "directed" },
+    rel("r-1", "supports", "b-1", "a-1"),
+    rel("r-2", "related", "b-1", "c-1", "undirected"),
+    rel("r-broken", "related", "b-1", "missing"),
   ],
-  revision: 7,
 };
 
 function loadStore(): void {

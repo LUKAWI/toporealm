@@ -1,63 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { GraphApiError, ToporealmApi, WebGraphState, type GraphPatch, type GraphSnapshot } from "./protocol";
+import { TopoError, type GraphSnapshot } from "./protocol";
+import { PatchGapError, WebGraphState, displayOf, isRecoverableError, titleOf } from "./protocol";
 
 function snapshot(revision = 0): GraphSnapshot {
-  return {
-    manifest: {
-      format: "toporealm.graph/v1",
-      id: "demo",
-      label: "Demo",
-      sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" },
-    },
-    objects: [],
-    relations: [],
-    revision,
-  };
+  return { graphId: "demo", revision, objects: [], relations: [] };
 }
 
-function object(id: string) {
-  return { id, kind: "plain", label: id };
+function object(id: string, title?: string) {
+  return { id, kind: "plain", payload: title !== undefined ? { title } : {} };
 }
 
-function patch(fromRevision: number, toRevision: number, added = [object("alpha")]): GraphPatch {
+function patch(fromRevision: number, toRevision: number, added = [object("alpha", "Alpha")]) {
   return {
     fromRevision,
     toRevision,
     objects: { added, updated: [], deleted: [] },
     relations: { added: [], updated: [], deleted: [] },
-    manifestChanged: false,
   };
 }
 
-describe("browser graph protocol", () => {
-  it("连续应用 MutationPlan 返回的 patch 并推进本地 revision", () => {
+describe("1.0 浏览器视图词汇", () => {
+  it("titleOf/displayOf：payload.title 约定投影，缺省回落 id", () => {
+    expect(titleOf(object("a", "标题"))).toBe("标题");
+    expect(titleOf(object("a"))).toBe("");
+    expect(displayOf(object("a"))).toBe("a");
+    expect(displayOf(object("a", "标题"))).toBe("标题");
+  });
+
+  it("连续 patch 增量推进本地 revision", () => {
     const state = new WebGraphState(snapshot());
     state.applyPatch(patch(0, 1));
     state.applyPatch({
       ...patch(1, 2, []),
-      objects: { added: [], updated: [{ ...object("alpha"), label: "Alpha" }], deleted: [] },
+      objects: { added: [], updated: [{ ...object("alpha", "新名") }], deleted: [] },
     });
-    expect(state.snapshot).toMatchObject({ revision: 2, objects: [{ id: "alpha", label: "Alpha" }] });
+    expect(state.snapshot).toMatchObject({ revision: 2, objects: [{ id: "alpha", payload: { title: "新名" } }] });
   });
 
-  it("patch gap 不修改本地快照，并给出可识别错误码", () => {
+  it("patch gap 不修改本地快照，抛视图层 PatchGapError", () => {
     const state = new WebGraphState(snapshot());
-    expect(() => state.applyPatch(patch(2, 3))).toThrowError(GraphApiError);
-    try {
-      state.applyPatch(patch(2, 3));
-    } catch (error) {
-      expect(error).toMatchObject({ code: "PATCH_GAP", status: 409 });
-    }
+    expect(() => state.applyPatch(patch(2, 3))).toThrowError(PatchGapError);
+    expect(() => state.applyPatch(patch(2, 3))).toThrowError(/r0/);
     expect(state.snapshot).toMatchObject({ revision: 0, objects: [] });
   });
 
-  it("把 409 稳定错误响应转换为 GraphApiError", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response(JSON.stringify({ error: { code: "REVISION_CONFLICT", message: "版本已变化" } }), { status: 409 });
-    try {
-      await expect(new ToporealmApi().undo(0)).rejects.toMatchObject({ code: "REVISION_CONFLICT", status: 409, message: "版本已变化" });
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
+  it("isRecoverableError：IF_REVISION_MISMATCH 与 PatchGapError 可自愈；其他错误不是", () => {
+    expect(isRecoverableError(new TopoError({ code: "IF_REVISION_MISMATCH", message: "x" }))).toBe(true);
+    expect(isRecoverableError(new PatchGapError(1, 2))).toBe(true);
+    expect(isRecoverableError(new TopoError({ code: "VETOED", message: "x" }))).toBe(false);
+    expect(isRecoverableError(new Error("x"))).toBe(false);
   });
 });

@@ -4,18 +4,25 @@ import GraphCanvas from "../GraphCanvas.svelte";
 import ObjectDetail from "./ObjectDetail.svelte";
 import RelationDetail from "./RelationDetail.svelte";
 import { store } from "../store.svelte";
-import type { GraphSnapshot } from "../protocol";
+import type { Catalog, GraphSnapshot } from "../protocol";
+import { obj, rel, snapshotOf, type FakeSessionState } from "../test-support";
 
-const snapshot: GraphSnapshot = {
-  manifest: { format: "toporealm.graph/v1", id: "demo", label: "Demo", sources: { objects: "objects/*.yaml", relations: "relations/*.yaml" } },
-  objects: [
-    { id: "q-1", kind: "research.question", label: "原问题", data: { status: "open" }, capabilities: { edit: { enabled: true } }, meta: { source: "fixture" } },
-    { id: "odd-1", kind: "alien.creature", label: "未知 kind 对象", data: { raw: "保持原样" } },
-  ],
-  relations: [
-    { id: "r-1", kind: "supports", source: "odd-1", target: "q-1", direction: "directed", label: "支持", data: { weight: 2 } },
-  ],
+const state: FakeSessionState = {
   revision: 9,
+  objects: [
+    obj("q-1", "research.question", "原问题", { status: "open" }),
+    obj("odd-1", "alien.creature", "未知 kind 对象", { raw: "保持原样" }),
+  ],
+  relations: [rel("r-1", "supports", "odd-1", "q-1", "directed", { weight: 2 })],
+  canUndo: true,
+  canRedo: false,
+};
+const snapshot: GraphSnapshot = snapshotOf(state);
+
+const catalog: Catalog = {
+  modules: [{ id: "research", namespace: "research", version: "1.0.0" }],
+  kinds: [],
+  commands: [],
 };
 
 async function mountChain(): Promise<{ components: Record<string, unknown>[]; target: HTMLDivElement }> {
@@ -34,17 +41,18 @@ function teardown(target: HTMLDivElement, components: Record<string, unknown>[])
   target.remove();
 }
 
-describe("选择链路与详情抽屉", () => {
+describe("选择链路与详情抽屉（1.0 形状）", () => {
   afterEach(() => {
     store.snapshot = null;
     store.selection = null;
     store.searchQuery = "";
     store.kindFilter = "";
-    store.moduleStatus = null;
+    store.catalog = null;
   });
 
   it("画布点击 → 选择状态 → 抽屉内容渲染全链路", async () => {
     store.snapshot = snapshot;
+    store.catalog = catalog;
     const { components, target } = await mountChain();
 
     // 点击对象星体
@@ -77,10 +85,9 @@ describe("选择链路与详情抽屉", () => {
     teardown(target, components);
   });
 
-  it("未知 kind 显示原始 data 并标注降级", async () => {
+  it("未知 kind 显示降级标注，payload 折叠块保持原始数据可读", async () => {
     store.snapshot = snapshot;
-    // 注册表在场时，未注册命名空间才可被判定为降级
-    store.moduleStatus = { registryRevision: 1, modules: [{ id: "research", namespace: "research", status: "available" }], ui: {}, operations: [] };
+    store.catalog = catalog; // 注册表在场时，未注册命名空间才可被判定为降级
     store.selection = { type: "object", id: "odd-1" };
     const target = document.createElement("div");
     document.body.appendChild(target);
@@ -92,8 +99,8 @@ describe("选择链路与详情抽屉", () => {
     expect(drawer?.textContent).toContain("未知 kind 对象");
     expect(drawer?.textContent).toContain("alien.creature");
     expect(drawer?.textContent).toContain("降级");
-    // 原始 JSON 折叠块展开后可见原始数据
-    const toggle = [...target.querySelectorAll<HTMLButtonElement>(".json-toggle")].find((button) => button.textContent?.includes("data"));
+    // 原始 JSON 折叠块展开后可见原始 payload
+    const toggle = [...target.querySelectorAll<HTMLButtonElement>(".json-toggle")].find((button) => button.textContent?.includes("payload"));
     toggle?.click();
     await tick();
     expect(target.querySelector(".json-body")?.textContent).toContain("保持原样");
@@ -118,6 +125,7 @@ describe("选择链路与详情抽屉", () => {
 
   it("关系详情显示端点跳转，跳转后切换到对象详情", async () => {
     store.snapshot = snapshot;
+    store.catalog = catalog;
     store.selection = { type: "relation", id: "r-1" };
     const target = document.createElement("div");
     document.body.appendChild(target);
@@ -128,9 +136,8 @@ describe("选择链路与详情抽屉", () => {
     await tick();
     const drawer = target.querySelector(".drawer");
     expect(drawer?.textContent).toContain("有向");
-    expect(drawer?.textContent).toContain("支持");
-    // data 原始块
-    const toggle = [...target.querySelectorAll<HTMLButtonElement>(".json-toggle")].find((button) => button.textContent?.includes("data"));
+    // payload 折叠块（关系数据）
+    const toggle = [...target.querySelectorAll<HTMLButtonElement>(".json-toggle")].find((button) => button.textContent?.includes("payload"));
     toggle?.click();
     await tick();
     expect(target.querySelector(".json-body")?.textContent).toContain("weight");
@@ -142,7 +149,6 @@ describe("选择链路与详情抽屉", () => {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await tick();
     expect(store.selection).toEqual({ type: "object", id: "q-1" });
-    expect(target.querySelector(".drawer")?.textContent).toContain("对象详情");
     unmount(objectDetail);
     unmount(relationDetail);
     target.remove();

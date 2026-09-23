@@ -13,7 +13,8 @@ import {
   type RunningDaemon,
 } from "@lukawi/toporealm-daemon";
 import { IpcClient } from "../src/ipc.js";
-import { WsClient, wsUrlFromEndpoint } from "../src/ws.js";
+import { WsClient } from "../src/ws.js";
+import { wsUrlFromEndpoint } from "../src/lifecycle.js";
 import type { TopoEvent } from "@lukawi/toporealm-protocol";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { waitFor } from "./contract.js";

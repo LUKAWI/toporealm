@@ -1,13 +1,12 @@
 <script lang="ts">
   // TopoRealm Web 编辑器外壳 — 与 Super Plumber 参考实现同构的深空玻璃仪器舱。
-  // 数据流统一走 lib/store.svelte.ts（GraphSnapshot/MutationPlan/History + 冲突恢复）。
+  // 数据流统一走 lib/store.svelte.ts（1.0 Session 契约 + 冲突自愈，D22）。
   import { onMount } from "svelte";
   import GraphCanvas from "./lib/GraphCanvas.svelte";
   import ObjectDetail from "./lib/components/ObjectDetail.svelte";
   import RelationDetail from "./lib/components/RelationDetail.svelte";
   import EditorPanel from "./lib/components/EditorPanel.svelte";
-  import ModuleExtensions from "./lib/components/ModuleExtensions.svelte";
-  import { store } from "./lib/store.svelte";
+  import { store, displayOf } from "./lib/store.svelte";
   import { filterGraphSnapshot } from "./lib/filter";
   import { kindColorOf } from "./lib/moduleProjection";
 
@@ -18,24 +17,24 @@
     for (const object of store.objects) counts.set(object.kind, (counts.get(object.kind) ?? 0) + 1);
     return [...counts.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([kind, count]) => ({ kind, count, color: kindColorOf(kind, store.moduleStatus) }));
+      .map(([kind, count]) => ({ kind, count, color: kindColorOf(kind, store.catalog) }));
   });
 
-  let openFlyout = $state<"graphs" | "validation" | "modules" | "raw" | null>(null);
+  let openFlyout = $state<"modules" | "raw" | null>(null);
 
   /** 搜索 Enter：选中并居中首个命中对象（与参考同语言）。 */
   function searchKeydown(event: KeyboardEvent): void {
     if (event.key !== "Enter") return;
     const query = store.searchQuery.trim().toLowerCase();
     if (!query) return;
-    const hit = store.objects.find((object) => `${object.id} ${object.kind} ${object.label}`.toLowerCase().includes(query));
+    const hit = store.objects.find((object) => `${object.id} ${object.kind} ${displayOf(object)}`.toLowerCase().includes(query));
     if (hit) {
       store.select({ type: "object", id: hit.id });
       store.locateNode(hit.id);
     }
   }
 
-  function toggleFlyout(name: "graphs" | "validation" | "modules" | "raw"): void {
+  function toggleFlyout(name: "modules" | "raw"): void {
     openFlyout = openFlyout === name ? null : name;
   }
 
@@ -73,8 +72,8 @@
       <div class="brand-text">
         <span class="title">TopoRealm</span>
         {#if store.snapshot}
-          <span class="graph-label" title={store.snapshot.manifest.label ?? store.snapshot.manifest.id}>
-            {store.snapshot.manifest.label ?? store.snapshot.manifest.id} · r{store.revision}
+          <span class="graph-label" title={store.snapshot.graphId}>
+            {store.snapshot.graphId} · r{store.revision}
           </span>
         {/if}
       </div>
@@ -130,14 +129,6 @@
       </div>
     </div>
   </header>
-
-  {#if store.notice || !store.complete || store.diagnostics.length}
-    <div class="action-chip" role="status">
-      {#if store.notice}<strong>{store.notice.code}</strong>：{store.notice.message}{/if}
-      {#if !store.complete}{store.notice ? " · " : ""}当前为不完整校验结果{/if}
-      {#if store.diagnostics.length}{store.notice || !store.complete ? " · " : ""}{store.diagnostics.length} 条诊断{/if}
-    </div>
-  {/if}
 
   <!-- ── 主区：画布舞台 + 工具轨 ── -->
   <main class="main">
@@ -197,36 +188,6 @@
 
       <!-- ── 浮动玻璃 dock（左缘，垂直居中）── -->
       <nav class="tool-rail" aria-label="画布工具轨">
-        <button
-          class="rail-btn"
-          class:active={openFlyout === "graphs"}
-          onclick={() => toggleFlyout("graphs")}
-          title="图库（切换查看的图）"
-          aria-label="图库"
-          aria-expanded={openFlyout === "graphs"}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M2 5.5 8 2.5l6 3-6 3-6-3Z"/>
-            <path d="M2 8.5 8 11.5l6-3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 11.5 8 14.5l6-3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
-          </svg>
-          {#if store.graphs.length > 1}
-            <span class="rail-badge">{store.graphs.length}</span>
-          {/if}
-        </button>
-        <button
-          class="rail-btn"
-          class:active={openFlyout === "validation"}
-          onclick={() => toggleFlyout("validation")}
-          title="校验（基础 / 完整）"
-          aria-label="校验"
-          aria-expanded={openFlyout === "validation"}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M8 2 13.5 4.5V8c0 3-2.4 5.2-5.5 6-3.1-.8-5.5-3-5.5-6V4.5L8 2Z" stroke-linejoin="round"/>
-            <path d="M5.8 8l1.6 1.6L10.5 6.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
         <button
           class="rail-btn"
           class:active={openFlyout === "modules"}
@@ -327,69 +288,24 @@
         </button>
       </nav>
 
-      {#if openFlyout === "graphs"}
-        <aside class="rail-flyout graphs-flyout" aria-label="图库（切换查看的图）">
-          <span class="flyout-title">图库</span>
-          {#each store.graphs as gm (gm.id)}
-            <button
-              class="graph-item"
-              class:active={gm.id === store.snapshot?.manifest.id}
-              onclick={() => store.switchGraph(gm.id)}
-              title={gm.label ?? gm.id}
-            >
-              <span class="graph-item-body">
-                <span class="graph-item-name">{gm.label ?? gm.id}</span>
-                <span class="graph-item-label">{gm.id} · r{gm.revision}</span>
-              </span>
-              <span class="graph-item-count">{gm.objectCount}</span>
-            </button>
-          {/each}
-        </aside>
-      {:else if openFlyout === "validation"}
-        <aside class="rail-flyout validation-flyout" aria-label="校验">
-          <span class="flyout-title">校验</span>
-          <div class="flyout-actions">
-            <button class="flyout-btn" onclick={() => store.runValidation("basic")}>基础校验</button>
-            <button class="flyout-btn" onclick={() => store.runValidation("complete")}>完整校验</button>
-          </div>
-          {#if store.validation}
-            <div class="validation-summary" class:valid={store.validation.ok} role="status">
-              <span class="validation-verdict">{store.validation.ok ? "通过" : `${store.validation.errors.length} 个错误`} · {store.validation.complete ? "含模块注册" : "仅结构校验"}</span>
-              {#if store.validation.errors.length}
-                <ul class="validation-list errors">
-                  {#each store.validation.errors as issue (issue.code + issue.message)}
-                    <li>{issue.message}</li>
-                  {/each}
-                </ul>
-              {/if}
-              {#if store.validation.warnings.length}
-                <ul class="validation-list warnings">
-                  {#each store.validation.warnings as issue (issue.code + issue.message)}
-                    <li>{issue.message}</li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-          {:else}
-            <p class="flyout-hint">基础校验只查图结构；完整校验需模块注册参与。</p>
-          {/if}
-        </aside>
-      {:else if openFlyout === "modules"}
+      {#if openFlyout === "modules"}
         <aside class="rail-flyout modules-flyout" aria-label="模块状态">
           <span class="flyout-title">模块状态</span>
-          {#if store.moduleStatus?.modules.length}
-            {#each store.moduleStatus.modules as module (module.id)}
+          {#if store.catalog?.modules.length}
+            {#each store.catalog.modules as module (module.id)}
               <div class="module-item">
-                <span class="module-dot" class:ok={module.status === "available"}></span>
-                <span class="module-name">{module.namespace ?? module.id}</span>
-                <span class="module-state" class:ok={module.status === "available"}>{module.status === "available" ? "可用" : "不可用"}</span>
-                {#if module.reason}
-                  <span class="module-reason">{module.reason}</span>
-                {/if}
+                <span class="module-dot ok"></span>
+                <span class="module-name">{module.namespace}</span>
+                <span class="module-state ok">{module.id} @ {module.version}</span>
               </div>
             {/each}
+            {#if store.catalog.commands.length}
+              <div class="module-item">
+                <span class="module-state ok">{store.catalog.commands.length} 条命令（cmds 自省）</span>
+              </div>
+            {/if}
           {:else}
-            <p class="flyout-hint">暂无模块注册信息。</p>
+            <p class="flyout-hint">本图未装载模块。</p>
           {/if}
         </aside>
       {:else if openFlyout === "raw"}
@@ -398,7 +314,6 @@
           <pre class="raw-snapshot">{JSON.stringify(store.snapshot, null, 2)}</pre>
         </aside>
       {/if}
-      <ModuleExtensions />
     {/if}
 
     {#if store.recovery}

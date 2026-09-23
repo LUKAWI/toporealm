@@ -1,6 +1,6 @@
-<!-- RelationDetail — 关系详情抽屉：kind / 方向 / label / 端点跳转 / data / capabilities / meta。 -->
+<!-- RelationDetail — 关系详情抽屉：kind / 方向 / 标题（payload.title）/ 端点跳转 / payload。 -->
 <script lang="ts">
-  import { store } from "../store.svelte";
+  import { store, titleOf } from "../store.svelte";
   import { kindColorOf, projectModuleKind } from "../moduleProjection";
   import DetailDrawer from "./DetailDrawer.svelte";
   import JsonSection from "./JsonSection.svelte";
@@ -23,7 +23,7 @@
   });
 
   const relation = $derived(store.selectedRelation);
-  const projection = $derived(relation ? projectModuleKind(relation.kind, store.moduleStatus) : null);
+  const projection = $derived(relation ? projectModuleKind(relation.kind, store.catalog) : null);
 
   function jumpToObject(id: string): void {
     store.select({ type: "object", id });
@@ -32,11 +32,11 @@
 
 {#if relation}
   <DetailDrawer title="关系详情" open={visible} width={360} onclose={() => store.select(null)}>
-    <h2 class="entity-title">{relation.label ?? relation.kind}</h2>
+    <h2 class="entity-title">{titleOf(relation) || relation.kind}</h2>
 
     <div class="meta-grid">
       <span class="meta-tag id-tag">{relation.id}</span>
-      <span class="meta-tag"><span class="kind-dot" style="background: {kindColorOf(relation.kind, store.moduleStatus)}"></span>{relation.kind}</span>
+      <span class="meta-tag"><span class="kind-dot" style="background: {kindColorOf(relation.kind, store.catalog)}"></span>{relation.kind}</span>
       <span class="meta-tag">{relation.direction === "undirected" ? "无向" : "有向"}{relation.direction === "directed" ? " →" : ""}</span>
     </div>
 
@@ -48,7 +48,7 @@
     {#if projection && !projection.available}
       <div class="degraded" role="note">
         <span class="degraded-tag">降级</span>
-        模块 {projection.moduleId ?? "（未注册）"} 不可用：{projection.reason ?? "原始数据保持可读。"}
+        模块 {projection.moduleId ?? "（未注册）"} 不可用：原始数据保持可读。
       </div>
     {/if}
 
@@ -64,18 +64,16 @@
       </div>
     </section>
 
-    {#if relation.label}
+    {#if titleOf(relation)}
       <section class="section">
         <h3 class="section-title">标签</h3>
-        <p class="plan-desc">{relation.label}</p>
+        <p class="plan-desc">{titleOf(relation)}</p>
       </section>
     {/if}
 
     <section class="section">
-      <h3 class="section-title">关系数据</h3>
-      <JsonSection label="data" value={relation.data} />
-      <JsonSection label="capabilities" value={relation.capabilities} />
-      <JsonSection label="meta" value={relation.meta} />
+      <h3 class="section-title">payload</h3>
+      <JsonSection label="payload" value={relation.payload} />
     </section>
   </DetailDrawer>
 {/if}

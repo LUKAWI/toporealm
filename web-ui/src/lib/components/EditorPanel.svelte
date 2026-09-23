@@ -1,12 +1,11 @@
 <!--
-  EditorPanel — 通用编辑抽屉：对象/关系的新增与修改（kind/label/data JSON/方向通用字段，
-  模块声明字段仅作提示）、删除确认。提交统一 MutationPlan（expectedRevision 由 store 注入）；
+  EditorPanel — 通用编辑抽屉：对象/关系的新增与修改（kind/标题(payload.title)/payload JSON/
+  方向通用字段）、删除确认。提交统一 Change[]（ifRevision 由 store 注入乐观护航）；
   失败保留输入并显示稳定错误码；只读模式禁用全部写入口。
 -->
 <script lang="ts">
-  import { store } from "../store.svelte";
-  import { projectModuleKind } from "../moduleProjection";
-  import type { GraphApiError, Mutation } from "../protocol";
+  import { store, titleOf } from "../store.svelte";
+  import type { Change } from "../protocol";
   import DetailDrawer from "./DetailDrawer.svelte";
   import JsonSection from "./JsonSection.svelte";
 
@@ -16,7 +15,7 @@
 
   let formId = $state("");
   let formKind = $state("");
-  let formLabel = $state("");
+  let formTitle = $state("");
   let formSource = $state("");
   let formTarget = $state("");
   let formDirection = $state<"directed" | "undirected">("directed");
@@ -27,7 +26,6 @@
   let loadedFor: string | null = null;
 
   const knownKinds = $derived([...new Set([...store.objects.map((object) => object.kind), ...store.relations.map((relation) => relation.kind)])].sort());
-  const moduleHints = $derived(formKind.trim() ? projectModuleKind(formKind.trim(), store.moduleStatus).fields : []);
 
   // 编辑目标变化时预填表单（保留用户输入：仅当 target 变化才重置）
   $effect(() => {
@@ -42,15 +40,16 @@
     formError = null;
     confirmDelete = false;
     if (current.mode === "create-object") {
-      formId = ""; formKind = ""; formLabel = ""; formData = "";
+      formId = ""; formKind = ""; formTitle = ""; formData = "";
     } else if (current.mode === "edit-object" && editingObject) {
-      formId = editingObject.id; formKind = editingObject.kind; formLabel = editingObject.label; formData = editingObject.data ? JSON.stringify(editingObject.data, null, 2) : "";
+      formId = editingObject.id; formKind = editingObject.kind; formTitle = titleOf(editingObject);
+      formData = JSON.stringify(editingObject.payload ?? {}, null, 2);
     } else if (current.mode === "create-relation") {
-      formId = ""; formKind = ""; formLabel = ""; formSource = current.sourceId ?? ""; formTarget = ""; formDirection = "directed"; formData = "";
+      formId = ""; formKind = ""; formTitle = ""; formSource = current.sourceId ?? ""; formTarget = ""; formDirection = "directed"; formData = "";
     } else if (current.mode === "edit-relation" && editingRelation) {
-      formId = editingRelation.id; formKind = editingRelation.kind; formLabel = editingRelation.label ?? "";
+      formId = editingRelation.id; formKind = editingRelation.kind; formTitle = titleOf(editingRelation);
       formSource = editingRelation.source; formTarget = editingRelation.target;
-      formDirection = editingRelation.direction; formData = editingRelation.data ? JSON.stringify(editingRelation.data, null, 2) : "";
+      formDirection = editingRelation.direction ?? "directed"; formData = JSON.stringify(editingRelation.payload ?? {}, null, 2);
     }
   });
 
@@ -60,10 +59,10 @@
     try {
       parsed = JSON.parse(formData);
     } catch {
-      throw { code: "INVALID_JSON", message: "data 必须是合法的 JSON 对象。" };
+      throw { code: "INVALID_JSON", message: "payload 必须是合法的 JSON 对象。" };
     }
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw { code: "INVALID_JSON", message: "data 必须是 JSON 对象（不能是数组或标量）。" };
+      throw { code: "INVALID_JSON", message: "payload 必须是 JSON 对象（不能是数组或标量）。" };
     }
     return parsed as Record<string, unknown>;
   }
@@ -78,41 +77,37 @@
     if (submitting || !editor) return;
     formError = null;
     try {
-      const data = parseData();
-      const mutations: Mutation[] = [];
+      const payload = parseData() ?? {};
+      // 标题 = 约定键 payload.title（blueprint §1 显示名投影）
+      if (formTitle.trim()) payload["title"] = formTitle.trim();
+      else delete payload["title"];
+      const changes: Change[] = [];
       if (editor.mode === "create-object" || editor.mode === "edit-object") {
-        mutations.push({
-          op: "upsert_object",
-          object: {
-            id: requireField(formId, "对象 ID"),
-            kind: requireField(formKind, "kind"),
-            label: formLabel.trim(),
-            ...(data ? { data } : {}),
-          },
+        changes.push({
+          op: "put",
+          kind: requireField(formKind, "kind"),
+          id: requireField(formId, "对象 ID"),
+          payload,
         });
       } else {
-        mutations.push({
-          op: "upsert_relation",
-          relation: {
-            id: requireField(formId, "关系 ID"),
-            kind: requireField(formKind, "kind"),
-            source: requireField(formSource, "source"),
-            target: requireField(formTarget, "target"),
-            direction: formDirection,
-            ...(formLabel.trim() ? { label: formLabel.trim() } : {}),
-            ...(data ? { data } : {}),
-          },
+        changes.push({
+          op: "rel",
+          kind: requireField(formKind, "kind"),
+          id: requireField(formId, "关系 ID"),
+          source: requireField(formSource, "source"),
+          target: requireField(formTarget, "target"),
+          direction: formDirection,
+          payload,
         });
       }
       submitting = true;
-      const result = await store.commit({ mutations, label: editor.mode });
-      const first = mutations[0];
-      const savedId = first.op === "upsert_object" ? first.object.id : first.op === "upsert_relation" ? first.relation.id : "";
-      store.actionMessage = `已保存 ${savedId} · r${result.snapshot.revision}`;
-      store.select(first.op === "upsert_object" ? { type: "object", id: savedId } : { type: "relation", id: savedId });
+      const result = await store.commit({ changes, label: editor.mode });
+      const savedId = changes[0]?.id ?? "";
+      store.actionMessage = `已保存 ${savedId} · r${result.revision}`;
+      store.select(editor.mode.includes("relation") ? { type: "relation", id: savedId } : { type: "object", id: savedId });
       store.closeEditor();
     } catch (cause) {
-      const error = cause as GraphApiError;
+      const error = cause as { code?: string; message?: string };
       formError = {
         code: error?.code ?? "UNKNOWN",
         message: error?.message ?? (cause instanceof Error ? cause.message : "提交失败，请稍后重试。"),
@@ -126,13 +121,12 @@
     if (!editor || !editor.targetId || submitting) return;
     formError = null;
     try {
-      const op = editor.mode === "edit-object" ? "delete_object" : "delete_relation";
-      const result = await store.commit({ mutations: [{ op, id: editor.targetId }], label: `delete ${editor.targetId}` });
-      store.actionMessage = `已删除 ${editor.targetId} · r${result.snapshot.revision}`;
+      const result = await store.commit({ changes: [{ op: "del", id: editor.targetId }], label: `rm ${editor.targetId}` });
+      store.actionMessage = `已删除 ${editor.targetId} · r${result.revision}`;
       if (store.selection?.id === editor.targetId) store.select(null);
       store.closeEditor();
     } catch (cause) {
-      const error = cause as GraphApiError;
+      const error = cause as { code?: string; message?: string };
       formError = { code: error?.code ?? "UNKNOWN", message: error?.message ?? "删除失败。" };
     } finally {
       submitting = false;
@@ -170,9 +164,6 @@
             <option value={kind}></option>
           {/each}
         </datalist>
-        {#if moduleHints.length}
-          <span class="field-hint">模块声明字段：{moduleHints.join("、")}（仅提示，不做领域解释）</span>
-        {/if}
       </label>
 
       {#if editor.mode.includes("relation")}
@@ -196,12 +187,12 @@
       {/if}
 
       <label class="field">
-        <span class="field-label">标签</span>
-        <input class="field-input" type="text" bind:value={formLabel} disabled={store.readOnly} placeholder="可选的人类可读名称" />
+        <span class="field-label">标题（payload.title）</span>
+        <input class="field-input" type="text" bind:value={formTitle} disabled={store.readOnly} placeholder="可选的人类可读名称" />
       </label>
 
       <label class="field">
-        <span class="field-label">data（JSON，可选）</span>
+        <span class="field-label">payload（JSON）</span>
         <textarea class="field-input mono" rows="5" bind:value={formData} disabled={store.readOnly} placeholder='&#123;"key": "value"&#125;'></textarea>
       </label>
 
@@ -209,7 +200,7 @@
         <div class="form-error" role="alert">
           <span class="error-code">{formError.code}</span>
           <span class="error-text">{formError.message}</span>
-          {#if formError.code === "REVISION_CONFLICT" || formError.code === "PATCH_GAP"}
+          {#if formError.code === "IF_REVISION_MISMATCH" || formError.code === "PATCH_GAP"}
             <button type="button" class="mini-btn" onclick={reloadAfterRecovery}>重新读取</button>
           {/if}
         </div>

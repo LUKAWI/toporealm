@@ -1,7 +1,7 @@
-<!-- ObjectDetail — 对象详情抽屉：稳定 ID / kind / label / data / capabilities / meta 全字段呈现；
-     出入关系可跳转；未知 kind 与缺失模块显示原始数据（降级提示），未知结构不崩溃。 -->
+<!-- ObjectDetail — 对象详情抽屉：稳定 ID / kind / 标题（payload.title）/ payload 全字段呈现；
+     出入关系可跳转；appliesTo 模块命令来自目录真相（catalog），未知结构不崩溃。 -->
 <script lang="ts">
-  import { store } from "../store.svelte";
+  import { store, titleOf, displayOf } from "../store.svelte";
   import { kindColorOf, projectModuleKind } from "../moduleProjection";
   import DetailDrawer from "./DetailDrawer.svelte";
   import JsonSection from "./JsonSection.svelte";
@@ -24,32 +24,25 @@
   });
 
   const object = $derived(store.selectedObject);
-  const projection = $derived(object ? projectModuleKind(object.kind, store.moduleStatus) : null);
+  const projection = $derived(object ? projectModuleKind(object.kind, store.catalog) : null);
   const outgoing = $derived(object ? store.relations.filter((relation) => relation.source === object.id) : []);
   const incoming = $derived(object ? store.relations.filter((relation) => relation.target === object.id) : []);
 
   let actionError = $state<{ code: string; message: string } | null>(null);
   let runningAction = $state<string | null>(null);
 
-  // 模块动作：声明式 operation 经 Server ActionExecutor 执行，mutation 结果由 store 回灌
-  async function runAction(operation: string, inputTemplate: unknown): Promise<void> {
+  // 模块命令：目录 id（ns.name）经 Session.run 执行，commits 由 store 按序回灌
+  async function runAction(commandId: string): Promise<void> {
     if (!object || store.readOnly || runningAction) return;
     actionError = null;
-    // JSON 深拷贝：模板来自 $state 代理，structuredClone 无法克隆
-    const input: Record<string, unknown> = inputTemplate && typeof inputTemplate === "object"
-      ? JSON.parse(JSON.stringify(inputTemplate)) as Record<string, unknown>
-      : {};
-    runningAction = operation;
+    runningAction = commandId;
     try {
-      const result = await store.executeAction(operation, object.id, input, store.moduleStatus?.registryRevision);
-      if (result.kind === "mutation") {
-        store.actionMessage = `动作 ${operation} 已提交 · r${result.mutation.snapshot.revision}`;
-      } else {
-        store.actionMessage = `动作 ${operation} 返回结果`;
-      }
+      const result = await store.run(commandId, { target: object.id, input: {} });
+      const lastRev = result.commits?.at(-1)?.revision;
+      store.actionMessage = `${result.message ?? `命令 ${commandId} 已执行`}${lastRev !== undefined ? ` · r${lastRev}` : ""}`;
     } catch (cause) {
       const error = cause as { code?: string; message?: string };
-      actionError = { code: error?.code ?? "UNKNOWN", message: error?.message ?? "动作执行失败。" };
+      actionError = { code: error?.code ?? "UNKNOWN", message: error?.message ?? "命令执行失败。" };
     } finally {
       runningAction = null;
     }
@@ -62,11 +55,11 @@
 
 {#if object}
   <DetailDrawer title="对象详情" open={visible} onclose={() => store.select(null)}>
-    <h2 class="entity-title">{object.label || object.id}</h2>
+    <h2 class="entity-title">{displayOf(object)}</h2>
 
     <div class="meta-grid">
       <span class="meta-tag id-tag">{object.id}</span>
-      <span class="meta-tag"><span class="kind-dot" style="background: {kindColorOf(object.kind, store.moduleStatus)}"></span>{object.kind}</span>
+      <span class="meta-tag"><span class="kind-dot" style="background: {kindColorOf(object.kind, store.catalog)}"></span>{object.kind}</span>
       <span class="meta-tag">r{store.revision}</span>
     </div>
 
@@ -78,14 +71,14 @@
     {#if projection && !projection.available}
       <div class="degraded" role="note">
         <span class="degraded-tag">降级</span>
-        模块 {projection.moduleId ?? "（未注册）"} 不可用：{projection.reason ?? "原始数据保持可读，依赖该模块的编辑与动作已禁用。"}
+        模块 {projection.moduleId ?? "（未注册）"} 不可用：原始数据保持可读，依赖该模块的编辑与命令已禁用。
       </div>
     {/if}
 
-    {#if object.label}
+    {#if titleOf(object)}
       <section class="section">
         <h3 class="section-title">标签</h3>
-        <p class="plan-desc">{object.label}</p>
+        <p class="plan-desc">{titleOf(object)}</p>
       </section>
     {/if}
 
@@ -100,14 +93,14 @@
           {#each outgoing as relation (relation.id)}
             <button class="relation-row" onclick={() => store.select({ type: "relation", id: relation.id })}>
               <span class="relation-dir">→</span>
-              <span class="relation-name">{relation.label ?? relation.kind}</span>
+              <span class="relation-name">{titleOf(relation) || relation.kind}</span>
               <span class="relation-endpoint">{relation.target}</span>
             </button>
           {/each}
           {#each incoming as relation (relation.id)}
             <button class="relation-row" onclick={() => store.select({ type: "relation", id: relation.id })}>
               <span class="relation-dir">←</span>
-              <span class="relation-name">{relation.label ?? relation.kind}</span>
+              <span class="relation-name">{titleOf(relation) || relation.kind}</span>
               <span class="relation-endpoint">{relation.source}</span>
             </button>
           {/each}
@@ -115,17 +108,18 @@
       {/if}
     </section>
 
-    {#if projection && projection.operations.length > 0}
+    {#if projection && projection.commands.length > 0}
       <section class="section">
-        <h3 class="section-title">模块动作</h3>
+        <h3 class="section-title">模块命令</h3>
         <div class="sub-list">
-          {#each projection.operations as operationProjection (operationProjection.operation)}
+          {#each projection.commands as command (command.commandId)}
             <button
               class="chip chip-link"
-              onclick={() => runAction(operationProjection.operation, operationProjection.inputTemplate)}
+              title={command.title}
+              onclick={() => runAction(command.commandId)}
               disabled={store.readOnly || runningAction !== null}
             >
-              {runningAction === operationProjection.operation ? "执行中…" : operationProjection.operation}
+              {runningAction === command.commandId ? "执行中…" : command.commandId}
             </button>
           {/each}
         </div>
@@ -139,10 +133,8 @@
     {/if}
 
     <section class="section">
-      <h3 class="section-title">主类型数据</h3>
-      <JsonSection label="data" value={object.data} />
-      <JsonSection label="capabilities" value={object.capabilities} />
-      <JsonSection label="meta" value={object.meta} />
+      <h3 class="section-title">payload</h3>
+      <JsonSection label="payload" value={object.payload} />
     </section>
   </DetailDrawer>
 {/if}

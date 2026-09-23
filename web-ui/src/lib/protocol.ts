@@ -1,184 +1,86 @@
-/** Browser-facing copy of the stable TopoRealm graph protocol. */
+// Browser-facing seam on the 1.0 protocol（blueprint §1，D22 裁决④ replace don't layer）。
+// 契约类型唯一来源是 @lukawi/toporealm-protocol（protocol ← web-ui 单向依赖）；
+// 这里只补浏览器视图词汇：画布选择、标题投影、本地 revision 化投影状态。
+import {
+  TopoError,
+  isRelation,
+  type Catalog,
+  type CatalogEntry,
+  type Change,
+  type CommandRunResult,
+  type CommitInput,
+  type CommitResult,
+  type Entity,
+  type EntityId,
+  type EntityRecord,
+  type GraphPatch,
+  type GraphSnapshot,
+  type GraphSummary,
+  type ReadQuery,
+  type ReadResult,
+  type RelationEntity,
+  type Session,
+  type TopoEvent,
+} from "@lukawi/toporealm-protocol";
 
-export interface GraphModuleRef {
-  id: string;
-  namespace: string;
-  schema: number;
-}
+export type {
+  Catalog,
+  CatalogEntry,
+  Change,
+  CommandRunResult,
+  CommitInput,
+  CommitResult,
+  Entity,
+  EntityId,
+  EntityRecord,
+  GraphPatch,
+  GraphSnapshot,
+  GraphSummary,
+  ReadQuery,
+  ReadResult,
+  RelationEntity,
+  Session,
+  TopoEvent,
+};
+// TopoError 以值复出（测试与组件要 new 它）；isRelation 同为运行时函数。
+export { isRelation, TopoError };
 
-export interface GraphManifest {
-  format: "toporealm.graph/v1";
-  id: string;
-  label?: string;
-  modules?: GraphModuleRef[];
-  sources: { objects: string; relations: string };
-  meta?: Record<string, unknown>;
-}
-
-export interface GraphObject {
-  id: string;
-  kind: string;
-  label: string;
-  data?: Record<string, unknown>;
-  capabilities?: Record<string, Record<string, unknown>>;
-  meta?: Record<string, unknown>;
-}
-
-export interface GraphRelation {
-  id: string;
-  kind: string;
-  source: string;
-  target: string;
-  direction: "directed" | "undirected";
-  label?: string;
-  data?: Record<string, unknown>;
-  capabilities?: Record<string, Record<string, unknown>>;
-  meta?: Record<string, unknown>;
-}
-
-export interface GraphSnapshot {
-  manifest: GraphManifest;
-  objects: GraphObject[];
-  relations: GraphRelation[];
-  revision: number;
-}
-
+/** 画布/抽屉共用的视图选择（纯浏览器状态，不进 daemon 缝）。 */
 export type CanvasSelection = { type: "object" | "relation"; id: string };
 
-export type Mutation =
-  | { op: "upsert_object"; object: GraphObject }
-  | { op: "delete_object"; id: string }
-  | { op: "upsert_relation"; relation: GraphRelation }
-  | { op: "delete_relation"; id: string }
-  | { op: "patch_manifest"; patch: Partial<Pick<GraphManifest, "label" | "modules" | "meta">> };
-
-export interface MutationPlan {
-  mutations: Mutation[];
-  expectedRevision?: number;
-  label?: string;
+/** 显示名约定投影（blueprint §1：payload.title；module.yaml titleKey 属声明层投影，目录先行）。 */
+export function titleOf(entity: Entity | EntityRecord): string {
+  const title = entity.payload?.["title"];
+  return typeof title === "string" ? title : "";
 }
 
-export interface GraphPatch {
-  fromRevision: number;
-  toRevision: number;
-  objects: {
-    added: GraphObject[];
-    updated: GraphObject[];
-    deleted: string[];
-  };
-  relations: {
-    added: GraphRelation[];
-    updated: GraphRelation[];
-    deleted: string[];
-  };
-  manifestChanged: boolean;
-  manifest?: GraphManifest;
+/** 画布/列表标签：title 缺省回落 id（1.0 不再有必填 label 字段）。 */
+export function displayOf(entity: Entity | EntityRecord): string {
+  return titleOf(entity) || entity.id;
 }
 
-export interface HistoryStatus {
-  canUndo: boolean;
-  canRedo: boolean;
+/** 乐观护航等可自愈错误的统一判别（恢复 = 全量重读服务器真相）。 */
+export function isRecoverableError(error: unknown): error is TopoError | PatchGapError {
+  return (
+    (error instanceof TopoError && error.code === "IF_REVISION_MISMATCH") ||
+    error instanceof PatchGapError
+  );
 }
 
-export interface GraphSummary {
-  id: string;
-  label?: string;
-  revision: number;
-  objectCount: number;
-  relationCount: number;
-}
+/**
+ * 本地 patch gap 的视图层错误（PATCH_GAP 不在 §1.1 封闭错误码集——它不过 wire，
+ * 是 WebGraphState 的本地信号；store 捕获后进入 recovery 自愈）。
+ */
+export class PatchGapError extends Error {
+  readonly code = "PATCH_GAP";
+  readonly expectedRevision: number;
+  readonly patchFrom: number;
 
-export interface GraphListResult {
-  currentId: string;
-  graphs: GraphSummary[];
-}
-
-export interface ModuleStatus {
-  id: string;
-  namespace?: string;
-  status: "available" | "unavailable";
-  source?: string;
-  version?: string;
-  reason?: string;
-}
-
-export interface ModuleStatusResult {
-  registryRevision: number;
-  modules: ModuleStatus[];
-  ui?: Record<string, unknown>;
-  operations?: ModuleOperation[];
-}
-
-export interface ModuleOperation {
-  id: string;
-  fullId: string;
-  moduleId: string;
-  declaration?: unknown;
-}
-
-export type ActionResult =
-  | { kind: "mutation"; operation: string; mutation: MutationResult }
-  | { kind: "result"; operation: string; result: unknown; effects: "none" | "artifact" | "external" };
-
-export interface MutationResult {
-  snapshot: GraphSnapshot;
-  patch: GraphPatch;
-  history: HistoryStatus;
-  diagnostics?: ValidationIssue[];
-  complete?: boolean;
-  notice?: GraphNotice;
-}
-
-export interface GraphNotice {
-  code: string;
-  message: string;
-  fromRevision?: number;
-  toRevision?: number;
-  segmentId?: string;
-  complete?: boolean;
-  missingModules?: string[];
-}
-
-export interface GraphReadResult extends GraphSnapshot {
-  diagnostics?: ValidationIssue[];
-  complete?: boolean;
-  notice?: GraphNotice;
-}
-
-export interface GraphPatchEvent {
-  type: "graph:patch";
-  graphId: string;
-  revision: number;
-  patch: GraphPatch;
-  diagnostics?: ValidationIssue[];
-  complete?: boolean;
-  notice?: GraphNotice;
-}
-
-export interface ValidationIssue {
-  code: string;
-  message: string;
-  severity: "error" | "warning";
-}
-
-export interface GraphValidationResult {
-  ok: boolean;
-  complete: boolean;
-  errors: ValidationIssue[];
-  warnings: ValidationIssue[];
-}
-
-export class GraphApiError extends Error {
-  readonly code: string;
-  readonly status: number;
-  readonly details?: Record<string, unknown>;
-
-  constructor(code: string, message: string, status: number, details?: Record<string, unknown>) {
-    super(message);
-    this.name = "GraphApiError";
-    this.code = code;
-    this.status = status;
-    if (details !== undefined) this.details = details;
+  constructor(expected: number, got: number) {
+    super(`实时更新存在版本缺口：当前 r${expected}，收到 r${got}。`);
+    this.name = "PatchGapError";
+    this.expectedRevision = expected;
+    this.patchFrom = got;
   }
 }
 
@@ -186,11 +88,10 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function byId(left: { id: string }, right: { id: string }): number {
-  return left.id.localeCompare(right.id);
-}
-
-/** Local revisioned projection. A patch gap never mutates the current snapshot. */
+/**
+ * 本地 revision 化投影：连续 patch 增量推进；缺口（fromRevision ≠ 本地 revision）
+ * 抛 PatchGapError 且绝不改写当前快照（不变量 I3 的浏览器侧兜底）。
+ */
 export class WebGraphState {
   private current: GraphSnapshot;
 
@@ -202,20 +103,16 @@ export class WebGraphState {
     return clone(this.current);
   }
 
+  get revision(): number {
+    return this.current.revision;
+  }
+
   applyPatch(patch: GraphPatch): GraphSnapshot {
     if (patch.fromRevision !== this.current.revision) {
-      throw new GraphApiError(
-        "PATCH_GAP",
-        `Web 视图需要 revision ${this.current.revision}，收到 ${patch.fromRevision}。`,
-        409,
-        { expectedRevision: this.current.revision, patchFrom: patch.fromRevision },
-      );
+      throw new PatchGapError(this.current.revision, patch.fromRevision);
     }
     if (patch.toRevision < patch.fromRevision) {
-      throw new GraphApiError("INVALID_PATCH", "收到的 patch revision 逆序。", 400, {
-        fromRevision: patch.fromRevision,
-        toRevision: patch.toRevision,
-      });
+      throw new PatchGapError(this.current.revision, patch.toRevision);
     }
     const objects = new Map(this.current.objects.map((object) => [object.id, clone(object)]));
     const relations = new Map(this.current.relations.map((relation) => [relation.id, clone(relation)]));
@@ -226,122 +123,16 @@ export class WebGraphState {
     for (const relation of patch.relations.updated) relations.set(relation.id, clone(relation));
     for (const id of patch.relations.deleted) relations.delete(id);
     this.current = {
-      manifest: patch.manifestChanged && patch.manifest ? clone(patch.manifest) : this.current.manifest,
-      objects: [...objects.values()].sort(byId),
-      relations: [...relations.values()].sort(byId),
+      graphId: this.current.graphId,
       revision: patch.toRevision,
+      objects: [...objects.values()],
+      relations: [...relations.values()],
     };
     return this.snapshot;
   }
-}
 
-interface ApiErrorBody {
-  error?: { code?: string; message?: string; details?: Record<string, unknown> };
-}
-
-/** Thin fetch adapter; it does not maintain state or silently recover conflicts. */
-export class ToporealmApi {
-  constructor(private readonly baseUrl = "") {}
-
-  async readGraph(): Promise<GraphReadResult> {
-    return this.request<GraphReadResult>("/api/graph");
-  }
-
-  async apply(plan: MutationPlan): Promise<MutationResult> {
-    return this.request<MutationResult>("/api/mutations", {
-      method: "POST",
-      body: JSON.stringify(plan),
-    });
-  }
-
-  async undo(expectedRevision?: number): Promise<MutationResult> {
-    return this.historyMutation("/api/undo", expectedRevision);
-  }
-
-  async redo(expectedRevision?: number): Promise<MutationResult> {
-    return this.historyMutation("/api/redo", expectedRevision);
-  }
-
-  async history(): Promise<HistoryStatus> {
-    return this.request<HistoryStatus>("/api/history");
-  }
-
-  async listGraphs(): Promise<GraphListResult> {
-    return this.request<GraphListResult>("/api/graphs");
-  }
-
-  async switchGraph(id: string): Promise<{ snapshot: GraphSnapshot; history: HistoryStatus; graph: GraphSummary; diagnostics: ValidationIssue[]; complete: boolean; notice?: GraphNotice }> {
-    return this.request<{ snapshot: GraphSnapshot; history: HistoryStatus; graph: GraphSummary; diagnostics: ValidationIssue[]; complete: boolean; notice?: GraphNotice }>("/api/graph/switch", {
-      method: "POST",
-      body: JSON.stringify({ id }),
-    });
-  }
-
-  async modules(): Promise<ModuleStatusResult> {
-    return this.request<ModuleStatusResult>("/api/modules");
-  }
-
-  async executeAction(operation: string, target: string | undefined, input: Record<string, unknown>, registryRevision?: number): Promise<ActionResult> {
-    const body: { operation: string; input: Record<string, unknown>; target?: string; registryRevision?: number } = { operation, input };
-    if (target !== undefined) body.target = target;
-    if (registryRevision !== undefined) body.registryRevision = registryRevision;
-    return this.request<ActionResult>("/api/actions", { method: "POST", body: JSON.stringify(body) });
-  }
-
-  async validate(): Promise<GraphValidationResult> {
-    return this.request<GraphValidationResult>("/api/validate");
-  }
-
-  async validateComplete(): Promise<GraphValidationResult> {
-    return this.request<GraphValidationResult>("/api/validate?mode=complete");
-  }
-
-  subscribe(onEvent: (event: GraphPatchEvent) => void, onDisconnect: () => void): () => void {
-    const base = this.baseUrl || (typeof window !== "undefined" ? window.location.href : "http://127.0.0.1");
-    const url = new URL("/api/events", base);
-    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(url);
-    let closed = false;
-    let opened = false;
-    socket.addEventListener("open", () => { opened = true; });
-    socket.addEventListener("message", (message) => {
-      try {
-        const event = JSON.parse(String(message.data)) as GraphPatchEvent;
-        if (event.type === "graph:patch") onEvent(event);
-      } catch {
-        // Invalid event frames are ignored; revision gaps still force reload.
-      }
-    });
-    socket.addEventListener("close", () => { if (!closed && opened) onDisconnect(); });
-    return () => { closed = true; socket.close(); };
-  }
-
-  private async historyMutation(path: string, expectedRevision?: number): Promise<MutationResult> {
-    const body: { expectedRevision?: number } = {};
-    if (expectedRevision !== undefined) body.expectedRevision = expectedRevision;
-    return this.request<MutationResult>(path, { method: "POST", body: JSON.stringify(body) });
-  }
-
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: { "content-type": "application/json", ...(init.headers ?? {}) },
-    });
-    let value: unknown;
-    try {
-      value = await response.json();
-    } catch {
-      throw new GraphApiError("INVALID_RESPONSE", "Server 返回了无法读取的响应。", response.status);
-    }
-    if (!response.ok) {
-      const error = (value as ApiErrorBody).error;
-      throw new GraphApiError(
-        error?.code ?? "HTTP_ERROR",
-        error?.message ?? `请求失败（HTTP ${response.status}）。`,
-        response.status,
-        error?.details,
-      );
-    }
-    return value as T;
+  /** 全量替换（reload/自愈路径）。 */
+  reset(snapshot: GraphSnapshot): void {
+    this.current = clone(snapshot);
   }
 }
