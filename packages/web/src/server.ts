@@ -31,6 +31,10 @@ export interface RunningWebServer {
   port: number;
   /** 浏览器入口 URL */
   url: string;
+  /** 指定端口被占回退临时口时的原端口（D22 裁决②：如实记录） */
+  fallbackFrom?: number;
+  /** 打开中的 WS 连接数（空闲判定视作活动，D22 裁决④） */
+  clientCount(): number;
   close(): Promise<void>;
 }
 
@@ -52,6 +56,11 @@ export async function startWebServer(
   });
 
   const wss = new WebSocketServer({ server, path: "/ws" });
+  // ws 会把 http server 的 error 事件转发到自身（websocket-server.js addListeners）；
+  // 若此处无监听者，emit('error') 会同步抛出并截断 server 自己的 error 监听链——
+  // 绑定失败必须走 startWebServer 的回退逻辑，因此这里兜底吞掉（连接级错误由
+  // 每 socket 的 error/close 处理，不需要从 wss 冒泡）。
+  wss.on("error", () => {});
   wss.on("connection", (ws: WebSocket) => {
     opts.onActivity?.();
     const dispatcher = createWireDispatcher(
@@ -82,20 +91,27 @@ export async function startWebServer(
   });
 
   const port = opts.port ?? 0;
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => {
-      server.removeListener("error", reject);
-      resolve();
-    });
-  });
-  const address = server.address();
-  const actual =
-    address !== null && typeof address === "object" ? address.port : port;
+  let actual: number;
+  let fallbackFrom: number | undefined;
+  try {
+    actual = await listenHttp(server, port);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (port !== 0 && (code === "EADDRINUSE" || code === "EACCES")) {
+      // D22 裁决②：指定端口被占 → 回退临时口；回退事实经 fallbackFrom 如实上报
+      fallbackFrom = port;
+      actual = await listenHttp(server, 0);
+    } else {
+      throw err;
+    }
+  }
 
   return {
     port: actual,
     url: `http://127.0.0.1:${actual}`,
+    ...(fallbackFrom !== undefined ? { fallbackFrom } : {}),
+    /** 打开中的 WS 连接数（D22 裁决④：空闲判定的活动面） */
+    clientCount: () => wss.clients.size,
     close: () =>
       new Promise<void>((resolve) => {
         wss.close();
@@ -103,6 +119,25 @@ export async function startWebServer(
         for (const c of wss.clients) c.terminate();
       }),
   };
+}
+
+/** 绑定 127.0.0.1:p 并返回实际端口；失败时错误上抛（error 监听一次性挂接） */
+function listenHttp(server: http.Server, p: number): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
+    const onError = (err: Error): void => {
+      cleanup();
+      reject(err);
+    };
+    const cleanup = (): void => {
+      server.removeListener("error", onError);
+    };
+    server.once("error", onError);
+    server.listen(p, "127.0.0.1", () => {
+      cleanup();
+      const address = server.address();
+      resolve(address !== null && typeof address === "object" ? address.port : p);
+    });
+  });
 }
 
 /** 类型自检：wire 消息（响应/推送）在 WS 上是纯 JSON 帧 */

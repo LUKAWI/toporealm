@@ -79,9 +79,10 @@ export async function serveDaemon(
   const refreshIdle = (): void => {
     if (idleMs <= 0) return;
     if (idleTimer) clearTimeout(idleTimer);
-    // 空闲 = 无连接且无请求（D22 裁决④：打开中的连接视作活动）
+    // 空闲 = 无连接且无请求（D22 裁决④：打开中的 WS/IPC 连接视作活动——
+    // WS 连接不产生请求也要计入，否则「开着页面盯图」30 秒后 daemon 退出）
     idleTimer = setTimeout(() => {
-      if (connections.size > 0) {
+      if (connections.size > 0 || (web !== null && web.clientCount() > 0)) {
         refreshIdle();
         return;
       }

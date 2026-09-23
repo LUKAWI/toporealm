@@ -82,7 +82,7 @@ async function main(): Promise<number> {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "EADDRINUSE" || code === "EACCES") {
       process.stderr.write(
-        `toporeald: endpoint 被占用（可能有并存 daemon）：${endpointAddress(root).address}\n`,
+        `toporeald: IPC endpoint 被占用（可能有并存 daemon）：${endpointAddress(root).address}\n`,
       );
       return 1;
     }
@@ -100,6 +100,12 @@ async function main(): Promise<number> {
     startedAt: new Date().toISOString(),
     ...(running.web !== null ? { webPort: running.web.port } : {}),
   });
+  // D22 裁决②：web 端口被占回退临时口时如实记录（endpoint.webPort 已是实际端口）
+  if (running.web?.fallbackFrom !== undefined) {
+    process.stderr.write(
+      `[toporeald] warning: web 端口 ${running.web.fallbackFrom} 被占，回退临时口 ${running.web.port}\n`,
+    );
+  }
   process.stderr.write(
     `[toporeald] graph "${running.graphId}" ready (pid ${process.pid}, cold ${running.loadMs.toFixed(1)}ms, idle ${idleMs}ms, modules ${running.modules.length}${running.modules.length > 0 ? `: ${running.modules.join(", ")}` : ""}${running.web !== null ? `, web ${running.web.url}` : ""})\n`,
   );

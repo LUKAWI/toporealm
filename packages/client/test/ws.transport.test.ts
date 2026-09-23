@@ -1,6 +1,8 @@
+import net from "node:net";
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { AddressInfo } from "node:net";
 import {
   DaemonCore,
   endpointAddress,
@@ -17,7 +19,7 @@ import { WsClient } from "../src/ws.js";
 import { wsUrlFromEndpoint } from "../src/lifecycle.js";
 import type { TopoEvent } from "@lukawi/toporealm-protocol";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { waitFor } from "./contract.js";
+import { sleep, waitFor } from "./contract.js";
 
 // ---------- WS 传输一致性 + web 生命周期（blueprint §5/§8 + D22） ----------
 // 覆盖：双客户端并发（IPC+WS 同图互见）、外部编辑 → reset → 自愈、
@@ -191,6 +193,53 @@ describe("WS 传输一致性 + web 生命周期", () => {
     expect(ep?.webPort).toBe(d.web?.port);
     await d.stop();
   }, 20000);
+
+  it("空闲判定：打开中的 WS 连接视作活动，零请求不退出（D22 裁决④）", async () => {
+    const rootIdle = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-wsi-"));
+    await fsp.mkdir(path.join(rootIdle, ".toporealm"), { recursive: true });
+    await DaemonCore.createGraph(rootIdle, "g1");
+    const d = await serveDaemon({ root: rootIdle, graph: "g1", idleMs: 300, web: { port: 0 } });
+    try {
+      const s = await new WsClient({
+        url: `ws://127.0.0.1:${(d.web as { port: number }).port}/ws`,
+        reconnect: false,
+      }).connect();
+      // 远超 idleMs 的零请求窗口：连接在场 → daemon 必须仍应答（否则「开着页面盯图」30s 失联）
+      await sleep(800);
+      await expect(s.status()).resolves.toMatchObject({ graphId: "g1" });
+      // 连接关闭 → 无连接且无请求 → idle 到期自旋退出
+      await s.close();
+      await d.stopped;
+    } finally {
+      // 幂等兜底：断言失败路径下也收割 daemon（stop 幂等）
+      await d.stop().catch(() => {});
+    }
+  }, 15000);
+
+  it("web 端口被占回退临时口并如实记录 fallbackFrom（D22 裁决②）", async () => {
+    const occ = net.createServer();
+    await new Promise<void>((resolve) => occ.listen(0, "127.0.0.1", () => resolve()));
+    const occupied = (occ.address() as AddressInfo).port;
+    const rootP = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-wsp-"));
+    await fsp.mkdir(path.join(rootP, ".toporealm"), { recursive: true });
+    await DaemonCore.createGraph(rootP, "g1");
+    let d: RunningDaemon | null = null;
+    try {
+      d = await serveDaemon({ root: rootP, graph: "g1", idleMs: 0, web: { port: occupied } });
+      expect(d.web?.port).not.toBe(occupied);
+      expect(d.web?.fallbackFrom).toBe(occupied);
+      // 回退后的临时口真实可用
+      const s = await new WsClient({
+        url: `ws://127.0.0.1:${(d.web as { port: number }).port}/ws`,
+        reconnect: false,
+      }).connect();
+      await expect(s.status()).resolves.toMatchObject({ graphId: "g1" });
+      await s.close();
+    } finally {
+      if (d !== null) await d.stop();
+      await new Promise<void>((resolve) => occ.close(() => resolve()));
+    }
+  }, 15000);
 });
 
 /** 重连用例的提交助手：经 daemon 的 WS 面提交（绕开会话归属，证明 daemon 活着） */
