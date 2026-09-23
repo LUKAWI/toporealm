@@ -9,3 +9,6 @@ dist/
 .graph/*/index/
 .graph/*/snapshots/
 .graph/*/.design-corrections/
+
+# pi agent 本地状态
+.pi/
