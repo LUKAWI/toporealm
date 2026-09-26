@@ -67,7 +67,7 @@ it(
     const jsonOf = (r: CliResult): unknown => JSON.parse(r.code === 0 ? r.out : r.err);
 
     // ① 新图 + 本地 path 安装（installer 自动判定：现存目录 = path 来源）
-    expect((await cli(["--json", "new", "delivery"])).code).toBe(0);
+    expect((await cli(["--json", "creategraph", "delivery"])).code).toBe(0);
     const add = await cli(["--json", "module", "add", staged]);
     expect(add.code).toBe(0);
     expect(jsonOf(add)).toMatchObject({ ok: true, data: { id: "workflow", namespace: "wf", origin: { type: "path" } } });

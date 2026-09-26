@@ -2,7 +2,7 @@ id: p1-verb-rename
 kind: wf.task
 payload:
   title: "p1-verb-rename: 动词面改造：creategraph/--version/init/删 host sync"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: new→creategraph；version 子命令删+--version 旗标；新增 init（AGENTS.md 生成或建议片段）；删 host sync 动词与 distribution 投影代码；全量扫描 fix/hint 文案与 usage（D29/评审B1）
   createdAt: 2026-09-26T10:21:11.130Z
-  updatedAt: 2026-09-26T10:21:11.130Z
+  updatedAt: 2026-09-26T12:31:33.120Z
+  startedAt: 2026-09-26T12:25:40.472Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:31:31.957Z
+    by: agent
+    note: 全量绿+活体冒烟（--version/init/help 实测）
+  completedAt: 2026-09-26T12:31:33.120Z

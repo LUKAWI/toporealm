@@ -1,0 +1,9 @@
+id: rep-vr-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-verb-rename
+  summary: 动词面改齐：new→creategraph、version 子命令删→--version 旗标、新增 init（AGENTS.md 不存在生成/存在打印建议不改用户文件+全局池位惰性建）、host sync 动词与 hosts.ts 投影代码+测试删除；usage/帮助/CORE_VERBS/did-you-mean 全量同步；fix/hint 文案中 toporealm new 全改 creategraph；测试更新后 30 文件/214 用例绿（host sync 相关 9 条删除）；活体验证 --version/init/help
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:31:30.698Z

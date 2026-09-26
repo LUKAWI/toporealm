@@ -46,7 +46,7 @@ export async function resolveTarget(
       code: "NO_WORKSPACE",
       message: `不是 TopoRealm 工作区（缺少 .toporealm/）：${root}`,
       hint: "任意目录一条命令即可初始化工作区并新建图",
-      fix: "toporealm new <graph>",
+      fix: "toporealm creategraph <graph>",
     });
   }
   const graphId =
@@ -56,7 +56,7 @@ export async function resolveTarget(
       code: "NO_CURRENT_GRAPH",
       message: "工作区没有激活的图",
       hint: "new 会新建并选中；use 切换已有图",
-      fix: "toporealm new <graph>",
+      fix: "toporealm creategraph <graph>",
     });
   }
   const gp = graphPaths(root, graphId);

@@ -38,7 +38,7 @@ it(
   async () => {
     const ws = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-e2e-"));
     const steps: [string[], number][] = [
-      [["--json", "new", "demo"], 0],
+      [["--json", "creategraph", "demo"], 0],
       [
         ["--json", "add", "wf.task", "--id", "t-1", "--payload", JSON.stringify({ title: "写作", status: "todo" })],
         0,

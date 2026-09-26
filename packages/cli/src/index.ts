@@ -29,14 +29,12 @@ import {
 } from "@lukawi/toporealm-protocol";
 import {
   globalPaths,
-  hostSync,
   readActiveGraphId,
   installModule,
   listModules,
   migrateGraph,
   removeModule,
   workspacePaths,
-  type HostId,
 } from "@lukawi/toporealm-distribution";
 import {
   Argv,
@@ -247,16 +245,6 @@ async function dispatch(
       human: helpText(commands),
     };
   }
-  if (verb === "version") {
-    const req = createRequire(import.meta.url);
-    const pkg = JSON.parse(
-      fs.readFileSync(req.resolve("@lukawi/toporealm-cli/package.json"), "utf8"),
-    ) as { version: string };
-    return {
-      envelope: { ok: true, data: { version: pkg.version } },
-      human: `toporealm ${pkg.version} (contract toporealm.graph/v3)`,
-    };
-  }
   // ★模块命令即顶层子命令（点号与核心动词零冲突，blueprint §4）：<ns.name> [target] [--input '<json>']
   if (verb.includes(".")) {
     const a = new Argv(args);
@@ -289,10 +277,41 @@ async function dispatch(
 
   switch (verb) {
     // ---- 图生命周期（工作区文件操作，不进 daemon 缝） ----
-    case "new": {
+    case "init": {
+      // 1.1.0 D26：显式初始化项目工作区（建目录 + 全局池位 + agent 提示；不碰已有 AGENTS.md）
+      const root = g.root ?? defaultRoot(deps);
+      const ws = workspacePaths(root);
+      await fs.promises.mkdir(ws.topoDir, { recursive: true });
+      const gp = globalPaths(deps.env);
+      await fs.promises.mkdir(gp.modulesDir, { recursive: true });
+      const agentsPath = path.join(root, "AGENTS.md");
+      let created = false;
+      try {
+        await fs.promises.access(agentsPath);
+      } catch {
+        await fs.promises.writeFile(agentsPath, agentSnippet(), "utf8");
+        created = true;
+      }
+      return {
+        envelope: {
+          ok: true,
+          data: { root, globalRoot: gp.root, agentsCreated: created },
+        },
+        human:
+          `工作区就绪：${ws.topoDir}
+` +
+          `  全局池 ${gp.modulesDir}
+` +
+          (created
+            ? `  已生成 AGENTS.md（agent 提示）`
+            : `  AGENTS.md 已存在，未改动（建议片段：）
+${agentSnippet()}`),
+      };
+    }
+    case "creategraph": {
       const a = new Argv(args);
       const name = a.positionals()[0];
-      if (!name) throw new UsageError("用法：toporealm new <graph> [--label L]");
+      if (!name) throw new UsageError("用法：toporealm creategraph <graph> [--label L]");
       if (!isValidGraphId(name)) {
         throw new UsageError(
           `图 id 非法："${name}"（将用作目录名，禁 / \\ : 空格与控制字符）`,
@@ -792,32 +811,6 @@ async function dispatch(
           : "");
       return { envelope: { ok: true, data: report }, human };
     }
-    case "host": {
-      const sub = args[0];
-      if (sub !== "sync") {
-        throw new UsageError(`未知 host 子命令 "${sub ?? ""}"（合法：sync）`, "toporealm help host");
-      }
-      const a = new Argv(args.slice(1));
-      const hostFlag = a.value("--host");
-      let hosts: HostId[] | undefined;
-      if (hostFlag !== undefined && hostFlag !== "all") {
-        if (hostFlag !== "claude-code" && hostFlag !== "pi") {
-          throw new UsageError(`--host 非法："${hostFlag}"（合法：claude-code | pi | all）`);
-        }
-        hosts = [hostFlag];
-      }
-      const root = g.root ?? defaultRoot(deps);
-      const r = await hostSync({ root, ...(hosts !== undefined ? { hosts } : {}) });
-      return {
-        envelope: { ok: true, data: r },
-        human:
-          `host sync（${r.modules.length} module(s) 投影）\n` +
-          r.hosts
-            .map((h) => `  ${h.host}: ${h.dir}\n    ${h.files.map((f) => `${f}`).join("\n    ")}`)
-            .join("\n") +
-          (r.warnings.length > 0 ? `\n  warning: ${r.warnings.join("；")}` : ""),
-      };
-    }
     default:
       throw new UsageError(
         `未知命令 "${verb}"${unknownVerbSuggestion(verb)}`,
@@ -826,11 +819,40 @@ async function dispatch(
   }
 }
 
+
+/** init 生成的 agent 提示（AGENTS.md 不存在时写入；存在时仅打印建议，永不改用户文件） */
+function agentSnippet(): string {
+  return [
+    "<!-- toporealm init 生成（1.1.0 D26/D28） -->",
+    "",
+    "## TopoRealm 图工作区",
+    "",
+    "本仓库是 TopoRealm 工作区（图数据在 .toporealm/graphs/，模块在 .toporealm/modules/）。",
+    "",
+    "- agent 会话请在仓库根启动：CLI 按 cwd 解析工作区，子目录中工作区不可见。",
+    "- CLI 用法：运行 `toporealm help`；模块命令目录：`toporealm cmds`。",
+    "- 可用模块技能清单：`toporealm skills index`（按需用 Read 加载对应 SKILL.md 全文）。",
+    "- 建图 `toporealm creategraph <名>`；编辑缺省作用于当前选定图（`toporealm use <名>` 切换）。",
+    "- 提交即历史：.undo/redo 可逆；JSON 信封 + 退出码 0/1/2 见 help。",
+    "",
+].join("\n");
+}
+
 /** CLI 入口：返回退出码（0/1/2） */
 export async function run(argv: string[], deps: CliDeps = {}): Promise<number> {
   const out = deps.out ?? (() => {});
   const err = deps.err ?? (() => {});
   const env = deps.env ?? {};
+  // --version 旗标（1.1.0 D29）：version 子命令废除
+  if (argv.includes("--version")) {
+    const req = createRequire(import.meta.url);
+    const pkg = JSON.parse(
+      fs.readFileSync(req.resolve("@lukawi/toporealm-cli/package.json"), "utf8"),
+    ) as { version: string };
+    out(`toporealm ${pkg.version} (contract toporealm.graph/v3)
+`);
+    return 0;
+  }
   const g = extractGlobals(argv, env);
   try {
     const result = await dispatch(g, deps);

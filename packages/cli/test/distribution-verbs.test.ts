@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { run } from "../src/index.js";
 
 // ---------- M4 分发动词的信封与退出码（blueprint §4 / §8：CLI golden 信封） ----------
-// module/migrate/host sync 是工作区文件层冷路径（不触 daemon）；npm pack 全流程已在
+// module/migrate 是工作区文件层冷路径（不触 daemon）；npm pack 全流程已在
 // distribution 包测试覆盖（真实 npm pack --ignore-scripts），这里打 CLI 缝：信封形状、
 // 退出码 0/1/2、path 来源安装、迁移报告透传、--host 过滤与非法值。
 
@@ -38,7 +38,7 @@ function jsonOf(r: { code: number; out: string; err: string }): Record<string, u
   return JSON.parse(r.code === 0 ? r.out : r.err) as Record<string, unknown>;
 }
 
-describe("M4 分发动词：module / migrate / host sync", () => {
+describe("M4 分发动词：module / migrate", () => {
   it("module add（path 来源）→ 落位 + 绑定；list 如实回显；重复 add → 领域错误(1)", async () => {
     const r = await exec(["--json", "module", "add", fixtureModule]);
     expect(r.code).toBe(0);
@@ -115,29 +115,11 @@ describe("M4 分发动词：module / migrate / host sync", () => {
     await fsp.rm(root2, { recursive: true, force: true }).catch(() => {});
   });
 
-  it("host sync：默认两宿主；--host pi 过滤；非法 --host / 子命令 → 用法错误(2)", async () => {
-    const r = await exec(["--json", "host", "sync"]);
-    expect(r.code).toBe(0);
-    const data = (jsonOf(r) as { data: { hosts: { host: string }[] } }).data;
-    expect(data.hosts.map((h) => h.host).sort()).toEqual(["claude-code", "pi"]);
-
-    const pi = await exec(["--json", "host", "sync", "--host", "pi"]);
-    expect(pi.code).toBe(0);
-    expect(
-      (jsonOf(pi) as { data: { hosts: { host: string }[] } }).data.hosts.map((h) => h.host),
-    ).toEqual(["pi"]);
-
-    const badHost = await exec(["--json", "host", "sync", "--host", "codex"]);
-    expect(badHost.code).toBe(2);
-    const badSub = await exec(["--json", "host", "eject"]);
-    expect(badSub.code).toBe(2);
-  });
-
   it("help 收录分发动词；未知动词 did-you-mean 命中 migrate", async () => {
     const h = await exec(["--json", "help"]);
     expect(h.code).toBe(0);
     const verbs = (jsonOf(h) as { data: { verbs: string[] } }).data.verbs;
-    for (const v of ["module", "migrate", "host"]) expect(verbs).toContain(v);
+    for (const v of ["module", "migrate"]) expect(verbs).toContain(v);
     const typo = await exec(["--json", "migrat"]);
     expect(typo.code).toBe(2);
     expect(typo.err).toContain("migrate");

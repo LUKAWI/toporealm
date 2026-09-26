@@ -13,7 +13,8 @@ export class UsageError extends Error {
 }
 
 export const CORE_VERBS = [
-  "new",
+  "creategraph",
+  "init",
   "use",
   "graphs",
   "status",
@@ -30,20 +31,20 @@ export const CORE_VERBS = [
   "serve",
   "module",
   "migrate",
-  "host",
   "help",
-  "version",
 ] as const;
 
 export function helpText(commands?: readonly CatalogEntry[]): string {
-  let text = `toporealm — 图工作空间 CLI（1.0）
+  let text = `toporealm — 图工作空间 CLI
 
 全局选项：--json  --root <dir>  --graph <id>
 环境变量：TOPOREALM_ROOT（项目根）/ TOPOREALM_GRAPH（当前图）/ TOPOREALM_HOME（全局目录，缺省 ~/.toporealm，1.1.0）
 退出码：0 成功 · 1 领域错误（agent 换方式重试）· 2 用法错误
 
 图生命周期（工作区文件操作，不触 daemon）：
-  new <graph> [--label L]       新建图并选中（自动初始化工作区）
+  init                          初始化项目工作区（建 .toporealm + 全局目录 + AGENTS.md 提示）
+  creategraph <graph> [--label L]
+                                新建图并选中（自动初始化工作区）
   use <graph>                   切换当前图
   graphs                        列出工作区全部图
 
@@ -67,11 +68,9 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   module add <npm|路径>         安装模块（npm 来源走 npm pack --ignore-scripts）→ 落位
                                 .toporealm/modules/<id>/ 并绑定；重复安装报 ID_EXISTS
   module rm <id>                卸载（只删带安装器所有权标记的目录 + 绑定）
-  module list                   列出绑定模块（workspace/path/global 与安装来源）
+  module list                   分段列出 path 绑定/项目池/全局池（含遮蔽与损坏标注，D27）
   migrate <旧图目录> [--dry-run]
                                 0.x v1 图 → 机械迁移 + 迁移报告；新图写入 .toporealm/graphs/ 并选中
-  host sync [--host claude-code|pi|all]
-                                宿主投影：claude-code plugin 打包 / pi extension+skills 打包
 
 模块命令（<ns.name> [target] [--input '<json>']，即顶层子命令）：
 `;

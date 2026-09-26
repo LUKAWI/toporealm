@@ -84,7 +84,7 @@ export async function loadManifest(
         code: "GRAPH_NOT_FOUND",
         message: `图不存在或缺少 graph.yaml：${p.dir}`,
         hint: "图目录必须包含 toporealm.graph/v3 格式的 graph.yaml",
-        fix: "toporealm new <graph>",
+        fix: "toporealm creategraph <graph>",
       });
     }
     throw err;

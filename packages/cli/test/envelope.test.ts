@@ -46,13 +46,13 @@ function jsonOf(r: { code: number; out: string; err: string }): Record<string, u
 
 describe("CLI --json 信封 + 退出码", () => {
   it("new：初始化工作区并选中；重复 new → 领域错误(1)；非法 id → 用法错误(2)", async () => {
-    const r = await exec(["--json", "new", "flow"]);
+    const r = await exec(["--json", "creategraph", "flow"]);
     expect(r.code).toBe(0);
     expect(jsonOf(r)).toMatchObject({ ok: true, data: { graph: "flow" } });
-    const dup = await exec(["--json", "new", "flow"]);
+    const dup = await exec(["--json", "creategraph", "flow"]);
     expect(dup.code).toBe(1);
     expect(jsonOf(dup)).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
-    const bad = await exec(["--json", "new", "a/b"]);
+    const bad = await exec(["--json", "creategraph", "a/b"]);
     expect(bad.code).toBe(2);
     // use 不存在的图 → 领域错误(1)
     const miss = await exec(["--json", "use", "nope"]);
