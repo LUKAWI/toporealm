@@ -1,0 +1,13 @@
+id: p2-skills-index
+kind: wf.task
+payload:
+  title: "p2-skills-index: skills index 子命令"
+  status: pending
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: 纯文件层绝不拉 daemon；无工作区空输出 exit 0；坏 frontmatter/超大跳过；跨模块重名并列消歧；索引行「技能名·模块·描述·绝对路径」（D28/评审Y4）
+  createdAt: 2026-09-26T10:21:12.027Z
+  updatedAt: 2026-09-26T10:21:12.027Z

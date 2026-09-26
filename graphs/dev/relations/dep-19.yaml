@@ -1,0 +1,5 @@
+id: dep-19
+kind: wf.depends_on
+source: p2-pi-package
+target: p2-skills-index
+payload: {}

@@ -12,3 +12,9 @@ dist/
 
 # pi agent 本地状态
 .pi/
+
+# TopoRealm dev 工作区（P0 dogfood，D31/B5）：图与提交日志入库，运行时与模块不入库
+.toporealm/daemon/
+.toporealm/modules/
+.toporealm/active
+!graphs/**/.log

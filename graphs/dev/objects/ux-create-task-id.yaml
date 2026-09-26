@@ -1,0 +1,14 @@
+id: ux-create-task-id
+kind: wf.task
+payload:
+  title: wf.create-task 帮助不说明 id 放 --input：位置参数误用报 UNKNOWN_ID 误导
+  status: pending
+  definitionOfDone:
+    - create-task 帮助或行为修正
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: 帮助写「id 必填」但未说位置；实测位置传 id 报「命令目标不存在」。帮助应写明 id 在 --input，或位置参数兼容作为 id（workflow 模块仓库修）
+  createdAt: 2026-09-26T10:24:08.119Z
+  updatedAt: 2026-09-26T10:24:08.119Z

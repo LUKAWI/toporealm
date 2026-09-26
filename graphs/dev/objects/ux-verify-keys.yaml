@@ -1,0 +1,14 @@
+id: ux-verify-keys
+kind: wf.task
+payload:
+  title: wf.verify-task 报错不点名输入键、帮助不列键名（mode≠source）
+  status: pending
+  definitionOfDone:
+    - cmds 帮助含输入键 schema
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: 实测 mode:self 报「source 不能为空」，无法定位缺失键归属；12 条 wf.* 帮助应统一列输入键名与类型
+  createdAt: 2026-09-26T10:24:25.623Z
+  updatedAt: 2026-09-26T10:24:25.623Z

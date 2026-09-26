@@ -1,0 +1,13 @@
+id: p2-init-hint
+kind: wf.task
+payload:
+  title: "p2-init-hint: init 写 agent 提示"
+  status: pending
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: AGENTS.md 不存在则生成/存在打印建议片段不自动改；内容含技能索引用法与会话须在仓库根启动（D26/评审Y4⑤）
+  createdAt: 2026-09-26T10:21:13.344Z
+  updatedAt: 2026-09-26T10:21:13.344Z

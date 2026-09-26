@@ -1,0 +1,21 @@
+id: p0-bootstrap
+kind: wf.task
+payload:
+  title: "p0-bootstrap: P0 dogfood 起步：建图装模组录入任务图"
+  status: passed
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: 仓库根 new dev（1.0 语法）；module add @lukawi/toporealm-workflow；录入 P1–P3 任务与依赖边；本任务走完七态作为管线验证（D31）
+  createdAt: 2026-09-26T10:21:06.411Z
+  updatedAt: 2026-09-26T10:23:39.941Z
+  startedAt: 2026-09-26T10:22:40.293Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T10:23:39.567Z
+    by: agent
+    note: 23 任务+30 依赖边经 next-actions/read 复核；七态管线真实走通
+  completedAt: 2026-09-26T10:23:39.941Z

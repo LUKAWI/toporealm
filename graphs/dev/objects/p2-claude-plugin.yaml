@@ -1,0 +1,13 @@
+id: p2-claude-plugin
+kind: wf.task
+payload:
+  title: "p2-claude-plugin: claude marketplace 插件"
+  status: pending
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: 仓库根 marketplace.json + 插件（基座 CLI 技能 + SessionStart 钩子兜底静默）；本地验证 marketplace add + install 全流程（D28）
+  createdAt: 2026-09-26T10:21:12.461Z
+  updatedAt: 2026-09-26T10:21:12.461Z

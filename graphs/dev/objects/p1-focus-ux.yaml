@@ -1,0 +1,13 @@
+id: p1-focus-ux
+kind: wf.task
+payload:
+  title: "p1-focus-ux: 专注 UX：use 增强与写命令回显"
+  status: pending
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: "use 输出「选定图: X（之前 Y）」+ export TOPOREALM_GRAPH 提示行；全部写命令人类输出回显当前图名；多终端换载不做滞回（D30/评审B4）"
+  createdAt: 2026-09-26T10:21:10.195Z
+  updatedAt: 2026-09-26T10:21:10.195Z

@@ -1,0 +1,9 @@
+id: rep-p0-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p0-bootstrap
+  summary: dev 图建成；workflow 1.0.0 装载（12 条命令可见）；23 任务 + 30 依赖边录入完成；管线验证中
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T10:22:40.879Z

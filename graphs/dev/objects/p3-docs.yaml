@@ -1,0 +1,13 @@
+id: p3-docs
+kind: wf.task
+payload:
+  title: "p3-docs: CONTEXT/CHANGELOG/README"
+  status: pending
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: CHANGELOG breaking 声明（^1.0.0 client 破坏，评审B6）；README 快速上手改 init/creategraph 新语法；CONTEXT 校对（P3）
+  createdAt: 2026-09-26T10:21:15.112Z
+  updatedAt: 2026-09-26T10:21:15.112Z

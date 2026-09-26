@@ -1,0 +1,13 @@
+id: p1-tests
+kind: wf.task
+payload:
+  title: "p1-tests: 测试全量更新（P1 收口门）"
+  status: pending
+  definitionOfDone:
+    - 按蓝图 §1.8 对应 D 条目实现并测试
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  plan: fixture 图 v3 化；golden 信封与模块契约三套随新语义更新；基线 28 文件 208 用例对齐后全绿（§1.8/评审B1）
+  createdAt: 2026-09-26T10:21:11.583Z
+  updatedAt: 2026-09-26T10:21:11.583Z
