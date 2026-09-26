@@ -1,0 +1,9 @@
+id: rep-layout-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-layout
+  summary: graphPaths 改 .toporealm/graphs/<id>（graphPaths 原硬编码 root/graphs 为本代实测抓出并修复）；workspacePaths.graphsDir、usage 文案、gitignore 反排除同步；provision/listGraphs 经共享助手自动跟随；新增布局断言测试，全量 213+绿
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T11:00:17.661Z

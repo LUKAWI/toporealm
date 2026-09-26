@@ -69,7 +69,7 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   module rm <id>                卸载（只删带安装器所有权标记的目录 + 绑定）
   module list                   列出绑定模块（workspace/path/global 与安装来源）
   migrate <旧图目录> [--dry-run]
-                                0.x v1 图 → 1.0 机械迁移 + 迁移报告；新图写入 graphs/ 并选中
+                                0.x v1 图 → 机械迁移 + 迁移报告；新图写入 .toporealm/graphs/ 并选中
   host sync [--host claude-code|pi|all]
                                 宿主投影：claude-code plugin 打包 / pi extension+skills 打包
 

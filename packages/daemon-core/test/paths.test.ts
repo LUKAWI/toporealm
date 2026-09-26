@@ -2,9 +2,20 @@ import { describe, expect, it } from "vitest";
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { ensureGlobalDir, globalPaths } from "../src/index.js";
+import { ensureGlobalDir, globalPaths, graphPaths, workspacePaths } from "../src/index.js";
 
 // ---------- 全局目录（1.1.0 D26）：TOPOREALM_HOME 覆盖 + 惰性确保 ----------
+
+describe("workspace/graph 布局（1.1.0 D26）", () => {
+  it("图存储收编进 .toporealm/graphs/<id>", () => {
+    const ws = workspacePaths("R");
+    expect(ws.graphsDir).toBe(path.join("R", ".toporealm", "graphs"));
+    const gp = graphPaths("R", "dev");
+    expect(gp.dir).toBe(path.join("R", ".toporealm", "graphs", "dev"));
+    expect(gp.manifest).toBe(path.join(gp.dir, "graph.yaml"));
+    expect(gp.log).toBe(path.join(gp.dir, ".log"));
+  });
+});
 
 describe("globalPaths", () => {
   it("缺省解析到 ~/.toporealm，不触盘", () => {

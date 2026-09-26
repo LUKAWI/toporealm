@@ -49,7 +49,7 @@ export function workspacePaths(root: string): WorkspacePaths {
   return {
     root,
     topoDir,
-    graphsDir: path.join(root, "graphs"),
+    graphsDir: path.join(topoDir, "graphs"),
     daemonDir: path.join(topoDir, "daemon"),
     activeFile: path.join(topoDir, "active"),
   };
@@ -66,7 +66,8 @@ export interface GraphPaths {
 }
 
 export function graphPaths(root: string, graphId: string): GraphPaths {
-  const dir = path.join(root, "graphs", graphId);
+  // 1.1.0 D26：图存储收编进 .toporealm/graphs/<id>
+  const dir = path.join(root, ".toporealm", "graphs", graphId);
   return {
     dir,
     manifest: path.join(dir, "graph.yaml"),

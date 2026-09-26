@@ -2,7 +2,7 @@ id: p1-layout
 kind: wf.task
 payload:
   title: "p1-layout: 图存储挪位 .toporealm/graphs/"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: graphPaths 改 .toporealm/graphs/<id>；.gitignore 反排除调整（graphs/**/.log → .toporealm/graphs/**/.log 入库，daemon/modules/active 不入库）（D26/B5）
   createdAt: 2026-09-26T10:21:07.905Z
-  updatedAt: 2026-09-26T10:21:07.905Z
+  updatedAt: 2026-09-26T11:00:18.356Z
+  startedAt: 2026-09-26T10:54:03.146Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T11:00:18.013Z
+    by: agent
+    note: 最小复现脚本证实现树 .toporealm/graphs/flow 完整；typecheck+全量绿
+  completedAt: 2026-09-26T11:00:18.356Z

@@ -17,4 +17,4 @@ dist/
 .toporealm/daemon/
 .toporealm/modules/
 .toporealm/active
-!graphs/**/.log
+!.toporealm/graphs/**/.log
