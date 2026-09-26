@@ -39,7 +39,7 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   let text = `toporealm — 图工作空间 CLI（1.0）
 
 全局选项：--json  --root <dir>  --graph <id>
-环境变量：TOPOREALM_ROOT / TOPOREALM_GRAPH
+环境变量：TOPOREALM_ROOT（项目根）/ TOPOREALM_GRAPH（当前图）/ TOPOREALM_HOME（全局目录，缺省 ~/.toporealm，1.1.0）
 退出码：0 成功 · 1 领域错误（agent 换方式重试）· 2 用法错误
 
 图生命周期（工作区文件操作，不触 daemon）：

@@ -1,5 +1,5 @@
-id: dep-28
+id: dep-50
 kind: wf.depends_on
-source: p3-release
+source: p2-skills-index
 target: p2-claude-plugin
 payload: {}

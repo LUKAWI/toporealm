@@ -1,5 +1,5 @@
-id: dep-24
+id: dep-57
 kind: wf.depends_on
 source: p3-blueprint-merge
-target: p2-cleanup-doc
+target: p3-docs
 payload: {}

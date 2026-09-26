@@ -28,11 +28,13 @@ import {
   type Session,
 } from "@lukawi/toporealm-protocol";
 import {
+  globalPaths,
   hostSync,
   installModule,
   listModules,
   migrateGraph,
   removeModule,
+  workspacePaths,
   type HostId,
 } from "@lukawi/toporealm-distribution";
 import {
@@ -726,6 +728,8 @@ async function dispatch(
       }
       if (sub === "list") {
         const rows = await listModules(root);
+        const gp = globalPaths(deps.env);
+        const projectPool = path.join(workspacePaths(root).topoDir, "modules");
         const human =
           rows
             .map((m) => {
@@ -741,8 +745,11 @@ async function dispatch(
             })
             .join("\n") || "  (no modules)";
         return {
-          envelope: { ok: true, data: { modules: rows } },
-          human: `${rows.length} module(s):\n${human}`,
+          envelope: {
+            ok: true,
+            data: { modules: rows, globalPool: gp.modulesDir, projectPool },
+          },
+          human: `${rows.length} module(s):\n${human}\n  全局池 ${gp.modulesDir}\n  项目池 ${projectPool}`,
         };
       }
       throw new UsageError(

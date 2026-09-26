@@ -1,0 +1,9 @@
+id: rep-global-home-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-global-home
+  summary: globalPaths/ensureGlobalDir 落 daemon-core（TOPOREALM_HOME 覆盖、写路径惰性确保、读路径不触盘）；distribution re-export、cli module list 回显全局池/项目池、usage 补 TOPOREALM_HOME；实测覆盖生效；新增 5 测试，全量 29 文件/213 用例绿
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T10:47:40.423Z

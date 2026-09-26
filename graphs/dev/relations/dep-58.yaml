@@ -1,5 +1,5 @@
-id: dep-25
+id: dep-58
 kind: wf.depends_on
 source: p3-docs
-target: p3-blueprint-merge
+target: p3-version
 payload: {}

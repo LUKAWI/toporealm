@@ -1,5 +1,5 @@
-id: dep-07
+id: dep-38
 kind: wf.depends_on
-source: p1-focus-ux
+source: p1-manifest-v3
 target: p1-swap
 payload: {}

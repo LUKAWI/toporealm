@@ -1,5 +1,5 @@
-id: dep-30
+id: dep-60
 kind: wf.depends_on
-source: p3-acceptance
+source: p2-claude-plugin
 target: p3-release
 payload: {}

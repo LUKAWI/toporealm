@@ -1,6 +1,35 @@
 import crypto from "node:crypto";
 import fsp from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
+
+// ---------- 全局目录（1.1.0 D26：~/.toporealm 或 TOPOREALM_HOME；写路径惰性确保创建） ----------
+
+export interface GlobalPaths {
+  root: string;
+  /** <globalRoot>/modules：全局模块池（目录即注册） */
+  modulesDir: string;
+}
+
+/**
+ * 全局根：TOPOREALM_HOME 覆盖，缺省 ~/.toporealm。纯解析，不触盘；
+ * 创建只能走 ensureGlobalDir（写路径），读路径（list/status）绝不建目录。
+ */
+export function globalPaths(env: NodeJS.ProcessEnv = process.env): GlobalPaths {
+  const override = env?.["TOPOREALM_HOME"];
+  const root =
+    override !== undefined && override.trim().length > 0
+      ? path.resolve(override.trim())
+      : path.join(os.homedir(), ".toporealm");
+  return { root, modulesDir: path.join(root, "modules") };
+}
+
+/** 写路径（init / module add --global / 首次触达全局池）惰性确保全局池位存在；返回全局根。 */
+export async function ensureGlobalDir(env?: NodeJS.ProcessEnv): Promise<string> {
+  const g = globalPaths(env);
+  await fsp.mkdir(g.modulesDir, { recursive: true });
+  return g.root;
+}
 
 // ---------- 工作区与图目录布局（blueprint §3） ----------
 

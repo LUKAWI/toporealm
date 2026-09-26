@@ -1,5 +1,5 @@
-id: dep-29
+id: dep-62
 kind: wf.depends_on
 source: p3-release
-target: p2-pi-package
+target: p3-acceptance
 payload: {}

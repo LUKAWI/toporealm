@@ -1,5 +1,5 @@
-id: dep-11
+id: dep-52
 kind: wf.depends_on
 source: p1-verb-rename
-target: p1-global-home
+target: p2-init-hint
 payload: {}

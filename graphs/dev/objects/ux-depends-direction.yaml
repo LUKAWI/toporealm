@@ -1,0 +1,14 @@
+id: ux-depends-direction
+kind: wf.task
+payload:
+  title: wf.depends_on 方向语义反直觉且帮助未说明（source=前置、target=后继）
+  status: pending
+  definitionOfDone:
+    - create-relation 帮助写明方向语义
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: scheduler 语义 source 是前置；帮助与 cmds 均未说明方向，agent 首次建模 30 条边全部写反，直到 claim 被 DEPENDENCY_UNMET 拦下才暴露。帮助应写明方向；考虑提供就绪期校验（创建时提示环/悬空）
+  createdAt: 2026-09-26T10:38:26.963Z
+  updatedAt: 2026-09-26T10:38:26.963Z
