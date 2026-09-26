@@ -1,0 +1,25 @@
+id: ux-webui-blank-1.1.2
+kind: wf.task
+payload:
+  title: 全局安装 serve 白屏：发布面无 web-ui 产物 + 解析按私有包名定位
+  status: passed
+  definitionOfDone:
+    - 发布 tarball 含 dist 三件
+    - 安装形态自定位解析命中（模拟 PASS）
+    - serve 纯 WS 模式报错不开浏览器
+    - CI 三平台绿
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: 1.1.2 发布的 @lukawi/toporealm-web tarball 无 dist（发布流程从未构建 web-ui）；且 resolveWebUiDist 缺省按 monorepo 私有名 @toporealm/web-ui 解析（npm 不存在）→ 全局安装必落空 → daemon 静默纯 WS 模式（GET / 空体 404）而 serve 照常开浏览器白屏。修复（D34，commit 7843fbb）：prepack 构建并入包；解析序 env > 本包自定位 ../dist > 工作区；endpoint.webStatic + serve WEB_STATIC_MISSING 守卫 + 503 说明文本 + 老 endpoint HTTP 探测
+  createdAt: 2026-09-26T15:00:39.776Z
+  updatedAt: 2026-09-26T15:00:41.879Z
+  startedAt: 2026-09-26T15:00:40.551Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T15:00:41.386Z
+    by: main-session
+    note: 解析序/守卫用例 + tarball 清单 + 安装形态模拟三面验证；发布面最终核验由 1.1.3 发布流程负责
+  completedAt: 2026-09-26T15:00:41.879Z

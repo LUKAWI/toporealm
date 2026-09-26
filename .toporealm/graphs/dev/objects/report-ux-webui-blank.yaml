@@ -1,0 +1,13 @@
+id: report-ux-webui-blank
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-webui-blank-1.1.2
+  summary: 根因双层：发布面缺产物 + 解析链私有包名落空。修复 commit 7843fbb（tag 1.0.22）：prepack 脚本 scripts/pack-web-dist.mjs、resolveWebUiDist 自定位 ../dist（bases 可注入）、endpoint.webStatic + WEB_STATIC_MISSING 错误码（封闭集新增）+ serve 三态守卫 + GET / 503 文本。测试 8 例新增全绿；发布形态模拟 pack→安装→自定位命中 PASS；CI 由发布子代理守门
+  artifacts:
+    - packages/web/src/static.ts
+    - packages/web/src/server.ts
+    - scripts/pack-web-dist.mjs
+    - packages/cli/src/index.ts
+  blockers: []
+  createdAt: 2026-09-26T15:00:40.973Z
