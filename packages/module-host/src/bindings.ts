@@ -74,37 +74,3 @@ export async function readModuleBindings(root: string): Promise<{
   return { bindings, raw };
 }
 
-/** 绑定内容摘要：daemon 启动记录，hello 复验；变化 = 模块集过期（blueprint §5）。 */
-export function moduleBindingDigest(raw: string | null): string {
-  return crypto.createHash("sha256").update(raw ?? "").digest("hex");
-}
-
-export async function currentModuleBindingDigest(root: string): Promise<string> {
-  try {
-    return moduleBindingDigest(
-      await fsp.readFile(modulesFile(root), "utf8"),
-    );
-  } catch {
-    return moduleBindingDigest(null);
-  }
-}
-
-export function resolveModuleDir(
-  root: string,
-  id: string,
-  binding: ModuleBinding,
-): string {
-  if (binding.source === "path") {
-    if (!binding.path) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `模块 "${id}" 绑定了 source: path 但没有给 path`,
-      });
-    }
-    return path.isAbsolute(binding.path)
-      ? binding.path
-      : path.resolve(root, binding.path);
-  }
-  // workspace：安装到 .toporealm/modules/<id>/（安装器 M4 交付；本地来源也认这个位置）
-  return path.join(workspacePaths(root).topoDir, "modules", id);
-}

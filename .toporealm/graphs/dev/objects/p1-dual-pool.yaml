@@ -2,7 +2,7 @@ id: p1-dual-pool
 kind: wf.task
 payload:
   title: "p1-dual-pool: 双池装载与模块集 digest"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: 目录即注册（项目池+全局池）+ path 绑定唯一载体；项目遮蔽全局；requires 跨池联合解析+遮蔽 warning；digest=sha256(pool:id@version)；global 坏模块跳过+warning、项目池大声失败（D27/评审Y1/R3）
   createdAt: 2026-09-26T10:21:08.861Z
-  updatedAt: 2026-09-26T10:21:08.861Z
+  updatedAt: 2026-09-26T11:21:15.598Z
+  startedAt: 2026-09-26T11:07:17.123Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T11:21:14.478Z
+    by: agent
+    note: 6 条新用例覆盖直装/全局注入/遮蔽+联合解析/坏模块两态/digest 变化/path 遮蔽；dogfood 活图实测
+  completedAt: 2026-09-26T11:21:15.598Z

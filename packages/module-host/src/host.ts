@@ -26,12 +26,9 @@ import {
   type TopoErrorCode,
 } from "@lukawi/toporealm-protocol";
 import type { DaemonCore } from "@lukawi/toporealm-daemon-core";
-import { parse } from "yaml";
-import {
-  moduleBindingDigest,
-  readModuleBindings,
-  resolveModuleDir,
-} from "./bindings.js";
+import { globalPaths } from "@lukawi/toporealm-daemon-core";
+import { readModuleBindings } from "./bindings.js";
+import { discoverModules, moduleSetDigest, parseModuleManifest } from "./discover.js";
 
 // ---------- ModuleHost：模块发现/装载/目录聚合/命令分发（blueprint §2） ----------
 //
@@ -41,7 +38,9 @@ import {
 
 export interface ModuleHostLoadOptions {
   root: string;
-  /** warning 下沉口（声明词汇偏差、global 来源跳过等）；同时累积在 host.warnings */
+  /** 全局目录根（1.1.0 D27 双池；缺省按 TOPOREALM_HOME/~/​.toporealm 解析；测试可注入） */
+  globalRoot?: string;
+  /** warning 下沉口（声明词汇偏差、遮蔽与坏模块跳过等）；同时累积在 host.warnings */
   onWarning?: (message: string) => void;
 }
 
@@ -74,15 +73,21 @@ export class ModuleHost {
   /** 命令执行期收集 api.commit 结果（CommandRunResult.commits） */
   private currentCommits: CommitResult[] | null = null;
   private digest_ = "";
+  private globalRoot_ = "";
 
   /** 已装载模块 id（激活序 = 依赖拓扑序） */
   get loadedIds(): readonly string[] {
     return [...this.loaded.keys()];
   }
 
-  /** 装载时记录的 modules.yaml 摘要（daemon hello 复验基准） */
+  /** 装载时记录的模块集摘要（遮蔽解析后的有效集，daemon hello 复验基准） */
   get digest(): string {
     return this.digest_;
+  }
+
+  /** 装载时解析的全局目录根（hello 复验重算摘要用） */
+  get globalRoot(): string {
+    return this.globalRoot_;
   }
 
   get warnings(): readonly string[] {
@@ -99,19 +104,37 @@ export class ModuleHost {
   static async load(core: DaemonCore, opts: ModuleHostLoadOptions): Promise<ModuleHost> {
     const host = new ModuleHost(core);
     host.onWarningCb = opts.onWarning;
-    const { bindings, raw } = await readModuleBindings(opts.root);
-    host.digest_ = moduleBindingDigest(raw);
 
-    // ① 解析绑定 → 读声明（module.yaml v2）
-    const resolved = new Map<string, { manifest: ModuleManifestV2; dir: string }>();
+    // ① 双池发现（1.1.0 D27）：安装位置即作用域；path 绑定是 modules.yaml 的唯一剩余职责
+    const { bindings } = await readModuleBindings(opts.root);
+    const pathBindings: Record<string, string> = {};
     for (const [id, binding] of Object.entries(bindings)) {
-      if (binding.source === "global") {
-        // D23①：global 来源延后（安装器只交付 workspace），跳过并点名，不静默
-        host.warn(`模块 "${id}" 是 global 来源：global 安装延后，跳过`);
-        continue;
+      if (binding.source === "path") {
+        if (!binding.path) {
+          throw new TopoError({
+            code: "INVALID_INPUT",
+            message: `模块 "${id}" 绑定了 source: path 但没有给 path`,
+          });
+        }
+        pathBindings[id] = path.isAbsolute(binding.path)
+          ? binding.path
+          : path.resolve(opts.root, binding.path);
       }
-      const dir = resolveModuleDir(opts.root, id, binding);
-      resolved.set(id, { manifest: await host.parseManifest(dir, id), dir });
+      // workspace/global 来源条目按目录即注册的语义忽略（legacy 安装器残留，D27）
+    }
+    const globalRoot = opts.globalRoot ?? globalPaths().root;
+    host.globalRoot_ = globalRoot;
+    const { effective, warnings } = await discoverModules(
+      opts.root,
+      globalRoot,
+      pathBindings,
+    );
+    for (const w of warnings) host.warn(w);
+    host.digest_ = moduleSetDigest(effective);
+
+    const resolved = new Map<string, { manifest: ModuleManifestV2; dir: string }>();
+    for (const entry of effective) {
+      resolved.set(entry.id, { manifest: entry.manifest, dir: entry.dir });
     }
 
     // ② 命名空间唯一
@@ -162,64 +185,7 @@ export class ModuleHost {
   private onWarningCb: ((message: string) => void) | undefined;
 
   private async parseManifest(dir: string, boundId: string): Promise<ModuleManifestV2> {
-    const file = path.join(dir, "module.yaml");
-    let text: string;
-    try {
-      text = await fsp.readFile(file, "utf8");
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new TopoError({
-          code: "INVALID_INPUT",
-          message: `模块 "${boundId}" 缺少 module.yaml（${dir}）`,
-          details: { module: boundId, dir },
-        });
-      }
-      throw err;
-    }
-    const raw = parse(text) as Record<string, unknown> | null;
-    if (!raw || typeof raw !== "object") {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `模块 "${boundId}" 的 module.yaml 不是映射（${file}）`,
-      });
-    }
-    if (raw.format !== "toporealm.module/v2") {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `模块 "${boundId}" 的 module.yaml 不是 toporealm.module/v2 格式（${file}）`,
-        details: { module: boundId, format: String(raw.format) },
-      });
-    }
-    for (const key of ["id", "namespace", "version", "entry"] as const) {
-      if (typeof raw[key] !== "string" || (raw[key] as string).length === 0) {
-        throw new TopoError({
-          code: "INVALID_INPUT",
-          message: `模块 "${boundId}" 的 module.yaml 缺少必填字段 "${key}"`,
-          details: { module: boundId, field: key },
-        });
-      }
-    }
-    const id = raw.id as string;
-    if (id !== boundId) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `modules.yaml 绑定键 "${boundId}" 与 module.yaml id "${id}" 不一致`,
-        details: { boundId, manifestId: id },
-      });
-    }
-    const manifest: ModuleManifestV2 = {
-      format: "toporealm.module/v2",
-      id,
-      namespace: raw.namespace as string,
-      version: raw.version as string,
-      entry: raw.entry as string,
-      ...(raw.requires !== undefined ? { requires: normRequires(raw.requires, boundId) } : {}),
-      ...(raw.kinds !== undefined ? { kinds: normKinds(raw.kinds, boundId) } : {}),
-      ...(raw.ui !== undefined && typeof raw.ui === "object" && raw.ui !== null
-        ? { ui: raw.ui as ModuleManifestV2["ui"] }
-        : {}),
-    };
-    return manifest;
+    return parseModuleManifest(dir, boundId);
   }
 
   private async activateModule(
@@ -565,39 +531,6 @@ function lateRegistration(moduleId: string, what: string): TopoError {
   });
 }
 
-function normRequires(
-  raw: unknown,
-  moduleId: string,
-): { modules: readonly string[] } {
-  const r = raw as { modules?: unknown };
-  if (r.modules !== undefined && !Array.isArray(r.modules)) {
-    throw new TopoError({
-      code: "INVALID_INPUT",
-      message: `模块 "${moduleId}" 的 requires.modules 必须是字符串数组`,
-    });
-  }
-  return {
-    modules: (r.modules ?? []).map(String),
-  };
-}
-
-function normKinds(
-  raw: unknown,
-  moduleId: string,
-): { objects?: readonly string[]; relations?: readonly string[] } {
-  const k = raw as { objects?: unknown; relations?: unknown };
-  const norm = (v: unknown, field: string): readonly string[] | undefined => {
-    if (v === undefined) return undefined;
-    if (!Array.isArray(v)) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `模块 "${moduleId}" 的 kinds.${field} 必须是字符串数组`,
-      });
-    }
-    return v.map(String);
-  };
-  return { objects: norm(k.objects, "objects"), relations: norm(k.relations, "relations") };
-}
 
 /** Kahn 拓扑排序；环 → 启动大声失败并点名环内模块。 */
 function topoSort(

@@ -1,10 +1,16 @@
+export { ModuleHost, type ModuleHostLoadOptions } from "./host.js";
 export {
   readModuleBindings,
-  moduleBindingDigest,
-  currentModuleBindingDigest,
   modulesFile,
-  resolveModuleDir,
   type ModuleBinding,
   type ModulesBindings,
 } from "./bindings.js";
-export { ModuleHost, type ModuleHostLoadOptions } from "./host.js";
+export {
+  currentModuleSetDigest,
+  discoverModules,
+  moduleSetDigest,
+  parseModuleManifest,
+  type DiscoveryResult,
+  type ModulePool,
+  type PoolEntry,
+} from "./discover.js";

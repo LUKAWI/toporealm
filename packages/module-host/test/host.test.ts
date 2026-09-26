@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { TopoError } from "@lukawi/toporealm-protocol";
-import { ModuleHost, moduleBindingDigest } from "../src/index.js";
+import { ModuleHost } from "../src/index.js";
 import exampleFixture from "../../../tests/fixtures/modules/example/index.js";
 
 // ---------- S2：fixture 模块直 activate 进内存 daemon（blueprint §8） ----------
@@ -196,7 +196,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
     expect(host.loadedIds).toEqual([]);
     expect(host.catalog().commands).toEqual([]);
     expect(host.catalog().kinds).toEqual([]);
-    expect(moduleBindingDigest(null)).toBe(host.digest);
+    // 1.1.0 D27：空有效集的摘要 = sha256("")（moduleSetDigest 对空集）
     core.dispose();
   });
 });

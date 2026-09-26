@@ -1,0 +1,9 @@
+id: rep-dp-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-dual-pool
+  summary: module-host 双池发现器 discover.ts：有效集=项目池∪全局池∪path 绑定（显式>项目>全局遮蔽+warning）；项目坏模块大声失败、全局坏模块跳过+warning（Y1）；requires 跨池联合解析；digest=sha256(pool:id@version)（遮蔽换血即过期）；hello 复验改 currentModuleSetDigest 自重读绑定、发现失败回哨兵值走既有自旋重拉；host.parseManifest 提取为共用 parseModuleManifest；旧 digest/resolveModuleDir 删除；dogfood 实测 legacy workspace 绑定忽略、池直装装载成功；新增 dual-pool 测试 6 条（全量 30 文件/220 用例绿）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T11:21:13.268Z

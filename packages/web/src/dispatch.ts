@@ -9,7 +9,7 @@ import {
 import type { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import {
   ModuleHost,
-  currentModuleBindingDigest,
+  currentModuleSetDigest,
 } from "@lukawi/toporealm-module-host";
 
 // ---------- wire 分发器（D22 裁决①）：IPC（CLI）与 WS（Web）共用同一请求语义 ----------
@@ -86,7 +86,7 @@ export function createWireDispatcher(
         }
         // 模块集失效检测（blueprint §5）：modules.yaml 摘要变化 = 模块集过期 →
         // 如实拒绝 + 自旋退出，客户端下次触达拉起装载新模块集的 daemon
-        if ((await currentModuleBindingDigest(core.root)) !== host.digest) {
+        if ((await currentModuleSetDigest(core.root, host.globalRoot)) !== host.digest) {
           send({
             id: req.id,
             ok: false,
