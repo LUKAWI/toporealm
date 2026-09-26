@@ -57,7 +57,7 @@ export function workspacePaths(root: string): WorkspacePaths {
 
 export interface GraphPaths {
   dir: string;
-  /** graph.yaml：format toporealm.graph/v2 */
+  /** graph.yaml：format toporealm.graph/v3 */
   manifest: string;
   objects: string;
   relations: string;

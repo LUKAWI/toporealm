@@ -424,12 +424,11 @@ export async function migrateGraph(opts: MigrateOptions): Promise<MigrationRepor
   await fsp.writeFile(target.log, "", { flag: "wx" }).catch(() => {});
   // graph.yaml 最后写 = 迁移完成标记（同 daemon 原子写序）
   await saveManifest(target, {
-    format: "toporealm.graph/v2",
+    format: "toporealm.graph/v3",
     id: manifest.id,
     ...(manifest.label !== undefined ? { label: manifest.label } : {}),
     revision,
     undoCursor: 0,
-    modules: (manifest.modules ?? []).map((m) => m.id),
   });
   // 同 new：迁完即选中
   await writeActiveGraphId(ws.activeFile, manifest.id);

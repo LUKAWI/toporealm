@@ -1,0 +1,9 @@
+id: rep-v3-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-manifest-v3
+  summary: GraphManifest 类型重命名（去 V2 后缀）+ format 升 toporealm.graph/v3 + 删 modules 字段；core loadedModules 初始化改空数组（真相源=module-host 覆写）；migrate 产 v3；cli version 契约串/报错文案/注释同步；migrate 测试夹具更新；全量 29 文件 213 用例绿
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T10:53:40.868Z

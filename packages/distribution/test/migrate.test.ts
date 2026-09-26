@@ -184,7 +184,7 @@ describe("migrate：0.x → 1.0 机械映射", () => {
 
     const bad = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-notlegacy-"));
     roots.push(bad);
-    await fsp.writeFile(path.join(bad, "graph.yaml"), "format: toporealm.graph/v2\nid: x\nrevision: 1\nundoCursor: 0\nmodules: []\n", "utf8");
+    await fsp.writeFile(path.join(bad, "graph.yaml"), "format: toporealm.graph/v3\nid: x\nrevision: 1\nundoCursor: 0\nmodules: []\n", "utf8");
     await expect(migrateGraph({ root, oldDir: bad })).rejects.toMatchObject({ code: "INVALID_INPUT" });
   });
 

@@ -17,14 +17,13 @@ import type { GraphPaths } from "./paths.js";
 
 // ---------- 磁盘格式（blueprint §3）：YAML 存储 + 原子写 + JSONL 提交日志 ----------
 
-export interface GraphManifestV2 {
-  format: "toporealm.graph/v2";
+export interface GraphManifest {
+  format: "toporealm.graph/v3";
   id: string;
   label?: string;
   revision: number;
   /** 已应用日志条数（undo/redo 游标；undo/redo 移游标不追加日志，D17 裁决②） */
   undoCursor: number;
-  modules: string[];
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -75,7 +74,7 @@ export async function atomicWriteFile(
 
 export async function loadManifest(
   p: GraphPaths,
-): Promise<GraphManifestV2> {
+): Promise<GraphManifest> {
   let text: string;
   try {
     text = await fsp.readFile(p.manifest, "utf8");
@@ -84,45 +83,43 @@ export async function loadManifest(
       throw new TopoError({
         code: "GRAPH_NOT_FOUND",
         message: `图不存在或缺少 graph.yaml：${p.dir}`,
-        hint: "图目录必须包含 toporealm.graph/v2 格式的 graph.yaml",
+        hint: "图目录必须包含 toporealm.graph/v3 格式的 graph.yaml",
         fix: "toporealm new <graph>",
       });
     }
     throw err;
   }
   const raw = parse(text) as Record<string, unknown> | null;
-  if (!raw || raw.format !== "toporealm.graph/v2") {
+  if (!raw || raw.format !== "toporealm.graph/v3") {
     throw new TopoError({
       code: "GRAPH_NOT_FOUND",
-      message: "graph.yaml 不是 toporealm.graph/v2 格式",
-      hint: "1.0 daemon 只读 v2 格式；0.x 旧图由 toporealm migrate 迁移（M4 交付）",
+      message: "graph.yaml 不是 toporealm.graph/v3 格式",
+      hint: "1.1 daemon 只读 v3 格式；1.0 v2 图无自动迁移（blueprint §1.8 D31 手工路径），0.x 旧图由 toporealm migrate 迁移",
     });
   }
   return {
-    format: "toporealm.graph/v2",
+    format: "toporealm.graph/v3",
     id: String(raw.id ?? ""),
     ...(raw.label !== undefined ? { label: String(raw.label) } : {}),
     revision: Number(raw.revision) || 0,
     undoCursor: Number(raw.undoCursor) || 0,
-    modules: Array.isArray(raw.modules) ? raw.modules.map(String) : [],
   };
 }
 
-export function manifestYaml(m: GraphManifestV2): string {
+export function manifestYaml(m: GraphManifest): string {
   const doc: Record<string, unknown> = {
     format: m.format,
     id: m.id,
     ...(m.label !== undefined ? { label: m.label } : {}),
     revision: m.revision,
     undoCursor: m.undoCursor,
-    modules: m.modules,
   };
   return stringify(doc, { lineWidth: 0 });
 }
 
 export async function saveManifest(
   p: GraphPaths,
-  m: GraphManifestV2,
+  m: GraphManifest,
 ): Promise<void> {
   // graph.yaml 最后写：它是"本次转换已落盘"的标记
   await atomicWriteFile(p.manifest, manifestYaml(m));
@@ -130,7 +127,7 @@ export async function saveManifest(
 
 export async function createGraphDir(
   p: GraphPaths,
-  m: GraphManifestV2,
+  m: GraphManifest,
 ): Promise<void> {
   await fsp.mkdir(p.objects, { recursive: true });
   await fsp.mkdir(p.relations, { recursive: true });
@@ -396,7 +393,7 @@ export function rewriteLogSync(
   atomicWriteFileSync(p.log, text);
 }
 
-export function saveManifestSync(p: GraphPaths, m: GraphManifestV2): void {
+export function saveManifestSync(p: GraphPaths, m: GraphManifest): void {
   // graph.yaml 最后写：它是"本次转换已落盘"的标记
   atomicWriteFileSync(p.manifest, manifestYaml(m));
 }

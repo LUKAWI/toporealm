@@ -47,7 +47,7 @@ import {
   saveManifestSync,
   writeEntity,
   writeEntitySync,
-  type GraphManifestV2,
+  type GraphManifest,
 } from "./store.js";
 
 // ---------- DaemonCore：单属主图内核（blueprint §5 提交管线） ----------
@@ -87,7 +87,7 @@ export class DaemonCore {
 
   private readonly p: GraphPaths;
   private readonly onActivity: (() => void) | undefined;
-  private manifest: GraphManifestV2;
+  private manifest: GraphManifest;
   private objects = new Map<EntityId, Entity>();
   private relations = new Map<EntityId, RelationEntity>();
   private logEntries: StoredLogEntry[] = [];
@@ -118,13 +118,13 @@ export class DaemonCore {
   readonly warnings: string[] = [];
   private readonly onWarning: ((message: string) => void) | undefined;
 
-  private constructor(opts: DaemonCoreOptions, manifest: GraphManifestV2) {
+  private constructor(opts: DaemonCoreOptions, manifest: GraphManifest) {
     this.root = opts.root;
     this.graphId = manifest.id || opts.graphId;
     this.p = graphPaths(opts.root, opts.graphId);
     this.manifest = manifest;
     this.revision_ = manifest.revision;
-    this.loadedModules = [...manifest.modules];
+    this.loadedModules = [];
     this.onActivity = opts.onActivity;
     this.onWarning = opts.onWarning;
   }
@@ -158,12 +158,11 @@ export class DaemonCore {
   ): Promise<void> {
     const p = graphPaths(root, graphId);
     await createGraphDir(p, {
-      format: "toporealm.graph/v2",
+      format: "toporealm.graph/v3",
       id: graphId,
       ...(label !== undefined ? { label } : {}),
       revision: 0,
       undoCursor: 0,
-      modules: [],
     });
   }
 

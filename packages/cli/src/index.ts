@@ -253,7 +253,7 @@ async function dispatch(
     ) as { version: string };
     return {
       envelope: { ok: true, data: { version: pkg.version } },
-      human: `toporealm ${pkg.version} (contract toporealm.graph/v2)`,
+      human: `toporealm ${pkg.version} (contract toporealm.graph/v3)`,
     };
   }
   // ★模块命令即顶层子命令（点号与核心动词零冲突，blueprint §4）：<ns.name> [target] [--input '<json>']
