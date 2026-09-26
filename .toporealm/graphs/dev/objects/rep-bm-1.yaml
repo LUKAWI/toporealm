@@ -1,0 +1,9 @@
+id: rep-bm-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p3-blueprint-merge
+  summary: blueprint 正文收敛：§3 重写为双层布局（全局 ~/.toporealm + 项目 .toporealm 含 graphs/，v3 manifest）；§4 重写为 1.1 动词面（init/creategraph/--version/skills index/删 host，注明 1.0 废除项）；§5 增补内存换载七条规格（跟随/显式/互斥/re-binding/失败旧图继续/通知/稳定 instanceId）+ 模块集检测改有效集摘要
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:45:09.027Z

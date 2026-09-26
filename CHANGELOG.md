@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.1.0 - 未发布（P3 收口后定稿日期）
+
+主题：**双层工作区 + 作用域模型 + 技能池分发 + 内存换载**（blueprint §1.8，D25–D32；ADR-0007/0008）。
+
+### ⚠️ 破坏性变更（D25：不留别名、无自动迁移）
+
+- **动词面**：`new` → `creategraph`；`version` 子命令废除（改 `--version` 旗标）；`host sync` 删除；
+  新增 `init`、`skills index`、`module add/rm --global`。
+- **布局**：图存储 `graphs/` → `.toporealm/graphs/`；新增全局目录 `~/.toporealm`（`TOPOREALM_HOME` 可覆盖）。
+  1.0 v2 图无自动迁移（手工路径见 `docs/releases/v1.1.0.md`）。
+- **manifest**：`toporealm.graph/v3`（删除 modules 字段）。
+- **作用域**：模块集 = 全局池 ∪ 项目池 ∪ path 绑定，「装了就生效」（项目遮蔽全局）；
+  「图级启用」废除；`modules.yaml` 只剩 path 绑定职责。
+- `@lukawi/toporealm-client` 的 `^1.0.0` 依赖会随本版 break。
+
+### 新能力
+
+- **双层工作区**（D26）：`toporealm init` 显式初始化（AGENTS.md 提示：不存在生成、存在只打印建议）；
+  全局目录由写路径惰性确保（无 postinstall）。
+- **双池装载**（D27）：discover 双池发现，遮蔽 path > project > global，项目池坏模块大声失败、
+  全局池坏模块跳过+warning，requires 跨池联合解析；模块集 digest = sha256(pool:id@version)。
+- **宿主技能分发**（D28，ADR-0008）：技能文件只存在于池中（零拷贝）——claude 走 marketplace 插件
+  （基座技能 + SessionStart 钩子运行 `toporealm skills index` 注入索引）；
+  pi 走主包内置扩展（resources_discover 贡献 skillPaths）；host sync 与投影机器删除。
+- **内存换载**（D30）：daemon 切图不再杀进程——active 跟随（WebUI 自动重载）+ 显式图钉住会话；
+  换载互斥（排空 after-commit）；失败旧图继续服务；runtime 级稳定 instanceId；
+  换载推送 reset(graph-switched)，订阅迁移到新图。
+- **专注 UX**：`use` 输出「选定图： X（之前 Y）」+ per-shell export 提示；写命令输出带 `[图名]` 前缀。
+- **WebUI 静态预览**：图枚举与快照只读端点；顶栏图切换 + 只读预览覆盖层（无切换按钮——专注切换 CLI 唯一入口）。
+
+### 内部
+
+- module-host：双池发现器（discover.ts）+ attach re-binding seam（评审 R1）；parseModuleManifest 提取共用。
+- web：wire 分发器 runtime 化（per-request core 解析）。
+- 测试：30→31 文件、208→223+ 用例（新增 paths/dual-pool/skills/runtime 换载 e2e）。
+
+
 ## 1.0.0 - 2026-09-23
 
 TopoRealm 1.0 重建完成（M1–M5，blueprint §9）。本仓库不含领域模块；workflow 模块的 1.0 移植见 [toporealm-workflow](https://github.com/LUKAWI/toporealm-workflow)（同步发布 1.0.0）。

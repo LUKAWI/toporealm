@@ -1,0 +1,9 @@
+id: rep-docs-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p3-docs
+  summary: CHANGELOG 增 1.1.0 段（破坏性变更摘要 + 新能力 + 内部）；README/README.en 快速上手与 agent 段改 1.1 语法（init/creategraph/--global/skills index、双宿主接入方式、distribution 职责表）；CONTEXT.md 已在规划期更新
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:46:34.727Z

@@ -17,7 +17,8 @@ npm install -g @lukawi/toporealm        # toporealm（CLI）+ toporeald（daemon
 ## 快速上手
 
 ```bash
-toporealm new mygraph                  # 新建图并选中（工作区 = 当前目录）
+toporealm init                         # 初始化工作区（.toporealm + 全局池 + AGENTS.md 提示）
+toporealm creategraph mygraph          # 新建图并选中
 toporealm add wf.task --id t-1 --payload '{"title":"写蓝图","status":"todo"}'
 toporealm add wf.task --id t-2 --payload '{"title":"评审蓝图"}'
 toporealm link t-1 t-2 --kind wf.blocks
@@ -32,11 +33,15 @@ toporealm undo                         # 一切皆可撤销（含外部编辑）
 ## 装上领域模块，能力即命令
 
 ```bash
-toporealm module add @lukawi/toporealm-workflow    # 安装 workflow 领域模块
+toporealm module add --global @lukawi/toporealm-workflow   # 装进全局池（所有项目生效；不带 --global 则仅本项目）
 toporealm cmds                                     # 目录自省：wf.* 命令即顶层子命令
 toporealm wf.create-task --input '{"title":"首发任务"}'
-toporealm host sync --host all                     # 为 Claude Code / Pi 生成 skills 与钩子投影
+toporealm skills index                             # 模块技能索引（agent 按路径 Read 全文）
 ```
+
+模块技能不复制不投影：技能文件只存在池中——Claude Code 经 marketplace 插件的 SessionStart 钩子
+注入索引（`claude plugin marketplace add LUKAWI/toporealm` → `plugin install toporealm`）；
+Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
 
 模块是双层结构：`module.yaml` 声明身份/命名空间/词汇（管协调），`activate(api)` 注册命令、表单与钩子（管行为）。core 只执法两条——**所有权法**（模块只能写自己命名空间下的主类型）与**悬空边检查**；领域规则全部是模块的 before-commit 钩子（带变更前后双快照，可署名否决一切来源的提交）。写你自己的模块：装 [`@lukawi/toporealm-module-sdk`](https://www.npmjs.com/package/@lukawi/toporealm-module-sdk) 看类型即可。
 
@@ -44,7 +49,7 @@ toporealm host sync --host all                     # 为 Claude Code / Pi 生成
 
 - 所有命令恒定 `--json` 信封（成功含 `data/revision/instanceId`；失败含 `code/message/hint/fix`），退出码 `0/1/2`，错误自带可整句复制执行的修复命令，打错 id 给 did-you-mean。
 - agent 主干路径预算：`status → find → set → link → set → log` ≈ 6 条命令。
-- `toporealm host sync` 为 Claude Code（plugin）与 Pi（extension/skills）生成基座与模块的 skills 投影。
+- 模块技能索引：`toporealm skills index`（claude 侧由 SessionStart 钩子自动注入会话上下文）。
 
 ## 架构与文档
 
@@ -59,7 +64,7 @@ toporealm host sync --host all                     # 为 Claude Code / Pi 生成
 | `@lukawi/toporealm-client` | DaemonClient 三实现：Memory / IPC / WS |
 | `@lukawi/toporealm-module-host` / `-module-sdk` | 模块装载与作者类型 |
 | `@lukawi/toporealm-web` / web-ui | HTTP+WS 伺服与 Svelte 5 + D3 前端 |
-| `@lukawi/toporealm-distribution` | 模块安装器、host sync、migrate |
+| `@lukawi/toporealm-distribution` | 模块安装器（双池）、技能索引、migrate |
 
 | 内容 | 位置 |
 |---|---|

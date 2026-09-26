@@ -551,17 +551,21 @@ packages/
 ## 3. 磁盘与工作区布局
 
 ```
-<workspace>/
+~/.toporealm/                      # 全局目录（TOPOREALM_HOME 可覆盖；写路径惰性创建，D26）
+└── modules/<id>/                  # 全局模块池（目录即注册；所有项目生效，D27）
+
+<workspace>/                       # 项目根（TOPOREALM_ROOT 或 cwd；toporealm init 初始化）
 ├── .toporealm/
-│   ├── active                      # 当前图 id（use 写入；cli/web 共享指针）
-│   ├── modules.yaml                # 绑定：{ [id]: { source: "workspace"|"global"|"path", path? } }
-│   ├── modules/<id>/               # 工作区安装的模块（带 .toporealm-source.json 所有权标记）
+│   ├── active                      # 当前图 id（use 写入；专注指针）
+│   ├── modules.yaml                # path 绑定唯一载体（D27：目录即注册后仅剩此职责）
+│   ├── modules/<id>/               # 项目模块池（带 .toporealm-source.json 所有权标记）
+│   ├── graphs/<graphId>/           # 图存储（1.1 起收编进 .toporealm，D26）
+│   │   ├── graph.yaml              # format: toporealm.graph/v3; id; label?; revision; undoCursor
+│   │   ├── objects/<id>.yaml       # { id, kind, payload }
+│   │   ├── relations/<id>.yaml     # { id, kind, source, target, direction?, payload }
+│   │   └── .log                    # JSONL 统一提交日志（D7）
 │   └── daemon/                     # 运行时：socket、pid、instance-id（空闲退出后清理）
-└── graphs/<graphId>/
-    ├── graph.yaml                  # format: toporealm.graph/v2; id; label?; revision; undoCursor; modules[]
-    ├── objects/<id>.yaml           # { id, kind, payload }
-    ├── relations/<id>.yaml         # { id, kind, source, target, direction?, payload }
-    └── .log                        # JSONL 统一提交日志（D7）
+└── AGENTS.md                       # init 生成的 agent 提示（已存在则不触碰）
 ```
 
 - daemon 启动：读 graph.yaml → 全量装载 objects/relations（冷启动硬约束：空图 <100ms）→ 装载模块 → 开 socket。
@@ -570,42 +574,23 @@ packages/
 
 ---
 
-## 4. CLI 语法（`toporealm`，~16 动词）
+## 4. CLI 语法（`toporealm`，1.1 动词面）
 
-```text
-全局：--json（机器输出信封）  --root <dir>  --graph <id>   环境变量 TOPOREALM_ROOT/GRAPH
-信封：--json 成功 {ok:true, data, revision, instanceId}；失败 stderr {ok:false, error:{code,message,hint?,fix?,details?}}
-退出码：0 成功；1 领域错误（agent 换方式重试）；2 用法错误（本地解析，不触 daemon）
+1.1.0 动词面（D29，破坏性改齐；`--json` 信封与退出码 0/1/2 契约不变；`--version` 旗标）：
 
-  status                              工作区+当前图+revision+kind 计数+undo/redo 可用性
-  read [id] [--kind K]… [--where k=v]… [--fields id,status] [--limit N]
-                                      全图/单点邻域/过滤+投影
-  find <k=v>… [--kind K] [--fields …] read --where 的糖（agent 发现动词）
-  set <id> [k=v]… [--payload '<json>'] [--replace]
-                                      ★改状态 = daemon 端浅合并；k=null 删键
-  add <kind> [--id X] [--payload '<json>']                新建对象，created id 回显
-  link <src> <tgt> [--kind ns.rel] [--id X]               建关系；仅一种关系 kind 时可省 --kind
-  rm <id>                             删除（悬空边拦截时点名 + fix）
-  undo [N] / redo [N]                 撤销/重做 N 步
-  log [-n N]                          提交日志尾读（近期变更/入场）
-  use <graph> / graphs / new <graph>  切换/列出/新建（new 即选中）——文件层操作，不进 daemon 缝
-  cmds [--module ns]                  命令目录自省
-  <ns.name> [target] [--input '<json>']                   ★模块命令即顶层子命令（点号与核心动词零冲突）
-  serve [--port P] [--no-open]        WebUI（daemon + 静态产物 + WS）
-  module add <npm|path> [--global] | module rm <id> | module list
-  migrate <旧图目录>                  0.x → 1.0 一次性迁移
-  host sync [--host claude-code|pi|all]                   宿主投影（仅两宿主）
-  help [cmd] / version                HELP = core 静态表 + 目录动态聚合（单一真相）
-```
+- 图生命周期（文件层）：`init`、`creategraph <graph> [--label L]`、`use <graph>`、`graphs`
+- 图事实面（经 daemon）：`status`、`read`、`find`、`add`、`set`、`link`、`rm`、`undo/redo`、`log`、`cmds`
+- 模块与分发：`module add/rm [--global]`、`module list`（三段式：path/项目池/全局池）、`migrate`
+- 技能索引：`skills index`（纯文件层，绝不触 daemon；D28）
+- 写命令人类输出带 `[图名]` 前缀（D30 专注 UX）；完整语法以 `toporealm help` 为准（帮助即契约文本）。
 
-**Agent 主干路径预算**（沿用 C 实测形状）：`status → find → set → link → set → log` ≈ 6 命令 ≈750 token；错误自恢复 1–2 命令（hint/fix 直接可复制执行）。
-
+> 1.0 的 `new`/`version` 子命令与 `host sync` 已废除（无别名，D25）。
 ---
 
 ## 5. Daemon 运行时规格
 
 - **生命周期**：client.connect / CLI 首命令触达 → socket 不存在则 spawn `toporeald`（握手含 instanceId）；空闲超时（默认 30s，可配）自动退出；每次转换刷新空闲计时。
-- **模块集失效检测（实现期补遗，复用 D5）**：daemon 启动记录 `.toporealm/modules.yaml` 内容摘要；hello 时复验，摘要变化 = 模块集过期 → 如实 SESSION_STALE + 旧 daemon 自旋退出，客户端下次触达自动拉起装载新模块集的 daemon。模块集启动冻结，运行期不热装载。
+- **模块集失效检测（1.1 更新）**：daemon 启动记录**遮蔽解析后有效集摘要** sha256(`pool:id@version`)（D27/评审 Y1）；hello 时复验，摘要变化 = 模块集过期 → 如实 SESSION_STALE + 旧 daemon 自旋退出，客户端下次触达自动拉起装载新模块集的 daemon。模块集启动冻结，运行期不热装载。
 - **提交管线（固定序，模块作者唯一需要背的顺序）**：
   ```
   id/kind 解析 → 所有权法（仅 module 来源）→ 悬空边检查（集合整体）
@@ -613,7 +598,17 @@ packages/
   → 原子应用 + .log 追加 + 游标维护（undo/redo 移游标；undo 后新提交截断 redo 段）
   → after-commit 钩子（其 commit 排队追加）→ 事件广播（commit 事件，origin 如实）
   ```
-- **多客户端**：IPC（CLI）与 WS（Web）共用同一事件扇出；instanceId 在 daemon 重启后变化，client 检测到即作废目录缓存并重拉。web 伺服（HTTP 静态产物 + `/ws`）随 daemon 常开，端口/重连/发现语义见 D22；`toporealm serve [--port P] [--no-open]` = 确保 daemon 在跑（自动拉起带 `--web-port`）→ 打开浏览器即退（daemon detached 常驻）。
+- **多客户端**：IPC（CLI）与 WS（Web）共用同一事件扇出；instanceId 在 daemon 重启后变化，client 检测到即作废目录缓存并重拉。
+- **内存换载（1.1.0 D30，GraphRuntime）**：daemon 每 root 一进程、当前开一张图；换载在请求入口就地发生——
+  ① 跟随：非钉住会话（WebUI，hello 无 graph）每请求检查 active 指针（mtime+size 缓存）；
+  ② 显式：hello 带 graph → ensureGraph（并钉住该会话，后续请求恒回该图）；
+  ③ 互斥：换载与请求经 beginOp/endOp 门串行（等在途清零 + after-commit 队列排空，Y2）；
+  ④ re-binding：host.attach(newCore)（R1——api 闭包经 this.core 属性读，注册面向新 core 重放；
+     所有权表/钩子/setLoadedModules/词汇观察者；activate 恰好一次不变）；
+  ⑤ 失败：新图装载失败 → 错误如实上抛，**旧图继续服务**（禁止 SESSION_STALE——客户端会等一个
+     永不退出的 pid，R2）；旧 core dispose 只清监视器/定时器/监听器，endpoint 文件不动；
+  ⑥ 通知：换载成功向全部连接推送 `reset(graph-switched, graphId)`，订阅迁移到新 core 重放；
+  ⑦ instanceId 为 runtime 级稳定标识（换载延续实例；仅 daemon 重启才变化）。web 伺服（HTTP 静态产物 + `/ws`）随 daemon 常开，端口/重连/发现语义见 D22；`toporealm serve [--port P] [--no-open]` = 确保 daemon 在跑（自动拉起带 `--web-port`）→ 打开浏览器即退（daemon detached 常驻）。
 
 ## 6. 迁移 CLI（`toporealm migrate`）
 

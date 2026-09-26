@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-protocol",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TopoRealm 1.0 contract types (zero-dependency). Version = contract version.",
   "license": "MIT",
   "type": "module",

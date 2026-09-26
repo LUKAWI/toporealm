@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-module-sdk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TopoRealm 1.0 module SDK: pure types for module authors (re-exports protocol module contract) + defineModule() type helper. Zero runtime logic.",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,7 @@
     "dist"
   ],
   "dependencies": {
-    "@lukawi/toporealm-protocol": "1.0.0"
+    "@lukawi/toporealm-protocol": "1.1.0"
   },
   "publishConfig": {
     "access": "public"

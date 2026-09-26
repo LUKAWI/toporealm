@@ -2,7 +2,7 @@ id: p3-blueprint-merge
 kind: wf.task
 payload:
   title: "p3-blueprint-merge: blueprint 正文按 1.1.0 收敛"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: §1.8 补遗并入 §3/§4/§5/§9 正文，消解新旧并读（P3）
   createdAt: 2026-09-26T10:21:14.675Z
-  updatedAt: 2026-09-26T10:21:14.675Z
+  updatedAt: 2026-09-26T12:45:11.352Z
+  startedAt: 2026-09-26T12:40:54.091Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:45:10.225Z
+    by: agent
+    note: §1.8 头注保持历史说明；正文三节已按 1.1 收敛
+  completedAt: 2026-09-26T12:45:11.352Z

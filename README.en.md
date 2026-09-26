@@ -17,7 +17,8 @@ Requires Node ≥ 20.6. For third-party integrations, install `@lukawi/toporealm
 ## Quick start
 
 ```bash
-toporealm new mygraph
+toporealm init                         # initialize the workspace (.toporealm + global pool + AGENTS.md hint)
+toporealm creategraph mygraph
 toporealm add wf.task --id t-1 --payload '{"title":"Write blueprint","status":"todo"}'
 toporealm add wf.task --id t-2 --payload '{"title":"Review blueprint"}'
 toporealm link t-1 t-2 --kind wf.blocks
@@ -32,11 +33,16 @@ The daemon is transparently spawned on first contact and exits when idle; browse
 ## Install a domain module, get commands
 
 ```bash
-toporealm module add @lukawi/toporealm-workflow    # install the workflow domain module
+toporealm module add --global @lukawi/toporealm-workflow   # global pool (all projects; omit --global for this project only)
 toporealm cmds                                     # introspect: wf.* commands become top-level subcommands
 toporealm wf.create-task --input '{"title":"First task"}'
-toporealm host sync --host all                     # project skills/hooks for Claude Code and Pi
+toporealm skills index                             # module skill index (agents Read the SKILL.md paths)
 ```
+
+Module skills are never copied or projected: skill files live only in the pools — Claude Code
+consumes them via the marketplace plugin's SessionStart hook (`claude plugin marketplace add
+LUKAWI/toporealm` → `plugin install toporealm`); Pi discovers them natively through the
+aggregate package's built-in extension (`pi install npm:@lukawi/toporealm`).
 
 Modules are two-layer: `module.yaml` declares identity/namespace/vocabulary (coordination), `activate(api)` registers commands, forms and hooks (behavior). The core enforces exactly two rules — the **ownership rule** (a module may only touch kinds in its own namespace) and the **dangling-relation check**; all domain rules live in module before-commit hooks (with before/after snapshots, named veto against changes from any origin). To write your own module, install [`@lukawi/toporealm-module-sdk`](https://www.npmjs.com/package/@lukawi/toporealm-module-sdk) and follow the types.
 
@@ -44,7 +50,7 @@ Modules are two-layer: `module.yaml` declares identity/namespace/vocabulary (coo
 
 - Every command speaks a constant `--json` envelope (success: `data/revision/instanceId`; failure: `code/message/hint/fix`), exit codes `0/1/2`, copy-pasteable fix commands, and did-you-mean on mistyped ids.
 - Agent main-path budget: `status → find → set → link → set → log` ≈ 6 commands.
-- `toporealm host sync` projects base and module skills for Claude Code (plugin) and Pi (extension/skills).
+- Module skill index: `toporealm skills index` (Claude Code receives it automatically via the SessionStart hook).
 
 ## Architecture & docs
 

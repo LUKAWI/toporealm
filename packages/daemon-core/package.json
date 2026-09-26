@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-daemon-core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TopoRealm 1.0 daemon core: commit pipeline, YAML storage, commit log, undo/redo cursor, file watching. Never imports module-host.",
   "license": "MIT",
   "type": "module",
@@ -14,7 +14,7 @@
     "dist"
   ],
   "dependencies": {
-    "@lukawi/toporealm-protocol": "1.0.0",
+    "@lukawi/toporealm-protocol": "1.1.0",
     "yaml": "^2.8.1"
   },
   "publishConfig": {
