@@ -6,7 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { TopoError, isValidEntityId } from "@lukawi/toporealm-protocol";
-import { workspacePaths } from "@lukawi/toporealm-daemon-core";
+import { globalPaths, workspacePaths } from "@lukawi/toporealm-daemon-core";
 import { parse } from "yaml";
 import { readBindingsRaw, writeBinding } from "./modules-yaml.js";
 
@@ -31,6 +31,10 @@ export interface SourceMarker {
 
 export interface InstallOptions {
   root: string;
+  /** 1.1.0 D27：装进全局池（所有项目生效）；缺省 = 项目池（仅本项目） */
+  global?: boolean;
+  /** 测试注入：全局目录根（缺省按 TOPOREALM_HOME / ~/.toporealm 解析） */
+  globalRoot?: string;
   /** npm spec（name / name@version / 本地目录）或本地目录 */
   source: string;
   /** 缺省自动判定：现存目录 = path，否则按 npm spec；测试可显式指定（npm 流程可对本地目录 pack） */
@@ -185,12 +189,29 @@ async function probeManifest(dir: string): Promise<ManifestProbe> {
 
 // ---------- 安装 ----------
 
-function modulesDir(root: string): string {
+function projectModulesDir(root: string): string {
   return path.join(workspacePaths(root).topoDir, "modules");
 }
 
 function bindingsFile(root: string): string {
   return path.join(workspacePaths(root).topoDir, "modules.yaml");
+}
+
+/** 全局池位：确保目录存在（写路径惰性创建，D26）。 */
+function globalModulesDir(opts: { globalRoot?: string }): string {
+  const base =
+    opts.globalRoot !== undefined
+      ? opts.globalRoot
+      : globalPaths().root;
+  return path.join(base, "modules");
+}
+
+/** 安装落位：--global → 全局池（惰性确保）；否则项目池（已存在）。 */
+async function placementDir(opts: { global?: boolean; globalRoot?: string; root: string }): Promise<string> {
+  if (!opts.global) return projectModulesDir(opts.root);
+  const dir = globalModulesDir(opts);
+  await fsp.mkdir(dir, { recursive: true });
+  return dir;
 }
 
 async function markInstalled(
@@ -209,12 +230,13 @@ async function markInstalled(
 }
 
 async function installFromDir(
-  root: string,
+  placementDir: string,
   stagedSourceDir: string,
   origin: SourceMarker["origin"],
+  opts: { writeProjectBinding: boolean; root: string },
 ): Promise<InstallResult> {
   const probe = await probeManifest(stagedSourceDir);
-  const finalDir = path.join(modulesDir(root), probe.id);
+  const finalDir = path.join(placementDir, probe.id);
   let exists = false;
   try {
     await fsp.access(finalDir);
@@ -232,7 +254,7 @@ async function installFromDir(
     });
   }
   // 同卷暂存 + rename：.toporealm/modules/.staging-* → <id>（跨卷复制已在 cp 完成）
-  const staging = path.join(modulesDir(root), `.staging-${process.pid}-${Math.random().toString(36).slice(2, 8)}`);
+  const staging = path.join(placementDir, `.staging-${process.pid}-${Math.random().toString(36).slice(2, 8)}`);
   await fsp.mkdir(staging, { recursive: true });
   try {
     await fsp.cp(stagedSourceDir, staging, { recursive: true });
@@ -242,14 +264,16 @@ async function installFromDir(
     await fsp.rm(staging, { recursive: true, force: true }).catch(() => {});
     throw err;
   }
-  await writeBinding(bindingsFile(root), probe.id, { source: "workspace" });
+  // 1.1.0 D27：目录即注册——项目池不再写绑定（modules.yaml 只剩 path 职责）
   return {
     id: probe.id,
     version: probe.version,
     namespace: probe.namespace,
     dir: finalDir,
     origin,
-    note: "绑定已写入 modules.yaml；daemon 下次触达自动装载新模块集",
+    note: opts.writeProjectBinding
+      ? "已装项目池；daemon 下次触达自动装载新模块集"
+      : "已装全局池（所有项目生效）；daemon 下次触达自动装载新模块集",
   };
 }
 
@@ -286,7 +310,11 @@ async function installFromNpm(opts: InstallOptions): Promise<InstallResult> {
     if (t.code !== 0) failNpm("tar 解包", filename, t);
     // return await：finally 的 tmp 清理必须等 installFromDir 结束——裸 return 会让
     // rm 与安装体内的 probe/cp 竞态（tmp 在脚下被删）
-    return await installFromDir(opts.root, pkgDir, { type: "npm", spec: opts.source });
+    const placement = await placementDir(opts);
+    return await installFromDir(placement, pkgDir, { type: "npm", spec: opts.source }, {
+      writeProjectBinding: !opts.global,
+      root: opts.root,
+    });
   } finally {
     await fsp.rm(tmp, { recursive: true, force: true }).catch(() => {});
   }
@@ -305,7 +333,11 @@ export async function installModule(opts: InstallOptions): Promise<InstallResult
       details: { path: abs },
     });
   }
-  return installFromDir(opts.root, abs, { type: "path", path: abs });
+  const placement = await placementDir(opts);
+  return installFromDir(placement, abs, { type: "path", path: abs }, {
+    writeProjectBinding: !opts.global,
+    root: opts.root,
+  });
 }
 
 async function isDir(p: string): Promise<boolean> {
@@ -321,6 +353,10 @@ async function isDir(p: string): Promise<boolean> {
 export interface RemoveOptions {
   root: string;
   id: string;
+  /** 1.1.0 D27：从全局池卸载 */
+  global?: boolean;
+  /** 测试注入：全局目录根 */
+  globalRoot?: string;
 }
 
 export interface RemoveResult {
@@ -330,7 +366,9 @@ export interface RemoveResult {
 }
 
 export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
-  const dir = path.join(modulesDir(opts.root), opts.id);
+  const dir = opts.global
+    ? path.join(globalModulesDir(opts), opts.id)
+    : path.join(projectModulesDir(opts.root), opts.id);
   // 卸载只删自己带标记的目录：无标记 = 可能是用户手写/外来目录，拒绝
   let marker: SourceMarker | undefined;
   try {
@@ -342,75 +380,126 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
     throw new TopoError({
       code: "INVALID_INPUT",
       message: `模块 "${opts.id}" 没有安装器所有权标记（${SOURCE_MARKER}），拒绝删除`,
-      hint: "只有 toporealm module add 安装的目录可卸载；path/global 绑定与外来目录手工管理",
+      hint: "只有 toporealm module add 安装的目录可卸载；path 绑定与外来目录手工管理",
       details: { module: opts.id, dir },
     });
   }
-  const bindings = await readBindingsRaw(bindingsFile(opts.root));
-  const binding = bindings[opts.id];
-  if (binding && binding.source !== "workspace") {
-    throw new TopoError({
-      code: "INVALID_INPUT",
-      message: `模块 "${opts.id}" 是 ${binding.source} 绑定，不由安装器管理`,
-      details: { module: opts.id, binding },
-    });
+  // 项目池卸载顺带清 legacy 绑定（workspace 残留）；path 绑定手工管理，拒绝误删
+  if (!opts.global) {
+    const bindings = await readBindingsRaw(bindingsFile(opts.root));
+    const binding = bindings[opts.id];
+    if (binding && binding.source === "path") {
+      throw new TopoError({
+        code: "INVALID_INPUT",
+        message: `模块 "${opts.id}" 是 path 绑定，不由安装器卸载`,
+        hint: "先手工删除 modules.yaml 中的绑定条目",
+        details: { module: opts.id, binding },
+      });
+    }
+    if (binding) await writeBinding(bindingsFile(opts.root), opts.id, undefined);
   }
   await fsp.rm(dir, { recursive: true, force: true });
-  await writeBinding(bindingsFile(opts.root), opts.id, undefined);
   return {
     id: opts.id,
     removedDir: dir,
-    note: "绑定已移除；daemon 下次触达自动装载新模块集",
+    note: opts.global
+      ? "已从全局池卸载；daemon 下次触达自动装载新模块集"
+      : "已从项目池卸载；daemon 下次触达自动装载新模块集",
   };
 }
 
 export interface ModuleListEntry {
   id: string;
-  source: "workspace" | "global" | "path";
+  /** 有效集来源池（遮蔽解析后） */
+  pool: "global" | "project" | "path";
   version?: string;
   namespace?: string;
-  /** 安装器来源（workspace 且带标记时） */
+  /** 安装器来源（带标记时） */
   origin?: SourceMarker["origin"];
-  /** 装载解析后的目录（global 跳过时缺省） */
+  /** 装载解析后的目录 */
   dir?: string;
+  /** 被更高优先级副本遮蔽（global 常见；仅 list 展示，不参与有效集） */
+  shadowed?: boolean;
+  /** 目录存在但清单损坏 */
+  broken?: string;
 }
 
-export async function listModules(root: string): Promise<ModuleListEntry[]> {
-  const bindings = await readBindingsRaw(bindingsFile(root));
+/** 双池 + path 绑定全量列表（含被遮蔽副本；daemon 有效集以 discover 为准）。 */
+export async function listModules(
+  root: string,
+  opts: { globalRoot?: string } = {},
+): Promise<ModuleListEntry[]> {
   const out: ModuleListEntry[] = [];
-  for (const [id, binding] of Object.entries(bindings)) {
-    if (binding.source === "global") {
-      out.push({ id, source: "global" });
-      continue;
+  const globalBase = opts.globalRoot !== undefined ? opts.globalRoot : globalPaths().root;
+  const globalPool = path.join(globalBase, "modules");
+  const projectPool = projectModulesDir(root);
+
+  const scanPool = async (
+    poolDir: string,
+    pool: "global" | "project",
+  ): Promise<Map<string, ModuleListEntry>> => {
+    const map = new Map<string, ModuleListEntry>();
+    let names: string[] = [];
+    try {
+      names = (await fsp.readdir(poolDir)).filter((n) => !n.startsWith("."));
+    } catch {
+      return map;
     }
-    const dir =
-      binding.source === "path" && binding.path
-        ? path.resolve(root, binding.path)
-        : path.join(modulesDir(root), id);
+    for (const id of names.sort()) {
+      const dir = path.join(poolDir, id);
+      const entry: ModuleListEntry = { id, pool, dir };
+      try {
+        const probe = await probeManifest(dir);
+        entry.version = probe.version;
+        entry.namespace = probe.namespace;
+        let origin: SourceMarker["origin"] | undefined;
+        try {
+          const marker = JSON.parse(
+            await fsp.readFile(path.join(dir, SOURCE_MARKER), "utf8"),
+          ) as SourceMarker;
+          if (marker.format === "toporealm.module-source/v1") origin = marker.origin;
+        } catch {
+          origin = undefined;
+        }
+        if (origin !== undefined) entry.origin = origin;
+      } catch (err) {
+        entry.broken = err instanceof TopoError ? err.message : String(err);
+      }
+      map.set(id, entry);
+    }
+    return map;
+  };
+
+  const globals = await scanPool(globalPool, "global");
+  const projects = await scanPool(projectPool, "project");
+
+  const bindings = await readBindingsRaw(bindingsFile(root));
+  const paths = new Map<string, ModuleListEntry>();
+  for (const [id, binding] of Object.entries(bindings)) {
+    if (binding.source !== "path" || !binding.path) continue;
+    const dir = path.isAbsolute(binding.path) ? binding.path : path.resolve(root, binding.path);
+    const entry: ModuleListEntry = { id, pool: "path", dir };
     try {
       const probe = await probeManifest(dir);
-      let origin: SourceMarker["origin"] | undefined;
-      try {
-        const marker = JSON.parse(
-          await fsp.readFile(path.join(dir, SOURCE_MARKER), "utf8"),
-        ) as SourceMarker;
-        if (marker.format === "toporealm.module-source/v1") origin = marker.origin;
-      } catch {
-        origin = undefined;
-      }
-      out.push({
-        id,
-        source: binding.source,
-        version: probe.version,
-        namespace: probe.namespace,
-        ...(origin !== undefined ? { origin } : {}),
-        dir,
-      });
-    } catch {
-      // 绑定在、模块体缺失/损坏：如实列出，不静默吞
-      out.push({ id, source: binding.source, ...(binding.path !== undefined ? {} : {}), dir });
+      entry.version = probe.version;
+      entry.namespace = probe.namespace;
+    } catch (err) {
+      entry.broken = err instanceof TopoError ? err.message : String(err);
     }
+    paths.set(id, entry);
   }
+
+  // 展示顺序：path > project > global；被遮蔽者带 shadowed 标注
+  for (const [id, e] of paths) {
+    if (projects.has(id)) projects.get(id)!.shadowed = true;
+    if (globals.has(id)) globals.get(id)!.shadowed = true;
+    out.push(e);
+  }
+  for (const [id, e] of projects) {
+    if (globals.has(id)) globals.get(id)!.shadowed = true;
+    out.push(e);
+  }
+  for (const [, e] of globals) out.push(e);
   return out;
 }
 

@@ -52,13 +52,15 @@ describe("M4 分发动词：module / migrate / host sync", () => {
 
     const list = await exec(["--json", "module", "list"]);
     expect(list.code).toBe(0);
-    const modules = (jsonOf(list) as { data: { modules: { id: string; source: string }[] } }).data.modules;
-    expect(modules).toContainEqual(expect.objectContaining({ id: "example", source: "workspace" }));
+    const modules = (jsonOf(list) as { data: { modules: { id: string; pool: string }[] } }).data.modules;
+    // D27：目录即注册——项目池直装，无绑定
+    expect(modules).toContainEqual(expect.objectContaining({ id: "example", pool: "project" }));
   });
 
-  it("module add --global → 用法错误(2)；未知子命令 → 用法错误(2)；缺参数 → 用法错误(2)", async () => {
-    const g = await exec(["--json", "module", "add", "x", "--global"]);
-    expect(g.code).toBe(2);
+  it("module add --global 合法（装全局池）；未知子命令 → 用法错误(2)；缺参数 → 用法错误(2)", async () => {
+    // npm 来源在 CLI 测试里不跑网络：用假 spec 走到 npm pack 失败即可验证不再是用法错误
+    const g = await exec(["--json", "module", "add", "definitely-not-a-real-pkg-xyz", "--global"]);
+    expect(g.code).toBe(1); // 领域错误（npm pack 失败），说明 --global 已被解析
     const bad = await exec(["--json", "module", "upgrade", "x"]);
     expect(bad.code).toBe(2);
     const bare = await exec(["--json", "module", "add"]);
@@ -67,7 +69,7 @@ describe("M4 分发动词：module / migrate / host sync", () => {
     expect(bareRm.code).toBe(2);
   });
 
-  it("module rm：删除带标记目录 + 绑定；再 rm → 领域错误(1)", async () => {
+  it("module rm：删除带标记目录；再 rm → 领域错误(1)", async () => {
     const r = await exec(["--json", "module", "rm", "example"]);
     expect(r.code).toBe(0);
     expect(jsonOf(r)).toMatchObject({ ok: true, data: { id: "example" } });

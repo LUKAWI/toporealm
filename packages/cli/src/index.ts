@@ -704,13 +704,8 @@ async function dispatch(
       if (sub === "add") {
         const source = a.positionals()[0];
         if (!source) throw new UsageError("用法：toporealm module add <npm包|路径>");
-        if (a.flag("--global")) {
-          throw new UsageError(
-            "--global 暂未支持（安装器只交付工作区安装，D23①）",
-            "toporealm module add <npm包|路径>",
-          );
-        }
-        const r = await installModule({ root, source });
+        const global = a.flag("--global");
+        const r = await installModule({ root, source, global });
         const origin = r.origin.type === "npm" ? `npm:${r.origin.spec}` : `path:${r.origin.path}`;
         return {
           envelope: { ok: true, data: r },
@@ -719,37 +714,50 @@ async function dispatch(
       }
       if (sub === "rm") {
         const id = a.positionals()[0];
-        if (!id) throw new UsageError("用法：toporealm module rm <id>");
-        const r = await removeModule({ root, id });
+        if (!id) throw new UsageError("用法：toporealm module rm [--global] <id>");
+        const r = await removeModule({ root, id, global: a.flag("--global") });
         return {
           envelope: { ok: true, data: r },
           human: `removed ${r.id}\n  ${r.note}`,
         };
       }
       if (sub === "list") {
-        const rows = await listModules(root);
         const gp = globalPaths(deps.env);
+        const rows = await listModules(root, { globalRoot: gp.root });
         const projectPool = path.join(workspacePaths(root).topoDir, "modules");
-        const human =
-          rows
-            .map((m) => {
-              const origin =
-                m.origin !== undefined
-                  ? m.origin.type === "npm"
-                    ? `npm:${m.origin.spec}`
-                    : `path:${m.origin.path}`
-                  : undefined;
-              return `  ${m.id}\t${m.source}${m.version !== undefined ? `\t${m.version}` : ""}${
-                m.namespace !== undefined ? `\t(ns: ${m.namespace})` : ""
-              }${origin !== undefined ? `\t← ${origin}` : ""}`;
-            })
-            .join("\n") || "  (no modules)";
+        const render = (m: (typeof rows)[number]): string => {
+          const origin =
+            m.origin !== undefined
+              ? m.origin.type === "npm"
+                ? `npm:${m.origin.spec}`
+                : `path:${m.origin.path}`
+              : undefined;
+          return (
+            `  ${m.id}\t${m.version ?? "?"}${m.namespace !== undefined ? `\t(ns: ${m.namespace})` : ""}` +
+            `${origin !== undefined ? `\t← ${origin}` : ""}` +
+            `${m.shadowed === true ? `\t(被更高优先级副本遮蔽)` : ""}` +
+            `${m.broken !== undefined ? `\t(损坏：${m.broken})` : ""}`
+          );
+        };
+        const section = (title: string, ms: (typeof rows)[number][]): string =>
+          `${title}\n${ms.map(render).join("\n") || "  (无)"}`;
+        const paths = rows.filter((m) => m.pool === "path");
+        const projects = rows.filter((m) => m.pool === "project");
+        const globals = rows.filter((m) => m.pool === "global");
+        const human = [
+          `${rows.length} module(s)：`,
+          section("path 绑定：", paths),
+          section("项目池：", projects),
+          section("全局池：", globals),
+          `  全局池 ${gp.modulesDir}`,
+          `  项目池 ${projectPool}`,
+        ].join("\n");
         return {
           envelope: {
             ok: true,
             data: { modules: rows, globalPool: gp.modulesDir, projectPool },
           },
-          human: `${rows.length} module(s):\n${human}\n  全局池 ${gp.modulesDir}\n  项目池 ${projectPool}`,
+          human,
         };
       }
       throw new UsageError(

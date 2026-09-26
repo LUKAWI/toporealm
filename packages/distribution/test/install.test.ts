@@ -51,7 +51,7 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
   });
 
   it(
-    "npm 来源：pack --ignore-scripts → 落位 .toporealm/modules/<id>/ + 标记 + workspace 绑定",
+    "npm 来源：pack --ignore-scripts → 落位 .toporealm/modules/<id>/ + 标记（目录即注册，无绑定，D27）",
     async () => {
       const root = await makeWorkspace();
       const r = await installModule({ root, source: cardsV2, kind: "npm", env: testEnv() });
@@ -73,9 +73,10 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
       expect(marker.id).toBe("cards");
       expect(marker.origin.type).toBe("npm");
       expect(marker.origin.spec).toBe(cardsV2);
-      // 绑定
-      const bindings = await readBindingsRaw(path.join(root, ".toporealm", "modules.yaml"));
-      expect(bindings["cards"]).toEqual({ source: "workspace" });
+      // D27：目录即注册——不再写绑定（modules.yaml 只剩 path 职责）
+      await expect(
+        fsp.access(path.join(root, ".toporealm", "modules.yaml")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
     },
     60_000,
   );
@@ -159,28 +160,39 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     await expect(fsp.access(foreignDir)).resolves.toBeUndefined();
   });
 
-  it("list：workspace/path/global 三种绑定如实列出（global 不解析目录）", async () => {
+  it("list：path 绑定/项目池/全局池三段如实列出（含遮蔽标注，D27）", async () => {
     const root = await makeWorkspace();
     await installModule({ root, source: exampleV2 });
+    const globalRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-glist-"));
+    await fsp.mkdir(path.join(globalRoot, "modules"), { recursive: true });
+    await fsp.cp(exampleV2, path.join(globalRoot, "modules", "example"), { recursive: true });
     await fsp.writeFile(
       path.join(root, ".toporealm", "modules.yaml"),
-      [
-        "example:",
-        "  source: workspace",
-        "byref:",
-        "  source: path",
-        `  path: ${JSON.stringify(exampleV2)}`,
-        "somewhere:",
-        "  source: global",
-        "",
-      ].join("\n"),
+      ["byref:", "  source: path", `  path: ${JSON.stringify(exampleV2)}`, ""].join("\n"),
       "utf8",
     );
-    const rows = await listModules(root);
-    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
-    expect(byId["example"]).toMatchObject({ source: "workspace", version: "1.0.0", namespace: "example" });
-    expect(byId["example"]?.origin).toMatchObject({ type: "path" });
-    expect(byId["byref"]).toMatchObject({ source: "path", version: "1.0.0" });
-    expect(byId["somewhere"]).toEqual({ id: "somewhere", source: "global" });
+    const rows = await listModules(root, { globalRoot });
+    const projectCopy = rows.find((r) => r.pool === "project" && r.id === "example");
+    expect(projectCopy).toMatchObject({ pool: "project", version: "1.0.0", namespace: "example" });
+    expect(projectCopy?.origin).toMatchObject({ type: "path" });
+    expect(rows.find((r) => r.id === "byref")).toMatchObject({ pool: "path", version: "1.0.0" });
+    const globalCopy = rows.find((r) => r.pool === "global" && r.id === "example");
+    expect(globalCopy).toMatchObject({ pool: "global", shadowed: true });
+  });
+
+  it("global 安装/卸载：落全局池、marker 校验同项目池（D27）", async () => {
+    const root = await makeWorkspace();
+    const globalRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-ginst-"));
+    const r = await installModule({ root, source: exampleV2, global: true, globalRoot });
+    expect(r.dir).toBe(path.join(globalRoot, "modules", "example"));
+    expect(r.note).toContain("全局池");
+    await expect(
+      installModule({ root, source: exampleV2, global: true, globalRoot }),
+    ).rejects.toMatchObject({ code: "ID_EXISTS" });
+    const res = await removeModule({ root, id: "example", global: true, globalRoot });
+    expect(res.removedDir).toBe(path.join(globalRoot, "modules", "example"));
+    await expect(fsp.access(path.join(globalRoot, "modules", "example"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });

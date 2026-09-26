@@ -1,0 +1,9 @@
+id: rep-mg-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-module-global
+  summary: 安装器双池化：installModule/removeModule 增 --global（全局池惰性确保+marker 同规）、项目池安装不再写绑定（目录即注册）、path 绑定误删拒绝；listModules 重写为 path/项目池/全局池三段+遮蔽+损坏标注；CLI module add/rm --global 接线、list 分段渲染；新增 global 安装/卸载与列表用例（全量 221 绿）+ dogfood 活图 list 实测
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T11:32:42.272Z

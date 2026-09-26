@@ -2,7 +2,7 @@ id: p1-module-global
 kind: wf.task
 payload:
   title: "p1-module-global: module add/rm --global 与 list 分段"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: --global 装全局池（重复 ID_EXISTS 同 1.0）；rm --global；list 全局/项目两段+遮蔽+损坏标注（D29）
   createdAt: 2026-09-26T10:21:09.329Z
-  updatedAt: 2026-09-26T10:21:09.329Z
+  updatedAt: 2026-09-26T11:32:44.685Z
+  startedAt: 2026-09-26T11:22:02.800Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T11:32:43.472Z
+    by: agent
+    note: typecheck+全量绿；live list 三段输出验证
+  completedAt: 2026-09-26T11:32:44.685Z
