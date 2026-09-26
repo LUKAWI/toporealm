@@ -518,6 +518,27 @@ CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃�
   术语 / CHANGELOG（breaking）/ README → 版本对齐 1.1.0 → 发布（npm + marketplace
   验证）。
 
+### 1.9 实现期补遗（1.1.2：D33）
+
+**D33（daemon endpoint 短路径）：unix socket 迁出工作区，落 os.tmpdir()。**
+
+- 1.1.0 首次实跑 CI 抓出产品级缺陷：unix 下 socket 文件落
+  `<root>/.toporealm/daemon/`，但 serveDaemon 在 listen 前从不创建 daemon 目录
+  （Windows 命名管道不落盘故无感；libuv 把 bind 的 ENOENT 转译为 EACCES）——
+  macos/ubuntu 首次拉起 daemon 必失败，不是 CI 环境问题。
+- 第二层缺陷：macOS `sockaddr_un.sun_path` 上限 104 字节，工作区根较深时
+  （CI 临时目录即超）路径越限，libuv 静默截断——即使建了目录，客户端也连不上。
+- **修法**：① unix socket 地址改落 tmpdir 短路径
+  `<os.tmpdir()>/toporealm-<sha256(root) 前 16 hex>.sock`（总长 ≤ 80 字符，
+  在 macOS 104 上限内；tmpdir 本身超长时回退 /tmp 兜底）；② listen 前 mkdir
+  socket 父目录（幂等）；③ bind 成功后 chmod 0600（tmpdir 共享目录下防他用户连）。
+- **发现机制与互斥语义不变**：客户端经 endpoint.json 读传输地址（socket 路径从不
+  被客户端独立推导）；单属主互斥（pid + instanceId）照旧；地址哈希仍仅由 root
+  派生——每 root 一 daemon（D30），内存换载下 graph 不是 endpoint 身份的一部分。
+- `endpoint.json` 仍居 `.toporealm/daemon/`；§3 布局中 daemon/ 的 socket 职责
+  移除，socket 不再入工作区（陈旧 socket 留在 tmpdir 由 OS 清理，属主 daemon
+  启动时 unlink 重绑）。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
@@ -564,7 +585,7 @@ packages/
 │   │   ├── objects/<id>.yaml       # { id, kind, payload }
 │   │   ├── relations/<id>.yaml     # { id, kind, source, target, direction?, payload }
 │   │   └── .log                    # JSONL 统一提交日志（D7）
-│   └── daemon/                     # 运行时：socket、pid、instance-id（空闲退出后清理）
+│   └── daemon/                     # 运行时：endpoint.json（pid/instanceId/地址；D33：unix socket 在 tmpdir）
 └── AGENTS.md                       # init 生成的 agent 提示（已存在则不触碰）
 ```
 

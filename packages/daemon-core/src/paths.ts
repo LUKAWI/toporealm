@@ -105,7 +105,12 @@ export interface EndpointAddress {
   address: string;
 }
 
-/** endpoint 地址由 root 决定：同一工作区恒定位到同一 daemon。 */
+/**
+ * endpoint 地址由 root 决定：同一工作区恒定位到同一 daemon（blueprint §5）。
+ * D33：unix socket 落 os.tmpdir() 短路径——工作区内路径受 sun_path 限制
+ * （macOS 104 字节，深路径即越限且被 libuv 静默截断），且首次 listen 前无需
+ * 依赖工作区内目录存在；总长超 100 时回退 /tmp 兜底。
+ */
 export function endpointAddress(root: string): EndpointAddress {
   const name = `toporealm-${crypto
     .createHash("sha256")
@@ -116,8 +121,9 @@ export function endpointAddress(root: string): EndpointAddress {
     // Windows 命名管道：net 模块原生支持；名字哈希化避免超长与非法字符
     return { transport: "pipe", address: `\\\\.\\pipe\\${name}` };
   }
-  return {
-    transport: "socket",
-    address: path.join(workspacePaths(root).daemonDir, `${name}.sock`),
-  };
+  let address = path.join(os.tmpdir(), `${name}.sock`);
+  if (address.length > 100) {
+    address = path.join("/tmp", `${name}.sock`);
+  }
+  return { transport: "socket", address };
 }

@@ -1,5 +1,7 @@
 import net from "node:net";
 import fs from "node:fs";
+import fsp from "node:fs/promises";
+import path from "node:path";
 import {
   createLineDecoder,
   encodeLine,
@@ -131,6 +133,9 @@ export async function serveDaemon(
 
   const ep = endpointAddress(opts.root);
   if (ep.transport === "socket") {
+    // D33：listen 前确保 socket 父目录存在（libuv 把 bind 的 ENOENT 转成
+    // EACCES，症状极具误导性），再清掉崩溃残留的陈旧 socket。
+    await fsp.mkdir(path.dirname(ep.address), { recursive: true });
     try {
       fs.unlinkSync(ep.address);
     } catch {
@@ -144,6 +149,10 @@ export async function serveDaemon(
       resolve();
     });
   });
+  if (ep.transport === "socket") {
+    // D33：tmpdir 是共享目录，socket 文件限属主读写，防他用户连接
+    await fsp.chmod(ep.address, 0o600).catch(() => {});
+  }
 
   refreshIdle();
   return {

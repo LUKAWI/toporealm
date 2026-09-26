@@ -82,7 +82,7 @@ async function main(): Promise<number> {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "EADDRINUSE" || code === "EACCES") {
       process.stderr.write(
-        `toporeald: IPC endpoint 被占用（可能有并存 daemon）：${endpointAddress(root).address}\n`,
+        `toporeald: IPC endpoint 监听失败（被占用或无权限，可能有并存 daemon）：${endpointAddress(root).address}\n`,
       );
       return 1;
     }
