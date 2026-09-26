@@ -2,7 +2,7 @@ id: p3-acceptance
 kind: wf.task
 payload:
   title: "p3-acceptance: 陌生环境建图全流程自主验收"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: 干净目录 npm i -g → init → module add → creategraph → wf 流转 → 双宿主技能可见——1.1.0 发布门（总目标）
   createdAt: 2026-09-26T10:21:16.473Z
-  updatedAt: 2026-09-26T10:21:16.473Z
+  updatedAt: 2026-09-26T13:02:44.306Z
+  startedAt: 2026-09-26T13:02:40.769Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T13:02:43.114Z
+    by: agent
+    note: 发布门达成：陌生环境自主建图全流程走通
+  completedAt: 2026-09-26T13:02:44.306Z

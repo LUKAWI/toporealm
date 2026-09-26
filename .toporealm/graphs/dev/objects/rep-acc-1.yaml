@@ -1,0 +1,9 @@
+id: rep-acc-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p3-acceptance
+  summary: 陌生环境验收通过：全新 temp 目录 + npm i -g @lukawi/toporealm@1.1.1 → --version → init（AGENTS.md 生成）→ creategraph demo → module add --global workflow（全局池生效）→ status modules 1 → skills index 列全局池 6 技能带路径 → wf.create-task/transition 全链路；写命令 [demo] 前缀实测
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T13:02:41.934Z

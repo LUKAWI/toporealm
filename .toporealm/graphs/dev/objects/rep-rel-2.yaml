@@ -1,0 +1,9 @@
+id: rep-rel-2
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p3-release
+  summary: npm 10 包 1.1.0 发布完成（依赖序）；验收抓出 cli --global 解序 bug → cli+聚合包补丁 1.1.1 已发布（unpublish 因 token 2FA 策略被禁，走标准补丁路线）；registry 实测 1.1.1 可装
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T13:02:36.076Z

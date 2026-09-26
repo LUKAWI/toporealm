@@ -1,0 +1,14 @@
+id: ux-argv-positionals
+kind: wf.task
+payload:
+  title: Argv.positionals 含 flag token 的通用陷阱
+  status: pending
+  definitionOfDone:
+    - Argv 语义收紧或文档写明
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: positionals() 原样返回 rest，flag 未消费时混入位置参数（module add --global 已修；其余动词按「先 flag 后位置」纪律规避）。建议 positionals() 过滤 -- 开头 token 或文档写明
+  createdAt: 2026-09-26T13:02:45.507Z
+  updatedAt: 2026-09-26T13:02:45.507Z
