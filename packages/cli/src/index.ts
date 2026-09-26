@@ -30,6 +30,7 @@ import {
 import {
   globalPaths,
   hostSync,
+  readActiveGraphId,
   installModule,
   listModules,
   migrateGraph,
@@ -271,7 +272,7 @@ async function dispatch(
       const lastRev = r.commits?.at(-1)?.revision;
       return {
         data: r,
-        human: `${r.message ?? `ok ${verb}`}${lastRev !== undefined ? ` (revision ${lastRev})` : ""}`,
+        human: `[${s.graphId}] ${r.message ?? `ok ${verb}`}${lastRev !== undefined ? ` (revision ${lastRev})` : ""}`,
         ...(lastRev !== undefined ? { revision: lastRev } : {}),
       };
     });
@@ -311,10 +312,14 @@ async function dispatch(
       if (!name) throw new UsageError("用法：toporealm use <graph>");
       if (!isValidGraphId(name)) throw new UsageError(`图 id 非法："${name}"`);
       const root = g.root ?? defaultRoot(deps);
+      const prev = await readActiveGraphId(workspacePaths(root).activeFile);
       await activateGraph(root, name);
       return {
-        envelope: { ok: true, data: { graph: name } },
-        human: `switched to graph "${name}"`,
+        envelope: { ok: true, data: { graph: name, previous: prev ?? null } },
+        human:
+          `选定图: ${name}${prev !== null && prev !== name ? `（之前 ${prev}）` : ""}
+` +
+          `  提示（per-shell 专注锚）：export TOPOREALM_GRAPH=${name}`,
       };
     }
     case "graphs": {
@@ -454,7 +459,7 @@ async function dispatch(
         const createdId = r.created[0] ?? id ?? "";
         return {
           data: { id: createdId, created: r.created },
-          human: `created ${createdId} (revision ${r.revision})`,
+          human: `[${s.graphId}] created ${createdId} (revision ${r.revision})`,
           revision: r.revision,
         };
       });
@@ -492,7 +497,7 @@ async function dispatch(
         const r = await s.commit({ changes, label: `set ${id}` });
         return {
           data: { id },
-          human: `ok ${id} (revision ${r.revision})`,
+          human: `[${s.graphId}] ok ${id} (revision ${r.revision})`,
           revision: r.revision,
         };
       });
@@ -542,7 +547,7 @@ async function dispatch(
         const relId = r.created[0] ?? id ?? "";
         return {
           data: { id: relId },
-          human: `linked ${relId} (${kind}: ${src} -> ${tgt}, revision ${r.revision})`,
+          human: `[${s.graphId}] linked ${relId} (${kind}: ${src} -> ${tgt}, revision ${r.revision})`,
           revision: r.revision,
         };
       });
@@ -556,7 +561,7 @@ async function dispatch(
         const r = await s.commit({ changes: [{ op: "del", id }], label: `rm ${id}` });
         return {
           data: { id },
-          human: `deleted ${id} (revision ${r.revision})`,
+          human: `[${s.graphId}] deleted ${id} (revision ${r.revision})`,
           revision: r.revision,
         };
       });
@@ -691,7 +696,7 @@ async function dispatch(
           verb === "undo" ? await s.undo(steps) : await s.redo(steps);
         return {
           data: { revision: r.revision, canUndo: r.canUndo, canRedo: r.canRedo },
-          human: `${verb === "undo" ? "undid" : "redid"} ${steps} step(s) → revision ${r.revision} (undo ${r.canUndo ? "✓" : "✗"} / redo ${r.canRedo ? "✓" : "✗"})`,
+          human: `[${s.graphId}] ${verb === "undo" ? "undid" : "redid"} ${steps} step(s) → revision ${r.revision} (undo ${r.canUndo ? "✓" : "✗"} / redo ${r.canRedo ? "✓" : "✗"})`,
           revision: r.revision,
         };
       });

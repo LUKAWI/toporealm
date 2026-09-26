@@ -6,6 +6,7 @@ export * from "./migrate.js";
 export {
   ensureGlobalDir,
   globalPaths,
+  readActiveGraphId,
   workspacePaths,
   type GlobalPaths,
 } from "@lukawi/toporealm-daemon-core";

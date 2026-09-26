@@ -1,0 +1,9 @@
+id: rep-fx-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-focus-ux
+  summary: "use 输出改「选定图: X（之前 Y）」+ export TOPOREALM_GRAPH 提示行；写命令（add/set/link/rm/undo/redo/模块命令）人类输出统一 [图名] 前缀防误伤；dev 图实测输出正确；golden 测试不受影响（223 绿）"
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:18:15.677Z
