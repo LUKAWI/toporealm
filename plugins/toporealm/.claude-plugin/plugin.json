@@ -1,5 +1,5 @@
 {
   "name": "toporealm",
   "description": "TopoRealm graph workspace: agent skills and session hooks for the single-owner daemon graph (CLI-first).",
-  "version": "1.0.0"
+  "version": "1.1.2"
 }

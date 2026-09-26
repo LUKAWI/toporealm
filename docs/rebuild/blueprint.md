@@ -429,8 +429,11 @@ CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃�
 - 模块技能文件只存在于池中（零拷贝、零投影再生）；toporealm 不写任何宿主自有目录
   （`~/.claude`、`.pi`、`.agents`）。**`host sync` 动词与整套投影机器删除**。模块
   作者义务收缩为：按 Agent Skills 标准带 `skills/` 目录。
-- **claude code**：基座 marketplace 插件（仓库根声明，一次性 `claude plugin
-  marketplace add LUKAWI/toporealm` + install）。插件纯静态：基座 CLI 技能 +
+- **claude code**：基座 marketplace 插件（仓库根声明 marketplace，插件载荷在
+  `plugins/toporealm/`，一次性 `claude plugin marketplace add LUKAWI/toporealm` +
+  install）。载荷必须自包含且不含 node_modules——Windows 上宿主暂存拷贝会把
+  仓库 node_modules 的 junction 以绝对路径重建为符号链接，无开发者模式必 EPERM。
+  插件纯静态：基座 CLI 技能 +
   SessionStart 钩子。钩子运行 `toporealm skills index`（stdout 注入会话上下文）：
   扫描两池各模块 `skills/`，读 SKILL.md frontmatter，逐行输出
   「技能名 · 所属模块 · 一句话描述 · 绝对路径」；agent 按需 Read 全文（渐进披露
