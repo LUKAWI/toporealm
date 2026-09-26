@@ -8,6 +8,7 @@ import {
 } from "@lukawi/toporealm-protocol";
 import { DaemonCore, endpointAddress } from "@lukawi/toporealm-daemon-core";
 import { ModuleHost } from "@lukawi/toporealm-module-host";
+import { GraphRuntime } from "./runtime.js";
 import {
   startWebServer,
   createWireDispatcher,
@@ -54,13 +55,10 @@ export async function serveDaemon(
   let stopRequested = false;
   let idleTimer: NodeJS.Timeout | null = null;
 
-  const core = await DaemonCore.open({
-    root: opts.root,
-    graphId: opts.graph,
-    watch: true,
-  });
-  // 模块装载（模块集启动冻结）：requires 缺失/声明损坏 → 启动大声失败（M6）
-  const host = await ModuleHost.load(core, { root: opts.root });
+  // 1.1.0 D30：当前图状态进 GraphRuntime——换载在请求入口就地发生（core/host 随之变化）
+  const runtime = await GraphRuntime.open(opts.root, opts.graph);
+  const core = runtime.current().core;
+  const host = runtime.current().host;
 
   let resolveStopped!: () => void;
   const stopped = new Promise<void>((r) => (resolveStopped = r));
@@ -95,8 +93,7 @@ export async function serveDaemon(
     opts.web === false
       ? null
       : await startWebServer({
-          core,
-          host,
+          runtime,
           port: opts.web?.port,
           ...(opts.web?.staticDir !== undefined
             ? { staticDir: opts.web.staticDir }
@@ -109,7 +106,7 @@ export async function serveDaemon(
     connections.add(socket);
     refreshIdle();
     const dispatcher = createWireDispatcher(
-      { core, host, origin, onStale: () => void stop() },
+      { runtime, origin, onStale: () => void stop() },
       (msg) => send(encodeLine(msg)),
     );
     socket.on("close", () => {

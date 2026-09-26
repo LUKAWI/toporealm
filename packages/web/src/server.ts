@@ -4,8 +4,6 @@ import {
   type IpcMessage,
   type IpcRequest,
 } from "@lukawi/toporealm-protocol";
-import type { DaemonCore } from "@lukawi/toporealm-daemon-core";
-import { ModuleHost } from "@lukawi/toporealm-module-host";
 import { createWireDispatcher, type WireContext } from "./dispatch.js";
 import { createStaticHandler } from "./static.js";
 
@@ -14,8 +12,7 @@ import { createStaticHandler } from "./static.js";
 // 与 IPC 共用同一 wire 分发器与事件扇出（core.events 单一订阅面）；提交 origin = "web"。
 
 export interface WebServerOptions {
-  core: DaemonCore;
-  host: ModuleHost;
+  runtime: import("./dispatch.js").WireRuntime;
   /** 监听端口；0 = 临时口（默认，D22 端口解析序的末位） */
   port?: number;
   /** 静态产物目录；缺省 = 不挂静态（纯 WS） */
@@ -65,8 +62,7 @@ export async function startWebServer(
     opts.onActivity?.();
     const dispatcher = createWireDispatcher(
       {
-        core: opts.core,
-        host: opts.host,
+        runtime: opts.runtime,
         origin: "web",
         onActivity: opts.onActivity,
         onStale: opts.onStop,

@@ -1,0 +1,9 @@
+id: rep-swap-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-swap
+  summary: GraphRuntime（daemon/src/runtime.ts）：每请求 active 跟随（mtime 缓存）+ 显式 ensureGraph；换载互斥（beginOp/endOp 门+排空等待）；host.attach re-binding（钩子/所有权/词汇观察者重放，api 闭包经 this.core 属性读零改动切换）；R2 失败旧图继续服务（禁 SESSION_STALE，root 不符仍自旋）；runtime 级稳定 instanceId（换载延续实例，修复 wire 层误判 daemon 重启）；钉住语义修正（hello 带图=钉住，省略=跟随——评审 Y3 的混合使用打摆缺陷实测发现并修复）；dispatcher runtime 化+换载重订阅+reset(graph-switched, graphId) 推送；协议事件扩展；新增 runtime e2e 2 条（全量 30 文件/223 用例绿）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:13:46.726Z

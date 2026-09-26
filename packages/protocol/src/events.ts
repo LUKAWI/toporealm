@@ -14,8 +14,12 @@ export type TopoEvent =
       origin: Origin;
       label?: string;
     }
-  /** 客户端应全量重读 */
-  | { type: "reset"; reason: "external-edit" | "daemon-restarted" };
+  /** 客户端应全量重读（graph-switched：daemon 换载后推送，graphId = 换载后当前图，D30） */
+  | {
+      type: "reset";
+      reason: "external-edit" | "daemon-restarted" | "graph-switched";
+      graphId?: string;
+    };
 
 /** 模块命令运行（M2 起有内容；M1 daemon 无模块，恒 UNKNOWN_COMMAND） */
 export type RunResult = CommitResult;

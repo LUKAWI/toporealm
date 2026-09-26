@@ -2,7 +2,7 @@ id: p1-swap
 kind: wf.task
 payload:
   title: "p1-swap: daemon 内存换载"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: 每请求跟随 active（mtime 缓存，显式 req.graph 优先）；re-binding seam（ModuleHost 持 core 引用，换载重挂钩子/词汇观察者）；swap 与 commit/undo/redo 互斥+排空 afterQueue+取消 reconcile；失败旧图继续服务禁 SESSION_STALE；订阅迁移+reset 增 graphId/instanceId（D30/评审R1/R2/Y2/Y3）
   createdAt: 2026-09-26T10:21:09.759Z
-  updatedAt: 2026-09-26T10:21:09.759Z
+  updatedAt: 2026-09-26T12:13:49.138Z
+  startedAt: 2026-09-26T11:33:44.758Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:13:47.946Z
+    by: agent
+    note: 独立复现脚本+新增 e2e 覆盖换载/失败/跟随/钉住；typecheck+全量绿
+  completedAt: 2026-09-26T12:13:49.138Z

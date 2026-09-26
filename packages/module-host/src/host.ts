@@ -63,7 +63,14 @@ interface RegisteredCommand {
 }
 
 export class ModuleHost {
-  private constructor(private readonly core: DaemonCore) {}
+  private core: DaemonCore;
+  // R1 re-binding 登记表：换载时向新 core 重放（activate 恰好一次不变，重放的是注册面）
+  private readonly beforeCommitHooks: BeforeCommitHook[] = [];
+  private readonly afterCommitHooks: AfterCommitHook[] = [];
+
+  private constructor(core: DaemonCore) {
+    this.core = core;
+  }
 
   private readonly loaded = new Map<string, LoadedModule>();
   private readonly commands = new Map<string, RegisteredCommand>();
@@ -188,6 +195,23 @@ export class ModuleHost {
     return parseModuleManifest(dir, boundId);
   }
 
+  /**
+   * 换载 re-binding seam（1.1.0 D30/评审 R1）：把本 host 绑到新图的 core 上。
+   * 模块已 activate（恰好一次不变）；api 闭包全部经 this.core 属性读，重指即切换；
+   * 需要向新 core 重放的注册面：所有权注册表、before/after 钩子、loadedModules。
+   */
+  async attach(next: DaemonCore): Promise<void> {
+    if (next === this.core) return;
+    this.core = next;
+    for (const m of this.loaded.values()) {
+      next.registerModuleOwner(m.id, m.namespace);
+    }
+    for (const fn of this.beforeCommitHooks) next.registerBeforeCommitHook(fn);
+    for (const fn of this.afterCommitHooks) next.registerAfterCommitHook(fn);
+    next.setLoadedModules(this.loadedIds);
+    this.installVocabularyObserver();
+  }
+
   private async activateModule(
     id: string,
     manifest: ModuleManifestV2,
@@ -275,8 +299,10 @@ export class ModuleHost {
       hook: (name, fn) => {
         if (m.frozen) throw lateRegistration(m.id, `hook(${name})`);
         if (name === "before-commit") {
+          this.beforeCommitHooks.push(fn as BeforeCommitHook);
           this.core.registerBeforeCommitHook(fn as BeforeCommitHook);
         } else {
+          this.afterCommitHooks.push(fn as AfterCommitHook);
           this.core.registerAfterCommitHook(fn as AfterCommitHook);
         }
       },
