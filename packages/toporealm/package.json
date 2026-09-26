@@ -23,7 +23,7 @@
     "url": "https://github.com/LUKAWI/toporealm/issues"
   },
   "engines": {
-    "node": ">=20.6"
+    "node": ">=22"
   },
   "bin": {
     "toporealm": "./bin/toporealm.mjs",

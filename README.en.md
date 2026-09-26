@@ -12,7 +12,7 @@ Design inspired by [pi](https://github.com/badlogic/pi-mono): the smallest possi
 npm install -g @lukawi/toporealm        # two bins: toporealm (CLI) + toporeald (daemon)
 ```
 
-Requires Node ≥ 20.6. For third-party integrations, install `@lukawi/toporealm-client` on its own.
+Requires Node ≥ 22 (WS transport needs the global WebSocket). For third-party integrations, install `@lukawi/toporealm-client` on its own.
 
 ## Quick start
 

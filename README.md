@@ -12,7 +12,7 @@
 npm install -g @lukawi/toporealm        # toporealm（CLI）+ toporeald（daemon）两个 bin
 ```
 
-要求 Node ≥ 20.6。第三方集成可单独安装 `@lukawi/toporealm-client`。
+要求 Node ≥ 22（WS 传输依赖全局 WebSocket）。第三方集成可单独安装 `@lukawi/toporealm-client`。
 
 ## 快速上手
 

@@ -13,6 +13,9 @@
   "bin": {
     "toporealm": "./bin/toporealm.mjs"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "src",
     "bin",
