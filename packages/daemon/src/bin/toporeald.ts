@@ -69,6 +69,7 @@ async function main(): Promise<number> {
   }
 
   let running;
+  const staticDir = noWeb ? undefined : (resolveWebUiDist() ?? undefined);
   try {
     running = await serveDaemon({
       root,
@@ -76,7 +77,7 @@ async function main(): Promise<number> {
       idleMs,
       ...(noWeb
         ? { web: false }
-        : { web: { port: webPort, staticDir: resolveWebUiDist() ?? undefined } }),
+        : { web: { port: webPort, ...(staticDir !== undefined ? { staticDir } : {}) } }),
     });
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
@@ -98,7 +99,9 @@ async function main(): Promise<number> {
     instanceId: running.instanceId,
     graphId: running.graphId,
     startedAt: new Date().toISOString(),
-    ...(running.web !== null ? { webPort: running.web.port } : {}),
+    ...(running.web !== null
+      ? { webPort: running.web.port, webStatic: staticDir !== undefined }
+      : {}),
   });
   // D22 裁决②：web 端口被占回退临时口时如实记录（endpoint.webPort 已是实际端口）
   if (running.web?.fallbackFrom !== undefined) {

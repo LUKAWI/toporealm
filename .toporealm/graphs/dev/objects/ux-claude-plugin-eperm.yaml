@@ -1,0 +1,24 @@
+id: ux-claude-plugin-eperm
+kind: wf.task
+payload:
+  title: claude 插件载荷整仓化导致 Windows marketplace add EPERM
+  status: passed
+  definitionOfDone:
+    - marketplace source 指向自包含插件目录
+    - 插件目录内零符号链接，暂存拷贝模拟通过
+    - 蓝图 claude 打包节补记 Windows 约束
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: marketplace.json source 原为 ./（整仓即载荷）：安装阶段会全量复制 node_modules/packages；且 Windows 暂存拷贝遇 npm junction 以绝对路径 fs.symlink 重建，无开发者模式必 EPERM（用户实测）。修复：载荷收进 plugins/toporealm/ 自包含三文件，source 指向该目录；本地目录方式添加仍需开发者模式，推荐 GitHub 方式添加（clone 无 node_modules）
+  createdAt: 2026-09-26T14:35:03.400Z
+  updatedAt: 2026-09-26T14:35:59.526Z
+  startedAt: 2026-09-26T14:35:30.713Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T14:35:59.141Z
+    by: main-session
+    note: 主会话自查：载荷目录零符号链接 + verbatim 拷贝模拟通过 + 整仓拷贝复现原报错；两份 manifest JSON 校验过
+  completedAt: 2026-09-26T14:35:59.526Z

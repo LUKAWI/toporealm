@@ -662,6 +662,35 @@ ${agentSnippet()}`),
           human: `WebUI: ${url}（daemon pid ${ep.pid}，图 "${ep.graphId}"；Ctrl+C 无关紧要——daemon 常驻，toporeald 负责生命周期）`,
         };
       };
+      // D34：serve 的职责是打开 WebUI——daemon 无静态产物时明确报错，
+      // 不再打印 URL + 开浏览器让用户看白屏。老 endpoint 无 webStatic 字段
+      // 时以一次 HTTP 探测判定（200 = 有界面）。
+      const webStaticMissing = (legacy: boolean, pid: number): TopoError =>
+        new TopoError({
+          code: "WEB_STATIC_MISSING",
+          message: `daemon (pid ${pid}) 未带 WebUI 静态产物（纯 WS 模式），打开浏览器只会白屏`,
+          hint: legacy
+            ? "老 daemon 无静态产物——停止它后重试 serve（客户端会自动拉起新 daemon）"
+            : "安装的 @lukawi/toporealm 缺 web-ui 构建产物",
+          fix: "升级：npm i -g @lukawi/toporealm@latest；或设 TOPOREALM_WEB_STATIC=<web-ui dist 目录>",
+        });
+      const guardStatic = async (
+        ep: NonNullable<Awaited<ReturnType<typeof readEndpoint>>>,
+      ): Promise<void> => {
+        if (ep.webStatic === false) throw webStaticMissing(false, ep.pid);
+        if (ep.webStatic === undefined) {
+          let ok = false;
+          try {
+            const res = await fetch(`http://127.0.0.1:${ep.webPort}/`, {
+              signal: AbortSignal.timeout(3000),
+            });
+            ok = res.ok;
+          } catch {
+            ok = false;
+          }
+          if (!ok) throw webStaticMissing(true, ep.pid);
+        }
+      };
       const ep0 = await readEndpoint(root);
       if (ep0 !== null && isPidAlive(ep0.pid)) {
         if (ep0.webPort === undefined) {
@@ -671,6 +700,7 @@ ${agentSnippet()}`),
             hint: "老 daemon 不带 web；停止后重试 serve（客户端会自动拉起带 web 的新 daemon）",
           });
         }
+        await guardStatic(ep0);
         return announce({ webPort: ep0.webPort, pid: ep0.pid, graphId: ep0.graphId });
       }
       // 无 daemon（或陈旧 endpoint）：清掉重拉，拉起时传递端口诉求
@@ -685,6 +715,7 @@ ${agentSnippet()}`),
         await new Promise((r) => setTimeout(r, 150));
         const ep = await readEndpoint(root).catch(() => null);
         if (ep !== null && ep.webPort !== undefined) {
+          await guardStatic(ep);
           return announce({
             webPort: ep.webPort,
             pid: ep.pid,

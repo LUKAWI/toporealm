@@ -188,6 +188,7 @@ export interface CommandRunResult { message?: string; data?: unknown; commits?: 
 | UNKNOWN_COMMAND / INVALID_INPUT | 命令 | did-you-mean 来自目录 |
 | IF_REVISION_MISMATCH | 并发 | fix: `read <id>` 后重试 |
 | DAEMON_UNREACHABLE / SESSION_STALE | 传输 | fix: 重试（自动拉起）/ 重连 |
+| WEB_STATIC_MISSING | 传输 | serve 时 daemon 无 WebUI 静态产物可伺服；fix: 重装/升级聚合包或设 TOPOREALM_WEB_STATIC（D34） |
 
 ### 1.2 S2：模块 runtime API
 
@@ -541,6 +542,25 @@ CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃�
 - `endpoint.json` 仍居 `.toporealm/daemon/`；§3 布局中 daemon/ 的 socket 职责
   移除，socket 不再入工作区（陈旧 socket 留在 tmpdir 由 OS 清理，属主 daemon
   启动时 unlink 重绑）。
+
+### 1.10 实现期补遗（1.1.3：D34）
+
+**D34（WebUI 静态产物随 web 包分发）：web-ui 构建产物并入 @lukawi/toporealm-web，
+解析序自定位，纯 WS 模式显式化。**
+
+- 1.1.2 发布面缺陷：`@lukawi/toporealm-web` 发布时从未构建 web-ui，tarball 无
+  dist；且静态解析的缺省链第二环按 monorepo 私有名 `@toporealm/web-ui` 解析——
+  该包从未发布，全局安装下必然落空 → daemon 静默降级纯 WS 模式（GET / 空体 404，
+  浏览器白屏），serve 却照常打印 URL。
+- **修法**：① web 包 `prepack` 构建 web-ui 并把 `dist/` 复制进包内（files 已含
+  dist）；② 解析序改为 `TOPOREALM_WEB_STATIC` > 本包自带 `../dist`（相对
+  static.ts 自定位，发布面命中）> 工作区内 `@toporealm/web-ui`（开发仓库命中）；
+  ③ 守卫：`endpoint.json` 增加 `webStatic` 布尔（daemon 写入），serve 在纯 WS
+  模式下不再打印 URL/开浏览器，改抛 `WEB_STATIC_MISSING`（错误码封闭集新增）；
+  无静态处理器时 GET / 返回 503 说明文本；对无 `webStatic` 字段的老 daemon，
+  serve 以一次 HTTP 探测判定（200 = 有界面）。
+- API 面（`/api/graphs`、`/api/graphs/:id/snapshot`、`/ws`）不依赖静态产物，
+  纯 WS 模式下照常服务（`--no-web` 才是完整关闭）。
 
 ---
 

@@ -13,6 +13,9 @@
     "src",
     "dist"
   ],
+  "scripts": {
+    "prepack": "node ../../scripts/pack-web-dist.mjs"
+  },
   "dependencies": {
     "@lukawi/toporealm-daemon-core": "1.1.2",
     "@lukawi/toporealm-module-host": "1.1.2",

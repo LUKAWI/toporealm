@@ -26,6 +26,8 @@ export const TOPO_ERROR_CODES = [
   // 传输
   "DAEMON_UNREACHABLE",
   "SESSION_STALE",
+  // web 伺服（D34：serve 时 daemon 无 WebUI 静态产物）
+  "WEB_STATIC_MISSING",
 ] as const;
 
 export type TopoErrorCode = (typeof TOPO_ERROR_CODES)[number];

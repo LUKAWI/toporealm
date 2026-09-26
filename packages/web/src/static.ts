@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 // ---------- 静态产物伺服（D22 裁决②）：web-ui 构建产物 + SPA 回退 ----------
@@ -22,12 +23,32 @@ const MIME: Record<string, string> = {
   ".wasm": "application/wasm",
 };
 
-/** web-ui 构建产物目录解析：TOPOREALM_WEB_STATIC > workspace 内 web-ui/dist；找不到 = null（纯 WS 模式） */
-export function resolveWebUiDist(env: NodeJS.ProcessEnv = process.env): string | null {
+/**
+ * web-ui 构建产物目录解析（D34 解析序）：
+ * TOPOREALM_WEB_STATIC > 本包自带 dist（发布面：web-ui 构建产物随包分发）
+ * > 工作区内 @toporealm/web-ui/dist（开发仓库）；都找不到 = null（纯 WS 模式）。
+ * bases 参数供测试注入，缺省从模块自身与 node 解析链推导。
+ */
+export function resolveWebUiDist(
+  env: NodeJS.ProcessEnv = process.env,
+  bases: { selfDist?: string; workspaceDist?: string | null } = {},
+): string | null {
   const fromEnv = env.TOPOREALM_WEB_STATIC;
   if (fromEnv !== undefined && fromEnv !== "") {
     return path.resolve(fromEnv);
   }
+  const selfDist = bases.selfDist ?? defaultSelfDist();
+  if (fs.existsSync(selfDist)) return selfDist;
+  return bases.workspaceDist !== undefined ? bases.workspaceDist : defaultWorkspaceDist();
+}
+
+/** 本包自带产物：static.ts 位于 <pkg>/src/，产物在 <pkg>/dist（发布面命中位） */
+function defaultSelfDist(): string {
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "dist");
+}
+
+/** 开发仓库命中位：按 monorepo 工作区名解析 web-ui 包，取其 dist */
+function defaultWorkspaceDist(): string | null {
   try {
     const req = createRequire(import.meta.url);
     const pkgPath = req.resolve("@toporealm/web-ui/package.json");

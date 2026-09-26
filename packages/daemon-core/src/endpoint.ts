@@ -16,6 +16,8 @@ export interface DaemonEndpointInfo {
   startedAt: string;
   /** web 伺服端口（D22：HTTP 静态 + /ws；缺省 = 老 endpoint 或未开 web） */
   webPort?: number;
+  /** web 是否带静态产物（D34：false = 纯 WS 模式，serve 据此拒绝开浏览器；缺省 = 老 daemon 未知，由 serve 探测） */
+  webStatic?: boolean;
 }
 
 export function endpointFile(root: string): string {

@@ -67,7 +67,12 @@ export async function startWebServer(
       return;
     }
     if (!serveStatic) {
-      res.writeHead(404).end();
+      // D34：纯 WS 模式不装哑巴——明确告知为何没有界面（API/WS 不受影响）
+      res
+        .writeHead(503, { "content-type": "text/plain; charset=utf-8" })
+        .end(
+          "WebUI static assets not found — reinstall/upgrade @lukawi/toporealm, or set TOPOREALM_WEB_STATIC to a web-ui/dist directory. /api/* and /ws keep working.",
+        );
       return;
     }
     void serveStatic(req, res).then((handled) => {
