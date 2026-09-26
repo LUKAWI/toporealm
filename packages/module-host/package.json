@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-module-host",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "TopoRealm 1.0 module host: discovery/loading (module.yaml v2 + modules.yaml bindings), dependency topo-sort, activate scheduling, registration freeze, catalog aggregation, command dispatch. Depends only on daemon-core pipeline entry + protocol.",
   "license": "MIT",
   "type": "module",
@@ -14,8 +14,8 @@
     "dist"
   ],
   "dependencies": {
-    "@lukawi/toporealm-daemon-core": "1.1.2",
-    "@lukawi/toporealm-protocol": "1.1.2",
+    "@lukawi/toporealm-daemon-core": "1.1.3",
+    "@lukawi/toporealm-protocol": "1.1.3",
     "yaml": "^2.8.1"
   },
   "publishConfig": {

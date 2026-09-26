@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-web",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "TopoRealm 1.0 web seam inside the daemon: HTTP static hosting (web-ui build) + WS endpoint reusing the IPC wire envelope and the same event fanout (blueprint §2/§5, D22).",
   "license": "MIT",
   "type": "module",
@@ -17,9 +17,9 @@
     "prepack": "node ../../scripts/pack-web-dist.mjs"
   },
   "dependencies": {
-    "@lukawi/toporealm-daemon-core": "1.1.2",
-    "@lukawi/toporealm-module-host": "1.1.2",
-    "@lukawi/toporealm-protocol": "1.1.2",
+    "@lukawi/toporealm-daemon-core": "1.1.3",
+    "@lukawi/toporealm-module-host": "1.1.3",
+    "@lukawi/toporealm-protocol": "1.1.3",
     "ws": "^8.21.3"
   },
   "devDependencies": {

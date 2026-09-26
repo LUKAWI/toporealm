@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.3 - 2026-09-26
+
+- **fix(web)：WebUI 白屏根修（blueprint §1.10 D34）**——1.1.2 的
+  `@lukawi/toporealm-web` tarball 从未包含 web-ui 构建产物，且缺省解析按 monorepo
+  私有名 `@toporealm/web-ui`（npm 上不存在）定位：全局安装必落空 → daemon 静默
+  降级纯 WS 模式（GET / 空体 404）而 serve 照常开浏览器——用户看到白屏。修法：
+  ① web 包 `prepack` 构建 web-ui 并复制 `dist/` 入包（`scripts/pack-web-dist.mjs`）；
+  ② 静态目录解析序 `TOPOREALM_WEB_STATIC` > 本包自定位 `../dist` > 工作区 `web-ui/`；
+  ③ 守卫：`endpoint.json` 新增 `webStatic` 布尔，serve 纯 WS 模式抛
+  `WEB_STATIC_MISSING`（错误码新增）且不开浏览器，无静态处理器时 GET / 返回 503
+  说明文本；老 endpoint（无 `webStatic` 字段）以一次 HTTP 探测判定。
+- 面向用户：全局安装 `toporealm serve` 现在能直接打开 WebUI 界面，白屏问题升级即修。
+
 ## 1.1.2 - 2026-09-26
 
 - **fix(daemon)：unix socket 短路径修复（blueprint §1.9 D33）**——1.1.0 在 macOS/Linux
