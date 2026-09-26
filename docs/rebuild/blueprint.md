@@ -379,6 +379,145 @@ FormSpec 如何过缝到达 WebUI、0.x `manifest.meta` 死亡后图级档位放
    上抛，归 wire 层 `DAEMON_UNREACHABLE`（真 daemon 内部错误）。模块作者的错误语言
    因此仍是封闭集（§1.1 只增不改义），无需为此引入运行时依赖。
 
+### 1.8 规划期补遗（1.1.0：D25–D32）
+
+> 1.1.0 规划裁决（grilling 会话 2026-09-26，经对抗性架构评审后全量采纳）。
+> 完整论证与源码证据见 `docs/rebuild/decisions-110.md`；ADR-0007（作用域模型）、
+> ADR-0008（宿主技能分发）为其中两条架构级决策的正式化。本文以下正文（§2–§9）
+> 仍描述 1.0 形态，1.1.0 以本节为准。
+
+**D25（兼容性立场）：1.1.0 直接破坏。** 动词改名不留旧名、布局变更不做迁移工具、
+CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃——真实用户基数≈0。
+红线「CLI 语法破坏性变更必须升版本」以 1.1.0 满足。`@lukawi/toporealm-client` 的
+`^1.0.0` 依赖会随升级 break，README 声明。
+
+**D26（双层工作区）：全局目录 + 项目目录 + 显式 init。**
+
+- 全局目录 `~/.toporealm/`（`TOPOREALM_HOME` 可覆盖，测试注入）：**CLI 惰性确保创建**
+  （`init` / `module add --global` / 首次触达全局池时），**不用 npm postinstall**
+  （`--ignore-scripts`/pnpm/CI 下不保证执行，且无增量价值——评审 Y6）。
+  内容 = 全局模块池 `modules/<id>/`，目录即注册，来源记录沿用 `.toporealm-source.json`。
+- 项目目录 `<root>/.toporealm/`：图存储收编为 `.toporealm/graphs/<图名>/`
+  （多图结构与 `active` 指针照旧，纯挪位）；`daemon/` 照旧。
+- 显式 `toporealm init`：建项目工作区；`AGENTS.md` 不存在则生成、已存在则打印建议
+  片段**不自动改**（用户文件永不触碰），内容为提示 agent 读 toporealm 技能。
+- **`modules.yaml` 收缩（评审 R3）**：项目池/全局池 = 目录即注册；`source: path`
+  绑定是 `modules.yaml` 的**唯一剩余职责**（模块作者开发期工作流 + 测试 fixture
+  接缝，三套测试依赖此机制）。语义三分：`workspace`（池内安装）→ 由目录存在性
+  表达；`global` → 由全局池目录表达；`path` → 仍写绑定文件。
+- `help` 与 `module list` 输出回显解析后的全局根与项目根实际路径（TOPOREALM_HOME
+  与 TOPOREALM_ROOT 正交但易混）。
+
+**D27（作用域模型）：装了就生效，项目遮蔽全局。**（ADR-0007）
+
+- 模块集 = 全局池 ∪ 项目池 ∪ path 绑定，**无第三步启用动作**；1.0「图级启用」废除
+  （实现本就是 root 级全量装载，graph.yaml `modules` 列表仅记录）。
+- 项目装同 id 模块**遮蔽**全局；不做项目级排除；命名空间冲突靠现有执法大声报错。
+- graph.yaml 删除 `modules` 字段，清单格式升 **`toporealm.graph/v3`**；1.0 v2 图
+  无自动迁移路径（仅 dogfood 自举的一次性手工路径，见 D31）。
+- **模块集 digest（评审 Y1）**：哈希**遮蔽解析后的有效集**——sha256(排序的
+  `pool:id@version`，pool ∈ global|project|path，version 取 module.yaml)。禁止
+  哈希 id 并集（遮蔽换血不触发过期）或文件原文（目录即注册后无原文）。
+- **requires.modules 跨池联合解析**；依赖被遮蔽时发装载 warning（requires 无版本
+  约束，静默换版风险要点名）。
+- **global 池坏模块（清单损坏）= 跳过 + warning**，不毒死所有工作区的 daemon
+  （1.0 对 global 来源已有先例）；项目池坏模块仍大声失败。warning 必须上浮到
+  `status`/`module list`。
+
+**D28（宿主技能分发）：池即唯一存储 + 原生通道读取。**（ADR-0008）
+
+- 模块技能文件只存在于池中（零拷贝、零投影再生）；toporealm 不写任何宿主自有目录
+  （`~/.claude`、`.pi`、`.agents`）。**`host sync` 动词与整套投影机器删除**。模块
+  作者义务收缩为：按 Agent Skills 标准带 `skills/` 目录。
+- **claude code**：基座 marketplace 插件（仓库根声明，一次性 `claude plugin
+  marketplace add LUKAWI/toporealm` + install）。插件纯静态：基座 CLI 技能 +
+  SessionStart 钩子。钩子运行 `toporealm skills index`（stdout 注入会话上下文）：
+  扫描两池各模块 `skills/`，读 SKILL.md frontmatter，逐行输出
+  「技能名 · 所属模块 · 一句话描述 · 绝对路径」；agent 按需 Read 全文（渐进披露
+  两阶段复刻）。索引按当前工作区解析链生成 → 项目模块技能只在本项目会话出现。
+- **pi**：主聚合包加 `pi` 字段（`pi.extensions` 指向内置扩展），`pi install
+  npm:@lukawi/toporealm` 一次性全局生效；扩展订阅 `resources_discover` 返回池内
+  skills 目录 + 基座技能目录作为 `skillPaths`——pi 原生发现注册，文件仍只在池中。
+- **skills index 硬约束（评审 Y4）**：① 纯文件层，**绝不拉起 daemon**；无工作区 =
+  空输出 exit 0。② 坏 frontmatter / 缺 SKILL.md / 超大（>256KB）→ 跳过该技能
+  （索引不是注册面，容错优先）。③ 跨模块重名技能**并列输出**靠模块列消歧，不静默
+  去重。④ 无技能时输出空；CLI 不在 PATH 时钩子命令兜底静默（跨平台 shell 语义
+  在 hooks.json 里写死），不产生会话启动噪音。⑤ cwd 在子目录 = 索引为空（与 CLI
+  root 语义一致），init 生成的提示写明「会话须在仓库根启动」。
+- 实测依据：claude/ZCode skills 扫描严格一层（`.agents`/`.claude` 同规则，池内
+  深层与 skills 内嵌套均不可见，2026-09-26 真实目录试验）；pi `resources_discover`
+  可贡献 skillPaths（扩展 API 实证）。pi 侧多 skillPaths 重名技能的原生行为未验证
+  （P2 实测，必要时扩展侧消歧）。
+
+**D29（CLI 动词面）：破坏性改齐，无别名。**
+
+- 改名：`new` → **`creategraph`**；`version` 子命令删除，新增 **`--version`** 旗标。
+- 新增：`init`；`module add/rm` 的 **`--global`**；**`skills index`**。
+- 删除：`host sync`。
+- 不变：`use`/`graphs`/`status`/`read`/`find`/`add`/`set`/`link`/`rm`/`undo`/`redo`/
+  `log`/`cmds`/`serve`/`migrate`（migrate 输出落 `.toporealm/graphs/`，1.1 起产 v3）。
+- `module list` 分全局/项目两段 + 标注遮蔽与损坏；重复 add 语义同 1.0
+  （`ID_EXISTS`，更新 = rm + add）。
+- P1 全量扫描改名波及面：错误 fix/hint 文案中的 `toporealm new`（workspace.ts 等）、
+  usage.ts、golden 信封测试。
+
+**D30（多图专注）：工作区单数 + daemon 内存换载 + WebUI 静态预览。**
+
+- 一次一图不变。切图 = **内存换载**，语义（评审 R2 钉死）：
+  - **跟随机制（评审 Y3，简化定案）**：daemon 在**每个请求入口**检查 active 指针
+    （mtime 缓存）——显式 `req.graph` 优先，省略则跟随 active。CLI 与 WebUI 统一
+    跟随，无握手特判、无触发盲区。
+  - 换载在请求处理内**串行**完成（受客户端 connect deadline 约束）；成功返回新
+    graphId/revision；失败（图不存在/损坏）返回 `GRAPH_NOT_FOUND`/`INVALID_INPUT`
+    且**旧图继续服务**——禁止 SESSION_STALE（客户端会等一个永不退出的 pid 然后
+    重拉第二个 daemon 互踩）。
+  - **SESSION_STALE 保留给模块集 digest 变化**（daemon 自旋退出的现有路径不动）。
+  - **换载互斥（评审 Y2）**：swap 与 commit/undo/redo 异步互斥；等待 after-commit
+    队列排空；取消外部编辑 reconcile 计时器后再切。
+  - **re-binding seam（评审 R1）**：ModuleHost 的命令/钩子闭包硬绑定构造时的
+    DaemonCore（host.ts:67,296-315）——换载禁止新建 core 后直接复用模块（会向旧图
+    落盘）；ModuleHost 改持 core 引用（间接层），换载时向新 core 重挂
+    钩子/词汇观察者并 `setLoadedModules`；**activate 恰好一次的冻结语义不变**。
+  - **订阅迁移**：事件订阅随 re-binding 迁移并向所有连接广播 reset；reset 事件
+    增补可选 `graphId`/`instanceId` 载荷（protocol 增量扩展）。
+- **专注的唯一改变者 = `use`**：解析链 `--graph` > `TOPOREALM_GRAPH` > active 不变；
+  输出回显「选定图： X（之前 Y）」+ `export TOPOREALM_GRAPH=X` 提示行；所有写命令
+  人类输出回显当前图名。多终端 `TOPOREALM_GRAPH` 指向不同图 = 每命令换载（换载已
+  便宜，不做滞回）。
+- **WebUI**：专注图 = 实时编辑器（自动跟随）；其它图 = **静态预览**（新只读端点：
+  图枚举——扫 `.toporealm/graphs/`；图快照——直接读该图 graph.yaml/objects/
+  relations 渲染，不载入 core；快照读撞上非原子写 = 明确报错，不重试不缓存）。
+  预览页标注「只读预览 · 当前编辑图是 X · 切换执行 `toporealm use <id>`」。
+  **1.1.0 不提供 UI 切换按钮**（专注切换保持 CLI 唯一入口）。
+- **并编两张图明确不支持**；将来确有需求演进 per-graph daemon（endpoint 按
+  (root, graph) 定址，已论证可行）。范围澄清（评审 B7）：「core 零改动」仅指提交
+  管线与执法面；v3 manifest 触及 store/core 的 manifest 读写，re-binding 触及
+  module-host。
+
+**D31（dogfood）：仓库根 init + 单图 dev + 1.0.0 语法起步。**
+
+- P0 用 1.0.0 全局 CLI + npm 安装的 workflow 模组建图录任务（`new` + `module add`）；
+  daemon 运行时文件 gitignore，图文件与 `.log` 入库（`daemon/`、`modules/`、
+  `active` 不入库，clone 后 init/use 引导补齐——评审 B5）。
+- **P1 首步 = dogfood 自举迁移（评审 Y5）**：杀 1.0 daemon →
+  `git mv graphs/dev .toporealm/graphs/dev` → 手改 graph.yaml（format→v3、删
+  modules 行）→ dev 版 CLI 验证。1.0 v2 图仅此一条手工路径，CHANGELOG 注明。
+
+**D32（评审采纳杂项）**：host sync 删除后 1.0 投影残留（`.pi/skills/`、
+`.toporealm/hosts/`、`.toporealm-sync.json`）在 P2 文档给手工清理说明；静态预览
+读端点在 daemon 进程内，不违反单属主红线。
+
+**1.1.0 阶段划分**（P0–P3，取代 §9 对 1.1.0 的适用性）：
+
+- **P0 dogfood 起步**（1.0.0 语法）：仓库根建图装模组录任务（含 D31 自举迁移条目）。
+- **P1 地基**：全局目录/布局挪位/manifest v3/双池装载与 digest/内存换载全套/
+  use 增强与写命令回显/web 图枚举+快照端点与静态预览 UI/动词面改造/测试全量更新。
+- **P2 分发**：skills index → claude marketplace 插件 → 主包 pi 化 → init 提示
+  → workflow 仓库 skills/ 对齐核查 → 1.0 投影残留清理说明。
+- **P3 文档与发布**：blueprint 正文各节按 1.1.0 收敛（本补遗并入正文）/ CONTEXT.md
+  术语 / CHANGELOG（breaking）/ README → 版本对齐 1.1.0 → 发布（npm + marketplace
+  验证）。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
