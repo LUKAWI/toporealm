@@ -2,7 +2,7 @@ id: p1-web-preview
 kind: wf.task
 payload:
   title: "p1-web-preview: web 图枚举+快照端点与静态预览 UI"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: daemon 扫 .toporealm/graphs/ 列图；快照端点直读未装载图（撞非原子写明确报错不重试，评审B3）；UI 侧栏+只读预览页（标注当前编辑图与 use 提示）；不提供 UI 切换按钮（D30）
   createdAt: 2026-09-26T10:21:10.680Z
-  updatedAt: 2026-09-26T10:21:10.680Z
+  updatedAt: 2026-09-26T12:25:07.367Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:25:06.179Z
+    by: agent
+    note: web-ui jsdom 测试全绿
+  startedAt: 2026-09-26T12:25:03.710Z
+  completedAt: 2026-09-26T12:25:07.367Z

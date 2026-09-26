@@ -22,6 +22,27 @@
 
   let openFlyout = $state<"modules" | "raw" | null>(null);
 
+  // ── 静态预览（1.1.0 D30）：非当前图只读快照 ──
+  const previewing = $derived(store.previewGraphId !== "" && store.previewData !== null);
+  const currentGraphId = $derived(store.snapshot?.graphId ?? "");
+  const selectedGraphId = $derived(store.previewGraphId || currentGraphId);
+  const previewKinds = $derived.by(() => {
+    const entities = store.previewData?.entities ?? [];
+    const byKind = new Map<string, { id: string; payload?: Record<string, unknown> }[]>();
+    for (const e of entities) {
+      const list = byKind.get(e.kind) ?? [];
+      list.push(e);
+      byKind.set(e.kind, list);
+    }
+    return [...byKind.entries()].sort(([a], [b]) => a.localeCompare(b));
+  });
+
+  function onGraphSelect(event: Event): void {
+    const id = (event.currentTarget as HTMLSelectElement).value;
+    if (id === currentGraphId) store.closePreview();
+    else void store.openPreview(id);
+  }
+
   /** 搜索 Enter：选中并居中首个命中对象（与参考同语言）。 */
   function searchKeydown(event: KeyboardEvent): void {
     if (event.key !== "Enter") return;
@@ -77,6 +98,19 @@
           </span>
         {/if}
       </div>
+      {#if store.graphsList.length > 0}
+        <select
+          class="graph-select"
+          value={selectedGraphId}
+          onchange={onGraphSelect}
+          aria-label="切换 / 预览工作区图"
+          title="切换 / 预览工作区图"
+        >
+          {#each store.graphsList as g (g.id)}
+            <option value={g.id}>{g.id}{g.current ? "（编辑中）" : ""}</option>
+          {/each}
+        </select>
+      {/if}
     </div>
 
     {#if store.snapshot}
@@ -132,6 +166,36 @@
 
   <!-- ── 主区：画布舞台 + 工具轨 ── -->
   <main class="main">
+    {#if previewing && store.previewData}
+      <div class="preview-pane" role="region" aria-label="图静态预览">
+        <div class="preview-banner">
+          <span class="preview-tag">只读预览</span>
+          <span class="preview-title">{store.previewData.graphId} · r{store.previewData.revision} · {store.previewData.entities.length} 实体</span>
+          <span class="preview-hint">当前编辑图是 {currentGraphId} · 切换执行 <code>toporealm use {store.previewData.graphId}</code></span>
+          <button class="preview-close" onclick={() => store.closePreview()} aria-label="关闭预览">返回编辑</button>
+        </div>
+        <div class="preview-body">
+          {#each previewKinds as [kind, list] (kind)}
+            <section class="preview-kind">
+              <h4 class="preview-kind-title">{kind} <span class="preview-kind-n">{list.length}</span></h4>
+              <ul class="preview-list">
+                {#each list as entity (entity.id)}
+                  <li class="preview-item">
+                    <code class="preview-id">{entity.id}</code>
+                    {#if typeof entity.payload?.title === "string"}
+                      <span class="preview-label">{entity.payload.title}</span>
+                    {/if}
+                  </li>
+                {/each}
+              </ul>
+            </section>
+          {/each}
+          {#if store.previewData.entities.length === 0}
+            <p class="preview-empty">（空图）</p>
+          {/if}
+        </div>
+      </div>
+    {/if}
     {#if store.loading && !store.snapshot}
       <div class="loading-state">
         <div class="skeleton-graph">
@@ -1151,4 +1215,63 @@
       transform: none;
     }
   }
+
+  /* ── 静态预览（1.1.0 D30） ── */
+  .graph-select {
+    margin-left: 12px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--edge-faint, rgba(255, 255, 255, 0.12));
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    font-size: 12px;
+  }
+  .preview-pane {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 12, 18, 0.92);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+  }
+  .preview-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(245, 158, 11, 0.08);
+  }
+  .preview-tag {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.25);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .preview-title { font-size: 13px; font-weight: 600; }
+  .preview-hint { font-size: 12px; opacity: 0.75; }
+  .preview-hint code { padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
+  .preview-close {
+    margin-left: auto;
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .preview-close:hover { background: rgba(255, 255, 255, 0.08); }
+  .preview-body { overflow: auto; padding: 16px 20px; flex: 1; }
+  .preview-kind { margin-bottom: 18px; }
+  .preview-kind-title { font-size: 13px; margin: 0 0 6px; opacity: 0.9; }
+  .preview-kind-n { opacity: 0.5; font-weight: 400; }
+  .preview-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .preview-item { font-size: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.04); }
+  .preview-id { opacity: 0.7; margin-right: 8px; }
+  .preview-label { opacity: 0.9; }
+  .preview-empty { opacity: 0.6; font-size: 12px; }
 </style>

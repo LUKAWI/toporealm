@@ -1,0 +1,9 @@
+id: rep-wp-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-web-preview
+  summary: web 伺服新增只读预览 API：GET /api/graphs（扫 .toporealm/graphs 枚举+current 标记）与 GET /api/graphs/:id/snapshot（当前图走现役 core，其它图临时 watch:false 内核直读，失败明确 404 不重试——B3）；web-ui：顶栏图切换下拉（store.graphsList + refreshGraphs）、preview 覆盖层（banner「只读预览·当前编辑图是 X·切换执行 use」+按 kind 分组实体清单）、reset(graph-switched) 时清预览+刷新列表；无 UI 切换按钮（专注切换 CLI 唯一入口）；全量 223 绿
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:25:04.930Z

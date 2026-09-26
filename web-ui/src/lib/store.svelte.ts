@@ -85,6 +85,12 @@ export class WebGraphStore {
   private unsubscribe: (() => void) | null = null;
   private reloading = false;
   private session: Session | null = null;
+  /** 1.1.0 D30：工作区图列表（静态预览用；/api/graphs） */
+  graphsList: { id: string; label?: string; revision: number; current: boolean }[] = [];
+  /** 静态预览态：非当前图的只读快照（"" = 预览关闭） */
+  previewGraphId = "";
+  previewData: { graphId: string; revision: number; entities: { id: string; kind: string; payload?: Record<string, unknown> }[] } | null = null;
+  previewLoading = false;
 
   /** 会话来源（测试注入缝）；缺省 = 浏览器同源 WS（D22）。 */
   provider: () => Promise<Session> = async () => new WsClient().connect();
@@ -139,11 +145,53 @@ export class WebGraphStore {
       this.catalog = catalog;
       this.recovery = null;
       this.connectEvents();
+      void this.refreshGraphs();
     } catch (cause) {
       this.error = cause instanceof Error ? cause.message : "图快照读取失败";
     } finally {
       this.loading = false;
     }
+  }
+
+  /** 图列表刷新（静态预览侧栏数据源；API 缺席时静默为空，不阻塞主流程） */
+  async refreshGraphs(): Promise<void> {
+    try {
+      const res = await fetch("/api/graphs");
+      if (!res.ok) return;
+      const body = (await res.json()) as { graphs: typeof this.graphsList };
+      this.graphsList = body.graphs;
+    } catch {
+      /* 静默：预览是增强能力 */
+    }
+  }
+
+  /** 打开其它图的只读静态预览（即时快照；不实时同步、不可编辑、无撤销） */
+  async openPreview(id: string): Promise<void> {
+    if (id === this.snapshot?.graphId) {
+      this.closePreview();
+      return;
+    }
+    this.previewLoading = true;
+    this.previewGraphId = id;
+    try {
+      const res = await fetch(`/api/graphs/${encodeURIComponent(id)}/snapshot`);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `图 "${id}" 不可读`);
+      }
+      this.previewData = (await res.json()) as typeof this.previewData;
+    } catch (cause) {
+      this.previewGraphId = "";
+      this.previewData = null;
+      this.error = cause instanceof Error ? cause.message : "预览读取失败";
+    } finally {
+      this.previewLoading = false;
+    }
+  }
+
+  closePreview(): void {
+    this.previewGraphId = "";
+    this.previewData = null;
   }
 
   /** ReadResult（扁平 entities）→ GraphSnapshot（对象/关系分桶，blueprint §1）。 */
@@ -259,7 +307,11 @@ export class WebGraphStore {
       return;
     }
     if (event.type === "reset") {
-      // 外部编辑 / daemon 重启：目录缓存作废，全量重读自愈（blueprint §5）
+      // 外部编辑 / daemon 重启 / 换载跟随：目录缓存作废，全量重读自愈（blueprint §5）
+      if (event.reason === "graph-switched") {
+        this.closePreview();
+        void this.refreshGraphs();
+      }
       void this.reloadFromEvent(
         event.reason === "external-edit" ? "已采纳外部编辑，读取完整快照。" : "daemon 已重启，目录缓存作废并重新读取。",
       );

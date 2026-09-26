@@ -1,4 +1,12 @@
 import http from "node:http";
+import fsp from "node:fs/promises";
+import path from "node:path";
+import {
+  DaemonCore,
+  graphPaths,
+  loadManifest,
+  workspacePaths,
+} from "@lukawi/toporealm-daemon-core";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   type IpcMessage,
@@ -43,7 +51,22 @@ export async function startWebServer(
     : null;
 
   const server = http.createServer((req, res) => {
-    if (!serveStatic || req.url?.startsWith("/ws")) {
+    const url = req.url ?? "/";
+    if (url.startsWith("/ws")) {
+      res.writeHead(426).end();
+      return;
+    }
+    // 1.1.0 D30：只读预览 API——图枚举 + 图快照（其它图的静态预览数据源）
+    if (url === "/api/graphs" && req.method === "GET") {
+      void handleGraphsList(req, res, opts.runtime);
+      return;
+    }
+    const snapMatch = /^\/api\/graphs\/([^/]+)\/snapshot$/.exec(url);
+    if (snapMatch && req.method === "GET") {
+      void handleGraphSnapshot(req, res, opts.runtime, decodeURIComponent(snapMatch[1] ?? ""));
+      return;
+    }
+    if (!serveStatic) {
       res.writeHead(404).end();
       return;
     }
@@ -138,3 +161,80 @@ function listenHttp(server: http.Server, p: number): Promise<number> {
 
 /** 类型自检：wire 消息（响应/推送）在 WS 上是纯 JSON 帧 */
 export type WebWireMessage = IpcMessage;
+
+
+// ---------- 只读预览 API（1.1.0 D30） ----------
+
+function json(res: http.ServerResponse, code: number, body: unknown): void {
+  res.writeHead(code, { "content-type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(body));
+}
+
+async function handleGraphsList(
+  _req: http.IncomingMessage,
+  res: http.ServerResponse,
+  runtime: { current(): { core: DaemonCore } },
+): Promise<void> {
+  try {
+    const core = runtime.current().core;
+    const ws = workspacePaths(core.root);
+    let names: string[] = [];
+    try {
+      names = (await fsp.readdir(ws.graphsDir)).filter((n) => !n.startsWith("."));
+    } catch {
+      /* 无 graphs 目录 = 空列表 */
+    }
+    const graphs: { id: string; label?: string; revision: number; current: boolean }[] = [];
+    for (const id of names.sort()) {
+      try {
+        const m = await loadManifest(graphPaths(core.root, id));
+        graphs.push({
+          id,
+          ...(m.label !== undefined ? { label: m.label } : {}),
+          revision: m.revision,
+          current: id === core.graphId,
+        });
+      } catch {
+        /* 非 graph 目录跳过 */
+      }
+    }
+    json(res, 200, { graphs });
+  } catch (err) {
+    json(res, 500, { error: String(err) });
+  }
+}
+
+async function handleGraphSnapshot(
+  _req: http.IncomingMessage,
+  res: http.ServerResponse,
+  runtime: { current(): { core: DaemonCore } },
+  graphId: string,
+): Promise<void> {
+  let temp: DaemonCore | null = null;
+  try {
+    const current = runtime.current().core;
+    let core = current;
+    if (graphId !== current.graphId) {
+      // 其它图：临时只读内核（不监视、不落盘）；读取失败（不存在/损坏）→ 明确报错，不重试（B3）
+      try {
+        temp = await DaemonCore.open({ root: current.root, graphId, watch: false });
+      } catch {
+        json(res, 404, { error: `图 "${graphId}" 不存在或不可读` });
+        return;
+      }
+      core = temp;
+    }
+    const read = core.read({});
+    const body = {
+      graphId: core.graphId,
+      revision: read.revision,
+      current: graphId === current.graphId,
+      entities: read.entities,
+    };
+    json(res, 200, body);
+  } catch (err) {
+    json(res, 500, { error: String(err) });
+  } finally {
+    if (temp !== null) temp.dispose();
+  }
+}
