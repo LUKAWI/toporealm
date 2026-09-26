@@ -1,8 +1,10 @@
 # TopoRealm 项目状态
 
-状态快照：2026-09-23。
+状态快照：2026-09-26。
 
-## 当前阶段：1.0.0 已发布（2026-09-23，npm + GitHub Release；web-ui 按既定边界保持 private）
+## 当前阶段：1.1.0 已发布（2026-09-26，npm + GitHub Release tag 1.1.0；cli/聚合包 1.1.1 补丁）
+
+1.1.0（blueprint §1.8 D25–D32，ADR-0007/0008）：双层工作区（~/.toporealm 全局池 + 项目 .toporealm 收编图存储）、作用域模型（装了就生效，项目遮蔽全局，manifest v3）、宿主技能池分发（claude marketplace 插件 + pi 包，删 host sync）、daemon 内存换载 + WebUI 静态预览、动词面改齐（creategraph/init/skills index/--version）。发布门（陌生环境建图全流程）验收通过；dogfood 全程由 workflow 模组管理（dev 图，P0–P3 全部 passed，证据在 .toporealm/graphs/dev）。遗留：quick 级 UX/缺陷记录在 dev 图（Argv flag 顺序纪律、wf.* 帮助键名 schema 等）。
 
 发布前补齐：聚合包 `@lukawi/toporealm`（blueprint §2 发布物）、cli/daemon 的 tsx 运行时依赖、
 README 发布形态重写（中/英）；真实浏览器人工验收已执行并通过（无刷新实时同步 / 外部编辑自愈 /
