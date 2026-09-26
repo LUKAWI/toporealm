@@ -25,5 +25,5 @@ jobs:
             package-lock.json
             web-ui/package-lock.json
       - run: npm ci
-      - run: npm --prefix web-ui ci
-      - run: npm run verify
+      - run: npm run typecheck
+      - run: npm test
