@@ -728,9 +728,9 @@ ${agentSnippet()}`),
       const a = new Argv(args.slice(1));
       const root = g.root ?? defaultRoot(deps);
       if (sub === "add") {
+        const global = a.flag("--global"); // 先吃 flag 再取位置参数（flag 查询会摘除 token）
         const source = a.positionals()[0];
-        if (!source) throw new UsageError("用法：toporealm module add <npm包|路径>");
-        const global = a.flag("--global");
+        if (!source) throw new UsageError("用法：toporealm module add [--global] <npm包|路径>");
         const r = await installModule({ root, source, global });
         const origin = r.origin.type === "npm" ? `npm:${r.origin.spec}` : `path:${r.origin.path}`;
         return {
@@ -739,9 +739,10 @@ ${agentSnippet()}`),
         };
       }
       if (sub === "rm") {
+        const global = a.flag("--global"); // 先吃 flag 再取位置参数
         const id = a.positionals()[0];
         if (!id) throw new UsageError("用法：toporealm module rm [--global] <id>");
-        const r = await removeModule({ root, id, global: a.flag("--global") });
+        const r = await removeModule({ root, id, global });
         return {
           envelope: { ok: true, data: r },
           human: `removed ${r.id}\n  ${r.note}`,

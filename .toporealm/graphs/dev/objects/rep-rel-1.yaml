@@ -1,0 +1,9 @@
+id: rep-rel-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p3-release
+  summary: npm publish 依赖序完成：10 包全部 1.1.0；陌生环境验收首跑抓出发布阻断 bug：module add --global 的 flag 查询顺序在 positionals 之后，--global 被当包名传给 npm pack——已修复
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:54:55.411Z

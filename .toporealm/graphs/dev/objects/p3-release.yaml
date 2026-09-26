@@ -11,3 +11,9 @@ payload:
   plan: npm publish 依赖序（发布证据材料模式复用）；claude marketplace add→install 远端验证；GitHub Release（P3）
   createdAt: 2026-09-26T10:21:16.006Z
   updatedAt: 2026-09-26T10:21:16.006Z
+  verification:
+    source: self
+    verdict: pending
+    at: 2026-09-26T12:54:56.650Z
+    by: agent
+    note: 发布完成；验收在修复后重跑
