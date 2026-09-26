@@ -1,0 +1,9 @@
+id: rep-ts-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-tests
+  summary: P1 测试收口：各代际随做更新后全量 30 文件/214 用例绿 + typecheck 9 包绿；fixture 全部 v3；新增覆盖：paths/global 5 条、dual-pool 6 条、swap e2e 2 条；golden 信封随新语义与动词面更新；host sync 相关 9 条按 D29 删除
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:32:36.509Z

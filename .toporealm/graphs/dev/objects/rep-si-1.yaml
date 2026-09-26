@@ -1,0 +1,9 @@
+id: rep-si-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p2-skills-index
+  summary: skillsIndex/formatSkillIndex 落 distribution（skills.ts）：全局池+项目池扫描、frontmatter 解析（name/description，坏/超大/隐藏跳过——Y4①）、跨模块重名并列消歧（Y4③）、无工作区仅全局池、空索引 exit 0（Y4②）、纯文件层绝不触 daemon；CLI skills index 动词 + help/CORE_VERBS；dogfood 实测列出 workflow 模组 6 技能带绝对路径；新增 4 用例（全量 218 绿）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:35:45.728Z

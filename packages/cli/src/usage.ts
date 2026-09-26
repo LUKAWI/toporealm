@@ -31,6 +31,7 @@ export const CORE_VERBS = [
   "serve",
   "module",
   "migrate",
+  "skills",
   "help",
 ] as const;
 
@@ -71,6 +72,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   module list                   分段列出 path 绑定/项目池/全局池（含遮蔽与损坏标注，D27）
   migrate <旧图目录> [--dry-run]
                                 0.x v1 图 → 机械迁移 + 迁移报告；新图写入 .toporealm/graphs/ 并选中
+  skills index                  模块技能索引（技能名/模块/描述/路径；纯文件层不触 daemon；
+                                agent 按路径 Read 加载全文；空索引 exit 0）
 
 模块命令（<ns.name> [target] [--input '<json>']，即顶层子命令）：
 `;

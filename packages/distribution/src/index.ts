@@ -2,6 +2,7 @@
 // 1.1.0 D26：全局池位属分发域，re-export daemon-core 的解析助手供 cli 使用。
 export * from "./install.js";
 export * from "./migrate.js";
+export * from "./skills.js";
 export {
   ensureGlobalDir,
   globalPaths,

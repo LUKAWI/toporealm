@@ -28,8 +28,10 @@ import {
   type Session,
 } from "@lukawi/toporealm-protocol";
 import {
+  formatSkillIndex,
   globalPaths,
   readActiveGraphId,
+  skillsIndex,
   installModule,
   listModules,
   migrateGraph,
@@ -788,6 +790,19 @@ ${agentSnippet()}`),
         `未知 module 子命令 "${sub ?? ""}"（合法：add | rm | list）`,
         "toporealm help module",
       );
+    }
+    case "skills": {
+      // 1.1.0 D28：技能索引——纯文件层，绝不拉起 daemon；无池/无技能 = 空输出 exit 0（Y4）
+      const sub = args[0];
+      if (sub !== "index") {
+        throw new UsageError(`未知 skills 子命令 "${sub ?? ""}"（合法：index）`, "toporealm help skills");
+      }
+      const root = g.root ?? defaultRoot(deps);
+      const entries = await skillsIndex({ root, globalRoot: globalPaths(deps.env).root });
+      return {
+        envelope: { ok: true, data: { skills: entries } },
+        human: formatSkillIndex(entries),
+      };
     }
     case "migrate": {
       const a = new Argv(args);
