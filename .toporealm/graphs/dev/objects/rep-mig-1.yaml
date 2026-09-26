@@ -1,0 +1,9 @@
+id: rep-mig-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p1-migrate-dogfood
+  summary: git mv graphs/dev → .toporealm/graphs/dev；graph.yaml 手改 v3（format 行 + 删 modules 行）；1.0 daemon 空闲已退无残留；dev CLI 拉起 dev daemon 装载 v3 图 + workflow 模组成功（rev 147，undo 可用）——自举完成，此后 dogfood 全程由 dev 代码承载
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T11:02:33.829Z
