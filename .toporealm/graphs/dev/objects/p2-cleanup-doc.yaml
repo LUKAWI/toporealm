@@ -2,7 +2,7 @@ id: p2-cleanup-doc
 kind: wf.task
 payload:
   title: "p2-cleanup-doc: 1.0 投影残留清理说明"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: host sync 删除后 .pi/skills、.toporealm/hosts、.toporealm-sync.json 的手工清理说明进发布文档（D32/评审B2）
   createdAt: 2026-09-26T10:21:14.220Z
-  updatedAt: 2026-09-26T10:21:14.220Z
+  updatedAt: 2026-09-26T12:40:20.024Z
+  startedAt: 2026-09-26T12:39:36.324Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:40:18.864Z
+    by: agent
+    note: 文档落稿；P2 全部任务收口
+  completedAt: 2026-09-26T12:40:20.024Z

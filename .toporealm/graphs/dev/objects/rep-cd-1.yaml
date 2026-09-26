@@ -1,0 +1,9 @@
+id: rep-cd-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p2-cleanup-doc
+  summary: docs/releases/v1.1.0.md 落稿：1.0 投影残留手工清理清单（.toporealm/hosts、.toporealm-sync.json、.pi 投影）、v2 图处置路径、破坏性变更摘要、发布动作七步清单（依赖序/registry smoke/marketplace 验证/陌生环境验收）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:40:17.619Z

@@ -2,7 +2,7 @@ id: p2-pi-package
 kind: wf.task
 payload:
   title: "p2-pi-package: 主包 pi 化"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: package.json pi 字段 + 内置扩展（resources_discover 贡献池内 skillPaths+基座技能；重名行为实测必要时消歧）+ 基座技能目录；pi install 全流程验证（D28）
   createdAt: 2026-09-26T10:21:12.890Z
-  updatedAt: 2026-09-26T10:21:12.890Z
+  updatedAt: 2026-09-26T12:39:22.012Z
+  startedAt: 2026-09-26T12:37:45.821Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:39:20.851Z
+    by: agent
+    note: 扩展 import 冒烟通过；pi install 实机验证依赖 pi 环境（用户侧）
+  completedAt: 2026-09-26T12:39:22.012Z

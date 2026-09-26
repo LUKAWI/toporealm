@@ -1,0 +1,9 @@
+id: rep-ws-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p2-workflow-skills
+  summary: workflow 模组技能核查：skills index 实测列出 6 技能（workflow/workflow-design/-execute/-join/-review/-tdd），name 与父目录一致、description 可解析、索引行含绝对路径——Agent Skills 标准合规，无需该仓库改动
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:39:31.641Z

@@ -1,0 +1,9 @@
+id: rep-pi-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p2-pi-package
+  summary: 聚合包 pi 化：package.json 增 pi.extensions=[./extensions/*.ts] + files 收 extensions/skills + keywords 加 pi-package/pi-extension；extensions/pi-briefing.ts（resources_discover 贡献池内 skillPaths：全局池+项目池+基座技能目录，零拷贝；session_start 轻量摘要）；基座技能副本 skills/toporealm-cli/SKILL.md；扩展模块加载冒烟通过；pi install 实机验证列入用户/发布验收
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:39:19.622Z

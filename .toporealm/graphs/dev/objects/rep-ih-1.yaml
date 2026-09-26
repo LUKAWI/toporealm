@@ -1,0 +1,9 @@
+id: rep-ih-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p2-init-hint
+  summary: init 提示在 1.0.12 已随 verb-rename 落地：AGENTS.md 不存在则生成 agentSnippet（skills index 用法/会话须在仓库根/creategraph/use/信封退出码）；已存在仅打印建议片段不改用户文件（Y4⑤/D26）；本任务核对无遗留
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:39:25.575Z

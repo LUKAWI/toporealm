@@ -1,0 +1,9 @@
+id: rep-cp-1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: p2-claude-plugin
+  summary: 仓库根声明 marketplace（.claude-plugin/marketplace.json，source=./）+ plugin.json + hooks/hooks.json（SessionStart → toporealm skills index，超时 10s）+ 基座技能 skills/toporealm/SKILL.md（入场/变更缝/专注/撤销/模块命令/信封退出码/工作区布局）；JSON 全部校验合法；claude CLI 不在本机 PATH，marketplace add→install 验证列入用户/发布验收步骤
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-26T12:37:41.125Z

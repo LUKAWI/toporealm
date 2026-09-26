@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "TopoRealm 1.0 — single-owner daemon graph workspace (aggregate: toporealm CLI + toporeald daemon). Minimal core, two-layer modules, one local graph shared by humans and agents.",
   "keywords": [
-    "toporealm",
-    "graph",
-    "daemon",
     "agents",
     "cli",
+    "daemon",
+    "graph",
+    "pi-extension",
+    "pi-package",
+    "toporealm",
     "workflow"
   ],
   "license": "MIT",
@@ -28,7 +30,9 @@
     "toporeald": "./bin/toporeald.mjs"
   },
   "files": [
-    "bin"
+    "bin",
+    "extensions",
+    "skills"
   ],
   "dependencies": {
     "@lukawi/toporealm-cli": "1.0.0",
@@ -38,5 +42,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/*.ts"
+    ]
   }
 }

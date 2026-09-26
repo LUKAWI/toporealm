@@ -2,7 +2,7 @@ id: p2-workflow-skills
 kind: wf.task
 payload:
   title: "p2-workflow-skills: workflow 模块仓库 skills/ 对齐核查"
-  status: pending
+  status: passed
   definitionOfDone:
     - 按蓝图 §1.8 对应 D 条目实现并测试
   attempts: 0
@@ -10,4 +10,12 @@ payload:
   reviewSuggested: false
   plan: toporealm-workflow 仓库技能按 Agent Skills 标准 frontmatter 核查（name 与父目录一致等），必要则该仓库小版本跟进（D28）
   createdAt: 2026-09-26T10:21:13.789Z
-  updatedAt: 2026-09-26T10:21:13.789Z
+  updatedAt: 2026-09-26T12:39:33.987Z
+  startedAt: 2026-09-26T12:39:30.367Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-26T12:39:32.818Z
+    by: agent
+    note: skills index 活体输出为证
+  completedAt: 2026-09-26T12:39:33.987Z
