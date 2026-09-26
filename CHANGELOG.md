@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.2 - 2026-09-26
+
+- **fix(daemon)：unix socket 短路径修复（blueprint §1.9 D33）**——1.1.0 在 macOS/Linux
+  上 daemon 首次拉起必挂（CI 三平台实测抓出）：serveDaemon listen 前从不创建 daemon
+  目录，libuv 把 bind 的 ENOENT 转译为 EACCES；macOS 另有工作区内 socket 路径超
+  sun_path 上限（104 字节）被静默截断。现落 `os.tmpdir()/toporealm-<sha256(root) 前
+  16 hex>.sock`（总长 ≤ 80），listen 前建目录、bind 后 chmod 0600（tmpdir 共享目录
+  防他用户连）；客户端发现（endpoint.json）与单属主互斥语义不变，Windows 命名管道不变。
+- ci: Node 20→22——WS 传输依赖全局 WebSocket（Node 22+），CI matrix 此前不达标；
+  README（中英）与 `@lukawi/toporealm-cli`、`@lukawi/toporealm` 的 engines 声明
+  Node ≥22。CI 三平台首次全绿。
+
 ## 1.1.1 - 2026-09-26
 
 - fix(cli): `module add/rm --global` 的 flag 查询顺序修复——`--global` 先于位置参数被解析

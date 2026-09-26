@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm-cli",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "TopoRealm 1.0 CLI (bin: toporealm): core verbs, module add/rm/list, migrate, host sync, --json envelope, exit codes 0/1/2, hint+fix errors, did-you-mean.",
   "license": "MIT",
   "type": "module",
@@ -22,10 +22,10 @@
     "dist"
   ],
   "dependencies": {
-    "@lukawi/toporealm-protocol": "1.1.0",
-    "@lukawi/toporealm-client": "1.1.0",
-    "@lukawi/toporealm-distribution": "1.1.0",
-    "@lukawi/toporealm-daemon": "1.1.0",
+    "@lukawi/toporealm-protocol": "1.1.2",
+    "@lukawi/toporealm-client": "1.1.2",
+    "@lukawi/toporealm-distribution": "1.1.2",
+    "@lukawi/toporealm-daemon": "1.1.2",
     "tsx": "^4.20.6"
   },
   "publishConfig": {
