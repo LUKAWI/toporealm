@@ -1,0 +1,15 @@
+id: rep-v120-g1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-g1-webui
+  summary: G1八项全落：$state主修（切图复活）/失败可见性/会话泄漏/reason文案/loading守卫+胶囊/死CSS 23条/vite代理/mount测试11例。计划外根修：web-ui protocol pin 1.0.0→1.1.3（typecheck三错根因）+lockfile同步
+  artifacts:
+    - web-ui/src/lib/store.svelte.ts
+    - web-ui/src/App.svelte
+    - web-ui/src/App.test.ts
+    - web-ui/vite.config.ts
+    - web-ui/package.json
+  blockers: []
+  createdAt: 2026-09-27T03:18:01.748Z
+  notes: 相邻：App空态MCP死文案留D批；重连窗口WebUI复跑实验留发布前核验

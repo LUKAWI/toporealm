@@ -1,0 +1,17 @@
+id: rep-v120-a-p0
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-a-p0
+  summary: 并发四修完成：A1 convert尾链互斥（commit/undo/redo/reconcileExternal全串行）；A2 ws缺口+重连双回放缺陷；A3 startSwap先赋swapPromise消TOCTOU+ensureGraph走门；A4 GraphRuntime.dispose()归一。3新测试文件9用例，revert实证回归有效
+  artifacts:
+    - packages/daemon-core/src/core.ts
+    - packages/client/src/ws.ts
+    - packages/daemon/src/runtime.ts
+    - packages/daemon/src/server.ts
+    - packages/daemon-core/test/concurrency.test.ts
+    - packages/client/test/ws-replay.test.ts
+    - packages/daemon/test/runtime-concurrency.test.ts
+  blockers: []
+  createdAt: 2026-09-27T02:45:23.201Z
+  notes: 相邻未修：ifRevision预检在链外并发窗口偏松（CAS语义，数据已不丢）；ensureGraph等待他人换载失败连带失败——留待后续决策

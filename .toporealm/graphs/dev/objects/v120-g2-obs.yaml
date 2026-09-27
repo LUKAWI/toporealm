@@ -2,7 +2,7 @@ id: v120-g2-obs
 kind: wf.task
 payload:
   title: 1.2.0 G2：CLI/daemon 可观测性与解析陷阱
-  status: pending
+  status: passed
   definitionOfDone:
     - G2-1至G2-11逐条验证
     - 损坏模块可经CLI自愈
@@ -12,4 +12,12 @@ payload:
   class: standard
   plan: G2-1 spawn stderr捕获上抛真实死因；G2-2 Argv收口+read单点旗标显式化；G2-3 undo实际步数；G2-4 serve port复用提示；G2-5 migrate信封位置；G2-6未知op回错误响应；G2-7残行追加补换行；G2-8 YAML错误包TopoError；G2-9 module rm --force（D42）；G2-10杂项；G2-11 log语义文档
   createdAt: 2026-09-27T02:01:47.276Z
-  updatedAt: 2026-09-27T02:01:47.276Z
+  updatedAt: 2026-09-27T03:53:42.877Z
+  startedAt: 2026-09-27T03:18:09.423Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T03:53:41.674Z
+    by: main-session
+    note: typecheck绿+全量278/278（+24）
+  completedAt: 2026-09-27T03:53:42.877Z

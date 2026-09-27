@@ -2,7 +2,7 @@ id: v120-f-workflow
 kind: wf.task
 payload:
   title: 1.2.0 批次F：workflow 模块仓 UX 五项（F3–F7）
-  status: pending
+  status: running
   definitionOfDone:
     - F3-F7五项落实
     - 模块回装后cmds帮助含输入键schema
@@ -13,4 +13,6 @@ payload:
   class: quick
   plan: ../toporealm-workflow：F3 create-task帮助id在--input；F4 claim-task键名claimBy；F5 depends_on方向语义帮助；F6 verify-task报错点名键+12条wf.*帮助列输入键schema；F7 record-report id/target语义消歧。模块版本升1.0.1并回装dev图验证
   createdAt: 2026-09-27T02:01:50.931Z
-  updatedAt: 2026-09-27T02:01:50.931Z
+  updatedAt: 2026-09-27T03:53:51.957Z
+  assignedTo: main-session
+  startedAt: 2026-09-27T03:53:51.957Z

@@ -1,0 +1,16 @@
+id: rep-v120-g4
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-g4-docs
+  summary: G4全落：PROJECT-STATUS刷1.1.3+1.2.0（host sync清零）；README中英四件；blueprint三处对齐；CONTEXT用词注记；hooks兜底静默（skills-index.mjs自包含+CLAUDE_PLUGIN_ROOT，win32整串spawn避DEP0190）三点验证过
+  artifacts:
+    - docs/PROJECT-STATUS.md
+    - README.md
+    - README.en.md
+    - docs/rebuild/blueprint.md
+    - CONTEXT.md
+    - plugins/dev-marketplace/toporealm/hooks/skills-index.mjs
+  blockers: []
+  createdAt: 2026-09-27T03:53:44.085Z
+  notes: 插件实际路径在 plugins/dev-marketplace/toporealm/；宿主缓存旧 hooks.json 随 1.2.0 插件发布自愈

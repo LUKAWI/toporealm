@@ -1,0 +1,14 @@
+id: rep-v120-g5
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-g5-isolation
+  summary: 隔离债根治：ModuleHost.load显式globalRoot注入（host.test）+ client/cli链TOPOREALM_HOME env隔离恢复（tests/test-env.ts）+ paths.test自sanitize。默认与隔离环境235/235双绿，零断言削弱
+  artifacts:
+    - tests/test-env.ts
+    - packages/client/test/modules.contract.test.ts
+    - packages/module-host/test/host.test.ts
+    - packages/cli/test/envelope.test.ts
+    - packages/daemon-core/test/paths.test.ts
+  blockers: []
+  createdAt: 2026-09-27T02:45:26.710Z

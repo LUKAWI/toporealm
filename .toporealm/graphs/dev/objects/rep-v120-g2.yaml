@@ -1,0 +1,16 @@
+id: rep-v120-g2
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-g2-obs
+  summary: G2十二项全落：死因上抛（stderr见证文件）/Argv可重复单值/undo实际步数/serve port明示/migrate信封/未知op响应/残行补换行/YAML包TopoError/module rm --force自愈/杂项五件/log语义/换载重订阅收口。+24用例
+  artifacts:
+    - packages/client/src/ipc.ts
+    - packages/cli/src/usage.ts
+    - packages/web/src/dispatch.ts
+    - packages/daemon-core/src/store.ts
+    - packages/module-host/src/bindings.ts
+    - packages/distribution/src/install.ts
+  blockers: []
+  createdAt: 2026-09-27T03:53:40.451Z
+  notes: e2e --fields 空格写法改逗号契约拼写；read 过滤模式多余位置参数仍静默（留后续裁决）

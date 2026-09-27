@@ -2,7 +2,7 @@ id: v120-g4-docs
 kind: wf.task
 payload:
   title: 1.2.0 G4：文档纠错+hooks兜底+插件版本
-  status: pending
+  status: passed
   definitionOfDone:
     - 文档清单逐条落实
     - 钩子在CLI缺席时静默
@@ -12,4 +12,12 @@ payload:
   class: quick
   plan: PROJECT-STATUS刷1.1.3；README动词数/中英漂移/设计构想标注/第12步id；blueprint §2 module-sdk包名/§1.8前言；CONTEXT用词；hooks.json自包含node包装脚本静默兜底（D28 Y4④）；plugin.json版本对齐
   createdAt: 2026-09-27T02:01:48.540Z
-  updatedAt: 2026-09-27T02:01:48.540Z
+  updatedAt: 2026-09-27T03:53:46.831Z
+  startedAt: 2026-09-27T03:18:11.654Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T03:53:45.307Z
+    by: main-session
+    note: PATH剥离静默exit0+真实CLI透传+JSON合法；web/distribution 25例绿
+  completedAt: 2026-09-27T03:53:46.831Z

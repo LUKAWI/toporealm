@@ -1,0 +1,15 @@
+id: rep-v120-b
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-b-quick
+  summary: B1多kind并集/B2死动词三处/B3内部错误标记/B4原子写/B6 warning下沉/B7子进程超时/B8 help文案+F1 positionals收紧+F2 undefined根修。新增8用例
+  artifacts:
+    - packages/cli/src/index.ts
+    - packages/cli/src/usage.ts
+    - packages/client/src/provision.ts
+    - packages/distribution/src/install.ts
+    - packages/daemon-core/src/core.ts
+  blockers: []
+  createdAt: 2026-09-27T03:18:05.018Z
+  notes: 行为面收紧：help未知目标改exit2（发布说明记录）；blueprint:180 fix行仍指new（G4文档批修）
