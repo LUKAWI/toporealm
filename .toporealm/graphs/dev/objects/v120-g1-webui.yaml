@@ -1,0 +1,15 @@
+id: v120-g1-webui
+kind: wf.task
+payload:
+  title: 1.2.0 G1：前端批（$state主修/失败可见性/会话泄漏/文案/死CSS/vite代理/mount测试）
+  status: pending
+  definitionOfDone:
+    - 切图下拉与预览覆盖层 mount 级测试绿
+    - web-ui 全量测试绿
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: G1-1四字段$state（切图复活）；G1-2预览失败可见；G1-3 reload前dispose旧会话；G1-4按reason分文案；G1-5 in-flight守卫；G1-6死CSS；G1-7 vite /api代理；G1-8 mount级预览用例
+  createdAt: 2026-09-27T02:01:44.919Z
+  updatedAt: 2026-09-27T02:01:44.919Z

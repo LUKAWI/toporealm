@@ -1,0 +1,5 @@
+id: r-v120-6
+kind: wf.depends_on
+source: v120-a-p0
+target: v120-g2-obs
+payload: {}

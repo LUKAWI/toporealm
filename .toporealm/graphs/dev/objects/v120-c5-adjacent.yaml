@@ -1,0 +1,16 @@
+id: v120-c5-adjacent
+kind: wf.task
+payload:
+  title: 1.2.0 C5：邻域查询（D36）
+  status: pending
+  definitionOfDone:
+    - read <id>单命令单次读
+    - 协议加法有golden
+    - 全量门禁绿
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: ReadQuery.adjacent协议加法；core一处实现；cli read/link与host did-you-mean三处caller删客户端全量过滤
+  createdAt: 2026-09-27T02:02:23.131Z
+  updatedAt: 2026-09-27T02:02:23.131Z

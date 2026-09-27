@@ -1,0 +1,16 @@
+id: v120-c3-parser
+kind: wf.task
+payload:
+  title: 1.2.0 C3：清单解析归一
+  status: pending
+  definitionOfDone:
+    - 安装期与装载期同标准报错
+    - modules-yaml.ts删除
+    - 全量门禁绿
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: module.yaml/modules.yaml双解析器归一（distribution借入module-host解析或下沉叶子）；install/load严格度=参数；modules-yaml.ts消失
+  createdAt: 2026-09-27T02:02:21.938Z
+  updatedAt: 2026-09-27T02:02:21.938Z

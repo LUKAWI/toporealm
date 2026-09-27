@@ -1,0 +1,17 @@
+id: v120-g5-isolation
+kind: wf.task
+payload:
+  title: 1.2.0 G5：测试隔离债根治（TOPOREALM_HOME 注入）
+  status: running
+  definitionOfDone:
+    - 默认环境（不注入env）全量 vitest 绿
+    - 无测试依赖开发者机 ~/.toporealm 状态
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: modules.contract/host.test/三份contract/envelope/e2e等5+文件显式注入隔离 globalRoot；paths.test 自sanitize。验收=开发机默认环境全量绿
+  createdAt: 2026-09-27T02:01:43.797Z
+  updatedAt: 2026-09-27T02:04:08.305Z
+  assignedTo: main-session
+  startedAt: 2026-09-27T02:04:08.305Z

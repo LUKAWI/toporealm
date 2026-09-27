@@ -1,0 +1,18 @@
+id: v120-a-p0
+kind: wf.task
+payload:
+  title: 1.2.0 批次A：并发四修（convert互斥/ws双回放/换载门/runtime.dispose）
+  status: running
+  definitionOfDone:
+    - 四个并发缺陷各有运行级回归测试
+    - 隔离环境全量 vitest 绿
+    - wire/CLI 可观察行为零变化
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: A1 convert promise链互斥；A2 ws.ts:365缺口路径+ws.ts:279重连覆写双修；A3 ensureGraph走swapPromise+beginOp门收口；A4 runtime.dispose()归一。各带回归测试，wire/CLI契约零变化
+  createdAt: 2026-09-27T02:01:42.619Z
+  updatedAt: 2026-09-27T02:04:06.127Z
+  assignedTo: main-session
+  startedAt: 2026-09-27T02:04:06.127Z

@@ -1,0 +1,16 @@
+id: v120-c1-transport
+kind: wf.task
+payload:
+  title: 1.2.0 C1：SessionTransport 基座（D40）
+  status: pending
+  definitionOfDone:
+    - memory/ipc/ws三契约套件绿
+    - Session对外行为零变化
+    - ipc/ws重复转发层删除
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: client三adapter会话管道收敛为共享传输基座；IpcResultMap转正为类型脊柱；Session公共缝与契约套件零变化
+  createdAt: 2026-09-27T02:02:19.513Z
+  updatedAt: 2026-09-27T02:02:19.513Z

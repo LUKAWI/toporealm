@@ -1,0 +1,15 @@
+id: v120-b-quick
+kind: wf.task
+payload:
+  title: 1.2.0 批次B：P1 快赢八项
+  status: pending
+  definitionOfDone:
+    - B1-B8 逐条验证通过
+    - 全量门禁绿
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: B1 find多kind本地合并；B2 fix文案creategraph；B3 CLI内部错误标记；B4 writeBinding原子写；B5并入G1-1；B6 reconcile下沉warn；B7 pack超时120s；B8 help --version 文案
+  createdAt: 2026-09-27T02:01:46.093Z
+  updatedAt: 2026-09-27T02:01:46.093Z

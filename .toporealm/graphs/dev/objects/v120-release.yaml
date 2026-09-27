@@ -1,0 +1,16 @@
+id: v120-release
+kind: wf.task
+payload:
+  title: 1.2.0 收口：全量验证+bug排查+版本对齐+发布
+  status: pending
+  definitionOfDone:
+    - 发布门四绿（typecheck/test/pack冒烟/dev复验）
+    - 最终bug排查无P0/P1未决
+    - npm 10包+workflow模块发布成功
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: standard
+  plan: 版本10包对齐1.2.0+lockfile+跨包依赖；CHANGELOG 1.2.0段；README中英；npm pack冒烟（System32 PATH）；全量typecheck+test三绿；最终bug排查对抗审查；dev图流程复验；tag+push+npm publish
+  createdAt: 2026-09-27T02:02:25.497Z
+  updatedAt: 2026-09-27T02:02:25.497Z
