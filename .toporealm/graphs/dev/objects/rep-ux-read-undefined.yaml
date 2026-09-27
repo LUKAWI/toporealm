@@ -1,0 +1,9 @@
+id: rep-ux-read-undefined
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-read-undefined
+  summary: F2 修复：read --fields 缺 kind 省略方括号段（主仓批次B同提交）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-27T04:20:19.952Z

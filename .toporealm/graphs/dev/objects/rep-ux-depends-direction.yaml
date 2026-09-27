@@ -1,0 +1,9 @@
+id: rep-ux-depends-direction
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-depends-direction
+  summary: F5 修复：create-relation 帮助写明 depends_on source=前置/target=后继（1.0.1 已验证）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-27T04:20:38.003Z

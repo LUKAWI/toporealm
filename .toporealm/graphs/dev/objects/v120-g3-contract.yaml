@@ -2,7 +2,7 @@ id: v120-g3-contract
 kind: wf.task
 payload:
   title: 1.2.0 G3：契约缺口（D36外）
-  status: running
+  status: passed
   definitionOfDone:
     - D37/D38落地有测试
     - help回显解析根
@@ -13,6 +13,12 @@ payload:
   class: standard
   plan: G3-1 VETOED vetoes[]增module字段（D37）；G3-4 GraphSummary.warnings（D38）；G3-5 help回显全局/项目根；G3-6 README补client break声明；G3-8 pi Windows spawn修复；G3-9 ID_EXISTS hint去「需重启」
   createdAt: 2026-09-27T02:01:49.745Z
-  updatedAt: 2026-09-27T03:53:49.224Z
-  assignedTo: main-session
+  updatedAt: 2026-09-27T04:20:50.209Z
   startedAt: 2026-09-27T03:53:49.224Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T04:20:49.012Z
+    by: main-session
+    note: typecheck绿；285过+1平台skip
+  completedAt: 2026-09-27T04:20:50.209Z

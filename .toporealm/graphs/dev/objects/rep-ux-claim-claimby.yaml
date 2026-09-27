@@ -1,0 +1,9 @@
+id: rep-ux-claim-claimby
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-claim-claimby
+  summary: F4 修复：claim-task title 统一 claimBy 键名（1.0.1 已验证）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-27T04:20:31.946Z

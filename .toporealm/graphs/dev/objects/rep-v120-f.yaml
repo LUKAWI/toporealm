@@ -1,0 +1,12 @@
+id: rep-v120-f
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-f-workflow
+  summary: F3-F7 五项全落（姊妹仓 toporealm-workflow 427a5f2，1.0.1）：title 12条键清单/方向语义/claimBy/报告消歧/缺键点名；本仓47/47绿；tgz回装dev池验证 cmds 可见新文案；连带修复主仓 G2-10④ 对存在 tarball 的误拦（install.ts fileExists 例外+用例）
+  artifacts:
+    - D:/LUKAWI/AI_project/projects/toporealm-workflow/src/commands.ts
+    - packages/distribution/src/install.ts
+  blockers: []
+  createdAt: 2026-09-27T04:20:51.538Z
+  notes: evidence 层深层消息未强加命令前缀（避免破坏既有断言语义）

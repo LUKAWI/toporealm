@@ -1,0 +1,9 @@
+id: rep-ux-create-task-id
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-create-task-id
+  summary: F3 修复：workflow 1.0.1 create-task 帮助写明 id 只放 --input（姊妹仓 commit 427a5f2，已回装验证）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-27T04:20:25.955Z

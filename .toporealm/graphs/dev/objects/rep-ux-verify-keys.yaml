@@ -1,0 +1,9 @@
+id: rep-ux-verify-keys
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-verify-keys
+  summary: F6 修复：输入解析器 wf.<命令> 缺键点名 + 12 条 title 补必填/可选键清单（1.0.1 cmds 实测可见）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-27T04:20:44.073Z

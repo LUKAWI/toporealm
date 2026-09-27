@@ -1,0 +1,16 @@
+id: rep-v120-g3
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-g3-contract
+  summary: G3五项：D37 VETOED vetoes[].module（host包装钩子短路，core通用路径保留）；D38 GraphSummary.warnings加法+status渲染；help回显全局/项目池根（data.paths）；pi Windows shell链路；ID_EXISTS hint对齐实测。+8用例
+  artifacts:
+    - packages/module-host/src/host.ts
+    - packages/protocol/src/entities.ts
+    - packages/daemon-core/src/core.ts
+    - packages/cli/src/index.ts
+    - packages/toporealm/extensions/pi-briefing.ts
+    - packages/distribution/src/install.ts
+  blockers: []
+  createdAt: 2026-09-27T04:20:47.775Z
+  notes: 相邻：paths 缺 modulesDir 字段致项目池根三处重复计算（C4 批收口）

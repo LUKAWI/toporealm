@@ -1,0 +1,9 @@
+id: rep-ux-argv-positionals
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-argv-positionals
+  summary: F1 修复：positionals() 过滤未消费 --token（主仓 1.2.0 批次B commit c17989c）
+  artifacts: []
+  blockers: []
+  createdAt: 2026-09-27T04:20:13.805Z
