@@ -28,7 +28,7 @@ import {
 import type { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { globalPaths } from "@lukawi/toporealm-daemon-core";
 import { readModuleBindings } from "./bindings.js";
-import { discoverModules, moduleSetDigest, parseModuleManifest } from "./discover.js";
+import { discoverModules, moduleSetDigest } from "./discover.js";
 
 // ---------- ModuleHost：模块发现/装载/目录聚合/命令分发（blueprint §2） ----------
 //
@@ -190,10 +190,6 @@ export class ModuleHost {
     this.onWarningCb?.(message);
   }
   private onWarningCb: ((message: string) => void) | undefined;
-
-  private async parseManifest(dir: string, boundId: string): Promise<ModuleManifestV2> {
-    return parseModuleManifest(dir, boundId);
-  }
 
   /**
    * 换载 re-binding seam（1.1.0 D30/评审 R1）：把本 host 绑到新图的 core 上。

@@ -8,6 +8,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { run } from "../src/index.js";
 import { Argv } from "../src/usage.js";
 import { isolateGlobalHome } from "../../../tests/test-env.js";
+import { bindingYaml } from "../../../tests/fixtures/binding-yaml.js";
+import { execGolden, jsonOf } from "./golden.js";
 
 // ---------- CLI golden 信封 + 退出码表驱动（blueprint §8：MemoryClient 后端） ----------
 // 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录，防开发机 ~/.toporealm
@@ -25,33 +27,8 @@ afterAll(() => {
   restoreHome?.();
 });
 
-function makeDeps(cwd: string) {
-  const collected = { out: "", err: "" };
-  const client = new MemoryClient();
-  return {
-    deps: {
-      clientFactory: () => client,
-      cwd,
-      env: {},
-      out: (s: string) => {
-        collected.out += s;
-      },
-      err: (s: string) => {
-        collected.err += s;
-      },
-    },
-    collected,
-  };
-}
-
 async function exec(args: string[], cwd = root) {
-  const { deps, collected } = makeDeps(cwd);
-  const code = await run(args, deps);
-  return { code, ...collected };
-}
-
-function jsonOf(r: { code: number; out: string; err: string }): Record<string, unknown> {
-  return JSON.parse(r.code === 0 ? r.out : r.err) as Record<string, unknown>;
+  return execGolden(args, cwd, () => new MemoryClient());
 }
 
 describe("CLI --json 信封 + 退出码", () => {
@@ -328,14 +305,6 @@ describe("CLI --json 信封 + 退出码", () => {
 const fixturesDir = fileURLToPath(
   new URL("../../../tests/fixtures/modules/", import.meta.url),
 );
-
-function bindingYaml(entries: Record<string, string>): string {
-  return (
-    Object.entries(entries)
-      .map(([id, dir]) => `${id}:\n  source: path\n  path: ${JSON.stringify(dir)}`)
-      .join("\n") + "\n"
-  );
-}
 
 describe("M2 CLI：模块命令面", () => {
   it(

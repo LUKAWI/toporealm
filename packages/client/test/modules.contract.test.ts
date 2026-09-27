@@ -9,6 +9,7 @@ import { IpcClient } from "../src/ipc.js";
 import { MemoryClient } from "../src/memory.js";
 import { waitFor } from "./contract.js";
 import { isolateGlobalHome } from "../../../tests/test-env.js";
+import { bindingYaml } from "../../../tests/fixtures/binding-yaml.js";
 
 // 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录，防开发机 ~/.toporealm
 // 全局池的 workflow 模块（ns=wf）与 fixture workflow-mini 命名空间冲突；
@@ -27,14 +28,6 @@ afterAll(() => {
 const fixturesDir = fileURLToPath(
   new URL("../../../tests/fixtures/modules/", import.meta.url),
 );
-
-function bindingYaml(entries: Record<string, string>): string {
-  return (
-    Object.entries(entries)
-      .map(([id, dir]) => `${id}:\n  source: path\n  path: ${JSON.stringify(dir)}`)
-      .join("\n") + "\n"
-  );
-}
 
 const fixturePath = (name: string): string => path.join(fixturesDir, name);
 

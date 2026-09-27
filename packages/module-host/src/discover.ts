@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { TopoError } from "@lukawi/toporealm-protocol";
-import { projectPoolDir } from "@lukawi/toporealm-daemon-core";
+import { globalPoolDirAt, projectPoolDir } from "@lukawi/toporealm-daemon-core";
 import { parse } from "yaml";
 import { readModuleBindings } from "./bindings.js";
 import type { ModuleManifestV2 } from "@lukawi/toporealm-protocol";
@@ -179,8 +179,8 @@ export async function discoverModules(
   const warnings: string[] = [];
   const effective = new Map<string, PoolEntry>();
 
-  // ① 全局池（先装低优先级，后写的覆盖先写的）
-  for (const dir of await listPoolDirs(path.join(globalRoot, "modules"))) {
+  // ① 全局池（先装低优先级，后写的覆盖先写的；池路径唯一出处 globalPoolDirAt，批次 D 收口）
+  for (const dir of await listPoolDirs(globalPoolDirAt(globalRoot))) {
     const id = path.basename(dir);
     let manifest: ModuleManifestV2;
     try {

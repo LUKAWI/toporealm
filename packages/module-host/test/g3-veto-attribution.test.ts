@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { TopoError } from "@lukawi/toporealm-protocol";
 import { ModuleHost } from "../src/index.js";
+import { bindingYaml } from "../../../tests/fixtures/binding-yaml.js";
 
 // ---------- 1.2.0 G3-1（blueprint D37）：VETOED 点名否决模块 ----------
 //
@@ -31,15 +32,6 @@ afterAll(async () => {
       .catch(() => {});
   }
 });
-
-/** 绑定表 → modules.yaml 文本（path 来源；JSON 双引号写法兼容 Windows 反斜杠路径） */
-function bindingYaml(entries: Record<string, string>): string {
-  return (
-    Object.entries(entries)
-      .map(([id, dir]) => `${id}:\n  source: path\n  path: ${JSON.stringify(dir)}`)
-      .join("\n") + "\n"
-  );
-}
 
 async function writeHookModule(
   root: string,

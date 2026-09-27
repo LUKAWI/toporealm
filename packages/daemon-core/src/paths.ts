@@ -36,6 +36,15 @@ export function globalPoolDir(env: NodeJS.ProcessEnv = process.env): string {
   return globalPaths(env).modulesDir;
 }
 
+/**
+ * 全局模块池目录（显式根形态，批次 D 收口）：调用方持已解析的 globalRoot
+ * （module-host discover / distribution skills 的既有参数面）——内部走
+ * TOPOREALM_HOME 覆盖形态复用同一解析器，池布局知识不出 paths.ts。
+ */
+export function globalPoolDirAt(globalRoot: string): string {
+  return globalPaths({ TOPOREALM_HOME: globalRoot }).modulesDir;
+}
+
 // ---------- 工作区与图目录布局（blueprint §3） ----------
 
 export interface WorkspacePaths {

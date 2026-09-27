@@ -6,6 +6,7 @@ export * from "./skills.js";
 export {
   ensureGlobalDir,
   globalPaths,
+  projectPoolDir,
   readActiveGraphId,
   workspacePaths,
   type GlobalPaths,

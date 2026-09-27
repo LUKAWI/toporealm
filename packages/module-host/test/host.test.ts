@@ -7,6 +7,7 @@ import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { TopoError } from "@lukawi/toporealm-protocol";
 import { ModuleHost } from "../src/index.js";
 import exampleFixture from "../../../tests/fixtures/modules/example/index.js";
+import { bindingYaml } from "../../../tests/fixtures/binding-yaml.js";
 
 // ---------- S2：fixture 模块直 activate 进内存 daemon（blueprint §8） ----------
 // 所有权法、钩子 veto、目录自省、注册冻结全部在真缝上测。
@@ -36,15 +37,6 @@ afterAll(async () => {
       .catch(() => {});
   }
 });
-
-/** 绑定表 → modules.yaml 文本（path 来源；JSON 双引号写法兼容 Windows 反斜杠路径） */
-function bindingYaml(entries: Record<string, string>): string {
-  return (
-    Object.entries(entries)
-      .map(([id, dir]) => `${id}:\n  source: path\n  path: ${JSON.stringify(dir)}`)
-      .join("\n") + "\n"
-  );
-}
 
 const fixturePath = (name: string): string =>
   path.join(fixturesDir, name);

@@ -393,14 +393,33 @@ export class WsSession extends SessionTransport implements Session {
     this.emit(e);
   }
 
-  /** 重连窗口内的请求：等重连完成后发送（上限 150×100ms——排队上限是 WS 个性） */
+  /**
+   * 重连窗口内的请求：等重连完成后发送（排队预算是 WS 个性）。
+   * 批次 D 魔数对齐：排队预算 = 重连退避总预算（随 WsReconnectOptions 计算，缺省
+   * 30 次 × 200ms→2s ≈ 53s）——此前固定 150×100ms = 15s，重连循环仍存活时排队
+   * 会提前放弃。预算耗尽后交给 request() 的既有语义如实失败/挂起。
+   */
   private async requestQueued<O extends SessionOp>(
     req: TypedRequest<O>,
   ): Promise<IpcResultMap[O]> {
-    for (let i = 0; i < 150 && this.reconnecting && !this.dead; i++) {
+    let waited = 0;
+    const budget = this.reconnectBackoffBudgetMs();
+    while (waited < budget && this.reconnecting && !this.dead) {
       await new Promise((r) => setTimeout(r, 100));
+      waited += 100;
     }
     return this.request(req);
+  }
+
+  /** 重连退避总预算（ms）：Σ min(maxDelay, base·2^n)；reconnect:false = 0（不排队）。 */
+  private reconnectBackoffBudgetMs(): number {
+    if (this.reconnect === false) return 0;
+    const max = this.reconnect.maxAttempts ?? 30;
+    const base = this.reconnect.baseDelayMs ?? 200;
+    const cap = this.reconnect.maxDelayMs ?? 2000;
+    let total = 0;
+    for (let i = 0; i < max; i++) total += Math.min(cap, base * 2 ** i);
+    return total;
   }
 
   /** 首次订阅：subscribed 位 + fromRevision 缺省取本地基准（回放免全量，I3） */

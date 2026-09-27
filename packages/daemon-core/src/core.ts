@@ -52,7 +52,7 @@ import {
 
 // ---------- DaemonCore：单属主图内核（blueprint §5 提交管线） ----------
 //
-// 管线固定序（模块作者唯一需要背的顺序；M1 无模块装载，钩子注册面为空但管线就位）：
+// 管线固定序（模块作者唯一需要背的顺序）：
 //   id/kind 解析 → 所有权法（仅 module 来源）→ 悬空边检查（集合整体）
 //   → before-commit 钩子（同步，first-veto 短路，禁再入）
 //   → 原子应用 + .log 追加 + 游标维护
@@ -241,19 +241,25 @@ export class DaemonCore {
     }));
   }
 
-  async commit(input: CommitInput, origin: Origin): Promise<CommitResult> {
-    if (
-      input.ifRevision !== undefined &&
-      input.ifRevision !== this.revision_
-    ) {
-      throw new TopoError({
-        code: "IF_REVISION_MISMATCH",
-        message: `期望 revision ${input.ifRevision}，实际已是 ${this.revision_}`,
-        hint: "并发护航生效：另一客户端先改了图；重读后带新 revision 重试",
-        fix: "toporealm status",
-        details: { expected: input.ifRevision, actual: this.revision_ },
-      });
+  /**
+   * ifRevision 并发护航拒绝（commit/commitSync 唯一份；两处文案漂移已统一为
+   * 异步侧的完整形态，批次 D）。
+   */
+  private assertIfRevision(input: CommitInput): void {
+    if (input.ifRevision === undefined || input.ifRevision === this.revision_) {
+      return;
     }
+    throw new TopoError({
+      code: "IF_REVISION_MISMATCH",
+      message: `期望 revision ${input.ifRevision}，实际已是 ${this.revision_}`,
+      hint: "并发护航生效：另一客户端先改了图；重读后带新 revision 重试",
+      fix: "toporealm status",
+      details: { expected: input.ifRevision, actual: this.revision_ },
+    });
+  }
+
+  async commit(input: CommitInput, origin: Origin): Promise<CommitResult> {
+    this.assertIfRevision(input);
     this.validateCommitInput(input);
     const queued = this.guardHookPhase(input, origin);
     if (queued) return queued;
@@ -273,17 +279,7 @@ export class DaemonCore {
    * - after-commit 相位内调用 → 排队追加，返回受理回执（D21）
    */
   commitSync(input: CommitInput, origin: Origin): CommitResult {
-    if (
-      input.ifRevision !== undefined &&
-      input.ifRevision !== this.revision_
-    ) {
-      throw new TopoError({
-        code: "IF_REVISION_MISMATCH",
-        message: `期望 revision ${input.ifRevision}，实际已是 ${this.revision_}`,
-        hint: "并发护航生效：重读后带新 revision 重试",
-        details: { expected: input.ifRevision, actual: this.revision_ },
-      });
-    }
+    this.assertIfRevision(input);
     this.validateCommitInput(input);
     const queued = this.guardHookPhase(input, origin);
     if (queued) return queued;
@@ -332,32 +328,31 @@ export class DaemonCore {
     return undefined;
   }
 
-  async undo(steps: number, origin: Origin): Promise<CommitResult> {
+  /**
+   * undo/redo 共用骨架（批次 D 提参；结构 90% 同构的唯一份）：
+   * 步数校验 → 边界拒绝 → 逐步游标移动（append=false，不入日志，D17 裁决②）。
+   * nextChanges 返回 undefined = 边界到达，提前收束。
+   */
+  private async stepMove(
+    kind: "undo" | "redo",
+    steps: number,
+    origin: Origin,
+    boundaryError: () => TopoError | undefined,
+    nextChanges: () => readonly Change[] | undefined,
+  ): Promise<CommitResult> {
     if (!Number.isInteger(steps) || steps < 1) {
       throw new TopoError({
         code: "INVALID_INPUT",
-        message: `undo 步数必须是正整数，得到 ${steps}`,
+        message: `${kind} 步数必须是正整数，得到 ${steps}`,
       });
     }
-    if (this.cursor === 0) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: "没有可撤销的提交",
-        hint: "canUndo 为 false：游标已在日志起点",
-        details: { canUndo: false },
-      });
-    }
+    const boundary = boundaryError();
+    if (boundary !== undefined) throw boundary;
     let last: CommitResult | undefined;
-    for (let i = 0; i < steps && this.cursor > 0; i++) {
-      const entry = this.logEntries[this.cursor - 1];
-      if (!entry) break;
-      last = await this.convert({
-        kind: "undo",
-        origin,
-        // 逆序应用（LIFO）：正向依赖序的镜像，保证不产生瞬态悬空
-        changes: [...entry.inverse].reverse(),
-        append: false,
-      });
+    for (let i = 0; i < steps; i++) {
+      const changes = nextChanges();
+      if (!changes) break;
+      last = await this.convert({ kind, origin, changes, append: false });
     }
     return (
       last ?? {
@@ -370,40 +365,50 @@ export class DaemonCore {
     );
   }
 
+  async undo(steps: number, origin: Origin): Promise<CommitResult> {
+    return this.stepMove(
+      "undo",
+      steps,
+      origin,
+      () =>
+        this.cursor === 0
+          ? new TopoError({
+              code: "INVALID_INPUT",
+              message: "没有可撤销的提交",
+              hint: "canUndo 为 false：游标已在日志起点",
+              details: { canUndo: false },
+            })
+          : undefined,
+      () => {
+        if (this.cursor === 0) return undefined;
+        const entry = this.logEntries[this.cursor - 1];
+        if (!entry) return undefined;
+        // 逆序应用（LIFO）：正向依赖序的镜像，保证不产生瞬态悬空
+        return [...entry.inverse].reverse();
+      },
+    );
+  }
+
   async redo(steps: number, origin: Origin): Promise<CommitResult> {
-    if (!Number.isInteger(steps) || steps < 1) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `redo 步数必须是正整数，得到 ${steps}`,
-      });
-    }
-    if (this.cursor >= this.logEntries.length) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: "没有可重做的提交",
-        hint: "canRedo 为 false：游标已在日志末端",
-        details: { canRedo: false },
-      });
-    }
-    let last: CommitResult | undefined;
-    for (let i = 0; i < steps && this.cursor < this.logEntries.length; i++) {
-      const entry = this.logEntries[this.cursor];
-      if (!entry) break;
-      last = await this.convert({
-        kind: "redo",
-        origin,
-        changes: entry.changes,
-        append: false,
-      });
-    }
-    return (
-      last ?? {
-        revision: this.revision_,
-        created: [],
-        patch: emptyPatch(this.revision_),
-        canUndo: this.cursor > 0,
-        canRedo: this.cursor < this.logEntries.length,
-      }
+    return this.stepMove(
+      "redo",
+      steps,
+      origin,
+      () =>
+        this.cursor >= this.logEntries.length
+          ? new TopoError({
+              code: "INVALID_INPUT",
+              message: "没有可重做的提交",
+              hint: "canRedo 为 false：游标已在日志末端",
+              details: { canRedo: false },
+            })
+          : undefined,
+      () => {
+        if (this.cursor >= this.logEntries.length) return undefined;
+        const entry = this.logEntries[this.cursor];
+        if (!entry) return undefined;
+        return entry.changes;
+      },
     );
   }
 
@@ -1291,9 +1296,6 @@ function emptyPatch(revision: number): GraphPatch {
     relations: { added: [], updated: [], deleted: [] },
   };
 }
-
-/** 所有权法（执法二之一）：只约束 module:* 来源；cli/web/external/migrate 豁免（人是图最终属主）。 */
-/** 已上移为 DaemonCore 方法（需要 id → namespace 注册表，D20）。 */
 
 function matchWhere(
   r: EntityRecord,

@@ -29,8 +29,9 @@ import {
 //   · 连接怎么建/断（建连、重连、drop 处理、close）——全部留在 adapter。
 //   · instanceId 失效策略（adoptInstance）与订阅策略（ensureSubscribed）——各 adapter
 //     语义不同（ipc 首响固定指纹；ws 重连握手无条件下接受 + fromRevision 重订），留缝覆写。
-// 超时（30s）、排队上限（ws 150×100ms）、错误信封与 TopoError.fromJSON 重建语义：
-// wire 侧（ipc/ws）共用本基座的同一份实现，memory 直接得到原生 TopoError——三处一致。
+// 超时（30s）、排队预算（ws：随重连退避总预算，见 ws.ts requestQueued）、错误信封与
+// TopoError.fromJSON 重建语义：wire 侧（ipc/ws）共用本基座的同一份实现，memory 直接
+// 得到原生 TopoError——三处一致。
 // 本文件零 node 依赖（只用标准定时器与 Promise）：ws.ts/浏览器出口经此类保持浏览器可用。
 
 /** Session 方法骨架涉及的全部 wire op（IpcResultMap 键面） */

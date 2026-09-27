@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { beforeAll, describe, expect, it } from "vitest";
 import { run } from "../src/index.js";
+import { execGolden, jsonOf } from "./golden.js";
 
 // ---------- M4 分发动词的信封与退出码（blueprint §4 / §8：CLI golden 信封） ----------
 // module/migrate 是工作区文件层冷路径（不触 daemon）；npm pack 全流程已在
@@ -24,18 +25,7 @@ beforeAll(async () => {
 });
 
 async function exec(args: string[]) {
-  const collected = { out: "", err: "" };
-  const code = await run(args, {
-    cwd: root,
-    env: {},
-    out: (s: string) => (collected.out += s),
-    err: (s: string) => (collected.err += s),
-  });
-  return { code, ...collected };
-}
-
-function jsonOf(r: { code: number; out: string; err: string }): Record<string, unknown> {
-  return JSON.parse(r.code === 0 ? r.out : r.err) as Record<string, unknown>;
+  return execGolden(args, root);
 }
 
 describe("M4 分发动词：module / migrate", () => {

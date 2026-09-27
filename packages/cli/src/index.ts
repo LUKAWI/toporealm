@@ -36,6 +36,7 @@ import {
   installModule,
   listModules,
   migrateGraph,
+  projectPoolDir,
   removeModule,
   workspacePaths,
 } from "@lukawi/toporealm-distribution";
@@ -228,6 +229,9 @@ async function dispatch(
   const verb = g.rest[0] as string | undefined;
   const args = g.rest.slice(1);
   const env = deps.env ?? {};
+  // --root 解析收口（批次 D）：defaultRoot 纯解析（path.resolve cwd）无副作用，
+  // 在分发入口一次算清，动词体内不再各自重复 `g.root ?? defaultRoot(deps)`。
+  const root = g.root ?? defaultRoot(deps);
 
   if (verb === undefined || verb === "help") {
     // help [cmd]：core 静态表 + 目录动态聚合（单一真相，blueprint §4）
@@ -257,7 +261,6 @@ async function dispatch(
         };
       }
     }
-    const root = g.root ?? defaultRoot(deps);
     const cat = await fetchCatalog(deps, root, g.graph);
     const commands = cat?.commands ?? [];
     const entry =
@@ -280,7 +283,7 @@ async function dispatch(
     // 文本，动态行在输出时追加；--json 走 data.paths 透传）
     const paths = {
       globalRoot: globalPaths(env).root,
-      projectPool: path.join(workspacePaths(root).topoDir, "modules"),
+      projectPool: projectPoolDir(root),
     };
     return {
       envelope: { ok: true, data: { verbs: CORE_VERBS, commands, paths } },
@@ -296,7 +299,6 @@ async function dispatch(
     // 先吃 flag，再取位置参数（否则 flag 值会被误当 target id）
     const input = parseJsonObject(a.value("--input"), "--input");
     const target = a.positionals()[0];
-    const root = g.root ?? defaultRoot(deps);
     return withSession(deps, root, g.graph, async (s) => {
       const r = await s.run(verb, {
         ...(target !== undefined ? { target } : {}),
@@ -324,7 +326,6 @@ async function dispatch(
     // ---- 图生命周期（工作区文件操作，不进 daemon 缝） ----
     case "init": {
       // 1.1.0 D26：显式初始化项目工作区（建目录 + 全局池位 + agent 提示；不碰已有 AGENTS.md）
-      const root = g.root ?? defaultRoot(deps);
       const ws = workspacePaths(root);
       await fs.promises.mkdir(ws.topoDir, { recursive: true });
       const gp = globalPaths(deps.env);
@@ -363,7 +364,6 @@ ${agentSnippet()}`),
         );
       }
       const label = a.value("--label");
-      const root = g.root ?? defaultRoot(deps);
       await provisionGraph(root, name, label);
       return {
         envelope: { ok: true, data: { graph: name } },
@@ -375,7 +375,6 @@ ${agentSnippet()}`),
       const name = a.positionals()[0];
       if (!name) throw new UsageError("用法：toporealm use <graph>");
       if (!isValidGraphId(name)) throw new UsageError(`图 id 非法："${name}"`);
-      const root = g.root ?? defaultRoot(deps);
       const prev = await readActiveGraphId(workspacePaths(root).activeFile);
       await activateGraph(root, name);
       return {
@@ -387,7 +386,6 @@ ${agentSnippet()}`),
       };
     }
     case "graphs": {
-      const root = g.root ?? defaultRoot(deps);
       let current: string | undefined;
       try {
         current = (
@@ -413,7 +411,6 @@ ${agentSnippet()}`),
 
     // ---- 图事实面（经单属主 daemon） ----
     case "status": {
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         const st = await s.status();
         return { data: st, human: humanSummary(st), revision: st.revision };
@@ -436,7 +433,6 @@ ${agentSnippet()}`),
           "toporealm read --kind <K>  或  toporealm read <id>",
         );
       }
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         if (id !== undefined) {
           // 单点邻域（D36）：一次邻域读 = 锚实体 + 触达它的双向关系（core 一处过滤；
@@ -496,7 +492,6 @@ ${agentSnippet()}`),
         throw new UsageError("用法：toporealm find <k=v>... [--kind K] [--fields f]");
       }
       const eq = parseKvPairs(kvArgs);
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         // B1：core.read 的 where 各条件取交集——多个 --kind 编成多条 where 恒为空集。
         // 多 kind 时本地按 kind 分次 read 再按 id 合并去重（wire 语义不变，分批全是
@@ -542,7 +537,6 @@ ${agentSnippet()}`),
       if (!kind) {
         throw new UsageError("用法：toporealm add <kind> [--id X] [--payload '<json>']");
       }
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         const r = await s.commit({
           changes: [
@@ -570,7 +564,6 @@ ${agentSnippet()}`),
         );
       }
       const kv = parseKvPairs(pos.slice(1));
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         let changes: Change[];
         if (replace) {
@@ -606,7 +599,6 @@ ${agentSnippet()}`),
       if (!src || !tgt) {
         throw new UsageError("用法：toporealm link <src> <tgt> [--kind ns.rel] [--id X]");
       }
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         let kind = kindFlag;
         if (kind === undefined) {
@@ -655,7 +647,6 @@ ${agentSnippet()}`),
       const a = new Argv(args);
       const id = a.positionals()[0];
       if (!id) throw new UsageError("用法：toporealm rm <id>");
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         const r = await s.commit({ changes: [{ op: "del", id }], label: `rm ${id}` });
         return {
@@ -668,7 +659,6 @@ ${agentSnippet()}`),
     case "log": {
       const a = new Argv(args);
       const n = a.numberValue("-n") ?? 20;
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         const entries = await s.log({ limit: n });
         const st = await s.status();
@@ -688,7 +678,6 @@ ${agentSnippet()}`),
     case "cmds": {
       const a = new Argv(args);
       const mod = a.value("--module");
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         const cat = await s.catalog(mod);
         const modules =
@@ -718,7 +707,6 @@ ${agentSnippet()}`),
       const a = new Argv(args);
       const port = a.numberValue("--port");
       const noOpen = a.flag("--no-open");
-      const root = g.root ?? defaultRoot(deps);
       const target = await resolveTarget({
         root,
         ...(g.graph !== undefined ? { graph: g.graph } : {}),
@@ -827,7 +815,6 @@ ${agentSnippet()}`),
           throw new UsageError(`${verb} 步数需要正整数，得到 "${pos}"`);
         }
       }
-      const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         // G2-3：每次 undo/redo 转换 revision +1（游标移动也定版）→ 实际步数 =
         // 响应 revision 与请求前 revision 的差值。钳位时不再谎报请求步数。
@@ -855,7 +842,6 @@ ${agentSnippet()}`),
       // module add <npm|路径> | module rm <id> | module list（D23①：工作区冷路径安装）
       const sub = args[0];
       const a = new Argv(args.slice(1));
-      const root = g.root ?? defaultRoot(deps);
       if (sub === "add") {
         const global = a.flag("--global"); // 先吃 flag 再取位置参数（flag 查询会摘除 token）
         const source = a.positionals()[0];
@@ -881,7 +867,7 @@ ${agentSnippet()}`),
       if (sub === "list") {
         const gp = globalPaths(deps.env);
         const rows = await listModules(root, { globalRoot: gp.root });
-        const projectPool = path.join(workspacePaths(root).topoDir, "modules");
+        const projectPool = projectPoolDir(root);
         const render = (m: (typeof rows)[number]): string => {
           const origin =
             m.origin !== undefined
@@ -928,7 +914,6 @@ ${agentSnippet()}`),
       if (sub !== "index") {
         throw new UsageError(`未知 skills 子命令 "${sub ?? ""}"（合法：index）`, "toporealm help skills");
       }
-      const root = g.root ?? defaultRoot(deps);
       const entries = await skillsIndex({ root, globalRoot: globalPaths(deps.env).root });
       return {
         envelope: { ok: true, data: { skills: entries } },
@@ -940,7 +925,6 @@ ${agentSnippet()}`),
       const dryRun = a.flag("--dry-run");
       const oldDir = a.positionals()[0];
       if (!oldDir) throw new UsageError("用法：toporealm migrate <旧图目录> [--dry-run]");
-      const root = g.root ?? defaultRoot(deps);
       const report = await migrateGraph({ root, oldDir, ...(dryRun ? { dryRun: true } : {}) });
       const conflicts = report.conflicts.length;
       const problems = report.errors.length + report.dangling.length;

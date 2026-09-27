@@ -160,6 +160,15 @@ export function entityYaml(rec: Entity | RelationEntity): string {
   return stringify(doc, { lineWidth: 0 });
 }
 
+// 重载（批次 D）：按 expectRelation 字面量收窄 rec 形状，loadEntities 免 as 断言
+async function parseEntityFile(
+  file: string,
+  expectRelation: true,
+): Promise<{ id: EntityId; rec: RelationEntity } | null>;
+async function parseEntityFile(
+  file: string,
+  expectRelation: false,
+): Promise<{ id: EntityId; rec: Entity } | null>;
 async function parseEntityFile(
   file: string,
   expectRelation: boolean,
@@ -222,10 +231,10 @@ export async function loadEntities(
 ): Promise<{ objects: Map<EntityId, Entity>; relations: Map<EntityId, RelationEntity> }> {
   const objects = new Map<EntityId, Entity>();
   const relations = new Map<EntityId, RelationEntity>();
-  for (const [dir, expectRelation, into] of [
-    [p.objects, false, objects] as const,
-    [p.relations, true, relations] as const,
-  ]) {
+  for (const [dir, expectRelation] of [
+    [p.objects, false],
+    [p.relations, true],
+  ] as const) {
     let names: string[];
     try {
       names = await fsp.readdir(dir);
@@ -234,11 +243,15 @@ export async function loadEntities(
     }
     for (const name of names) {
       if (!name.endsWith(".yaml")) continue;
-      const parsed = await parseEntityFile(
-        path.join(dir, name),
-        expectRelation,
-      );
-      if (parsed) into.set(parsed.id, parsed.rec as never);
+      const file = path.join(dir, name);
+      // 按字面量分派重载：rec 形状随 expectRelation 收窄，落对的 Map（批次 D 去 as never）
+      if (expectRelation) {
+        const parsed = await parseEntityFile(file, true);
+        if (parsed) relations.set(parsed.id, parsed.rec);
+      } else {
+        const parsed = await parseEntityFile(file, false);
+        if (parsed) objects.set(parsed.id, parsed.rec);
+      }
     }
   }
   return { objects, relations };

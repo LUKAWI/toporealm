@@ -25,7 +25,7 @@ import { parse, stringify } from "yaml";
 //   data 浅合并进 payload → capabilities 浅合并（与已落键冲突时更名 cap_<键> 并报告）
 //   → label→payload.title → meta→payload.meta（嵌套降级）；kind/direction/id 原样；
 //   revision 保留计数；undo 游标清零；历史不迁移（.log 从空开始）。
-// 输出：新图目录 <root>/graphs/<图id>/（v2 清单最后写 = 迁移完成标记；同 new 选中）+
+// 输出：新图目录 <root>/graphs/<图id>/（v3 清单最后写 = 迁移完成标记；同 new 选中）+
 //   迁移报告（经 CLI 输出交付，不写报告文件进图目录）。--dry-run 只出报告不落盘。
 // 全程文件层冷路径：不走 commit 管线（core 执法两条管运行期提交，迁移后的悬空边
 // 照迁并单列清单，daemon 装载不受影响——悬空检查只发生在新提交）。
@@ -401,10 +401,10 @@ export async function migrateGraph(opts: MigrateOptions): Promise<MigrationRepor
 
   if (opts.dryRun === true) return report;
 
-  // 幂等保护：目标已存在（且是合法 v2 图）→ 拒绝覆盖
+  // 幂等保护：目标已存在（且是可装载的 v3 图）→ 拒绝覆盖
   try {
     await fsp.access(target.manifest);
-    await loadManifest(target); // 可装载 = 已是 v2 图
+    await loadManifest(target); // 可装载 = 已是 v3 图
     throw new TopoError({
       code: "ID_EXISTS",
       message: `图 "${manifest.id}" 已存在于工作区：${target.dir}`,
@@ -412,7 +412,10 @@ export async function migrateGraph(opts: MigrateOptions): Promise<MigrationRepor
     });
   } catch (err) {
     if (TopoError.is(err)) throw err;
-    // ENOENT：目标不存在或不是 v2 图 → 继续写入
+    // 走到这里 = access 抛非 TopoError（目标不存在 ENOENT 等）→ 继续写入。
+    // graph.yaml 存在但损坏/非 v3 时 loadManifest 抛的也是 TopoError（GRAPH_NOT_FOUND）
+    // ——已在上一行原样中止，不落入这里（批次 D：原注释「不是 v2 图 → 继续写入」
+    // 与实况相反，据实现对齐）。
   }
 
   const ws = workspacePaths(opts.root);

@@ -1,4 +1,4 @@
-import type { GraphPatch, CommitResult } from "./changes.js";
+import type { GraphPatch } from "./changes.js";
 import type { Origin } from "./entities.js";
 
 // ---------- 事件（blueprint §1） ----------
@@ -20,6 +20,3 @@ export type TopoEvent =
       reason: "external-edit" | "daemon-restarted" | "graph-switched";
       graphId?: string;
     };
-
-/** 模块命令运行（M2 起有内容；M1 daemon 无模块，恒 UNKNOWN_COMMAND） */
-export type RunResult = CommitResult;

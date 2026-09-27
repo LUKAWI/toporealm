@@ -239,7 +239,7 @@
             <path d="M26 20h14M26 60h14M46 40H34" stroke-dasharray="4 3"/>
           </svg>
           <h3 class="empty-title">空拓扑</h3>
-          <p class="empty-hint">通过编辑器或 CLI / MCP 添加第一个对象与关系</p>
+          <p class="empty-hint">通过编辑器或 CLI 添加第一个对象与关系</p>
         </div>
       {:else}
         <!-- 星空画布（交互契约见 web-ui/src/lib/GraphCanvas.interaction.md） -->

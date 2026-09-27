@@ -4,9 +4,9 @@ import path from "node:path";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { MemoryClient } from "@lukawi/toporealm-client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { run } from "../src/index.js";
 import { Argv, perVerbHelp } from "../src/usage.js";
 import { isolateGlobalHome } from "../../../tests/test-env.js";
+import { execGolden, jsonOf } from "./golden.js";
 
 // ---------- G2 批次 CLI 侧：解析陷阱与可观测性（usage/read/find/undo/--version/help） ----------
 
@@ -22,33 +22,8 @@ afterAll(() => {
   restoreHome?.();
 });
 
-function makeDeps(cwd: string) {
-  const collected = { out: "", err: "" };
-  const client = new MemoryClient();
-  return {
-    deps: {
-      clientFactory: () => client,
-      cwd,
-      env: {},
-      out: (s: string) => {
-        collected.out += s;
-      },
-      err: (s: string) => {
-        collected.err += s;
-      },
-    },
-    collected,
-  };
-}
-
 async function exec(args: string[], cwd = root) {
-  const { deps, collected } = makeDeps(cwd);
-  const code = await run(args, deps);
-  return { code, ...collected };
-}
-
-function jsonOf(r: { code: number; out: string; err: string }): Record<string, unknown> {
-  return JSON.parse(r.code === 0 ? r.out : r.err) as Record<string, unknown>;
+  return execGolden(args, cwd, () => new MemoryClient());
 }
 
 describe("G2-2 Argv 可重复单值 flag（--kind 不再吞位置参数）", () => {

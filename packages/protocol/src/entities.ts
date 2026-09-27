@@ -46,7 +46,7 @@ export interface GraphSummary {
   graphId: string;
   revision: number;
   counts: Readonly<Record<Kind, number>>;
-  /** 已装载模块 id（M1 无模块系统，恒为空数组） */
+  /** 已装载模块 id（运行时模块集；module-host 装载后经 core.setLoadedModules 覆写） */
   modules: readonly string[];
   canUndo: boolean;
   canRedo: boolean;

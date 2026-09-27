@@ -1,13 +1,15 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 import { TopoError, isValidEntityId } from "@lukawi/toporealm-protocol";
 import type { ModuleManifestV2 } from "@lukawi/toporealm-protocol";
-import { globalPaths, projectPoolDir } from "@lukawi/toporealm-daemon-core";
+import {
+  globalPoolDir,
+  globalPoolDirAt,
+  projectPoolDir,
+} from "@lukawi/toporealm-daemon-core";
 // C3 清单解析归一：module.yaml / modules.yaml 的解析与写入唯一出处是 module-host
 // （依赖方向实测无环：module-host 只依赖 daemon-core + protocol）。安装器不再持有
 // 私有宽松实现——能过装载的解析器就是安装期的解析器，只是严格度开关不同。
@@ -203,14 +205,13 @@ async function probeManifest(dir: string): Promise<ModuleManifestV2> {
 // ---------- 安装 ----------
 
 /**
- * 全局池位（C4 布局收口：modulesDir 的唯一出处是 daemon-core 的 globalPaths）。
- * 显式 globalRoot（测试注入）走 TOPOREALM_HOME 覆盖形态复用同一解析器——不经
- * globalPoolDir(env) 是因为它尚无显式 root 入参（相邻问题，见报告）。
+ * 全局池位（C4 布局收口：池布局知识唯一出处是 daemon-core 的 paths.ts）。
+ * 显式 globalRoot（测试注入）走 globalPoolDirAt；否则 globalPoolDir 按进程环境解析。
  */
 function globalModulesDir(opts: { globalRoot?: string }): string {
-  return globalPaths(
-    opts.globalRoot !== undefined ? { TOPOREALM_HOME: opts.globalRoot } : process.env,
-  ).modulesDir;
+  return opts.globalRoot !== undefined
+    ? globalPoolDirAt(opts.globalRoot)
+    : globalPoolDir();
 }
 
 /** 安装落位：--global → 全局池（惰性确保）；否则项目池（已存在，池路径唯一出处 projectPoolDir）。 */
@@ -471,6 +472,11 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
   // 项目池卸载顺带清 legacy 绑定（workspace 残留）；path 绑定手工管理，拒绝误删。
   // C3：绑定读走 module-host 的 readModuleBindings——modules.yaml 损坏时大声失败，
   // 不再静默当空绑定继续（那会绕过 path 绑定保护直接删目录）。
+  // 批次 D 顺序修正：检查在前，删除倒序——先删目录、后清绑定。目录删除失败时绑定
+  // 仍在（重试直达）；原序先清绑定，一旦目录删除失败，模块仍会照常装载（目录即注册），
+  // 用户却已被告知卸载成功。绑定清除失败最多留一条指向已删目录的 legacy 残留
+  // （discovery 对非 path 绑定忽略，无害）。
+  let legacyBinding = false;
   if (!opts.global) {
     const { bindings } = await readModuleBindings(opts.root);
     const binding = bindings[opts.id];
@@ -482,9 +488,10 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
         details: { module: opts.id, binding },
       });
     }
-    if (binding) await writeModuleBinding(opts.root, opts.id, undefined);
+    legacyBinding = binding !== undefined;
   }
   await fsp.rm(dir, { recursive: true, force: true });
+  if (legacyBinding) await writeModuleBinding(opts.root, opts.id, undefined);
   return {
     id: opts.id,
     removedDir: dir,
@@ -588,13 +595,4 @@ export async function listModules(
   }
   for (const [, e] of globals) out.push(e);
   return out;
-}
-
-// 供上层（plugin.json / 同步标记）取生成器版本
-export function distributionVersion(): string {
-  return (
-    JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as {
-      version: string;
-    }
-  ).version;
 }
