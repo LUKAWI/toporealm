@@ -48,10 +48,19 @@ export default function (pi: {
   });
   pi.on("session_start", async (_event: unknown, ctx: unknown) => {
     try {
-      const { execFile } = await import("node:child_process");
+      const { exec, execFile } = await import("node:child_process");
       const { promisify } = await import("node:util");
-      const run = promisify(execFile);
-      const { stdout } = await run("toporealm", ["status"], { timeout: 10_000 });
+      const runFile = promisify(execFile);
+      const runShell = promisify(exec);
+      // win32：npm 全局 bin 是 .cmd shim——execFile 不经 shell 找不到（ENOENT），
+      // 且 CVE-2024-27980 后 Node 对不带 shell 的 .cmd/.bat spawn 直接 EINVAL。
+      // 故 win32 用 exec 经 shell 跑整串命令（命令串为常量，无注入面；不走
+      // shell:true + args——DEP0190）；其余平台 PATH 上的原生可执行，execFile 直跑。
+      // 失败仍静默（摘要本就 best-effort）。
+      const { stdout } =
+        process.platform === "win32"
+          ? await runShell("toporealm status", { timeout: 10_000 })
+          : await runFile("toporealm", ["status"], { timeout: 10_000 });
       const brief = String(stdout).trim().split("\n").slice(0, 4).join(" | ");
       if (brief && (ctx as { ui?: { notify?: (m: string, l: string) => void } })?.ui?.notify)
         (ctx as { ui: { notify: (m: string, l: string) => void } }).ui.notify("TopoRealm: " + brief, "info");
