@@ -61,18 +61,23 @@ export function createWireDispatcher(
       un: () => void;
     }
   >();
-  /** 换载通知：重订阅全部 token 到新 core + 推送 reset（graph-switched） */
+  /** 换载通知：重订阅有活跃订阅的连接 + 推送 reset（graph-switched） */
   const offSwap = ctx.runtime.onSwap((pair) => {
+    // G2-12：换载是换图——旧图推导的 fromRevision 回放到新图上只会拼出错图补丁
+    //（瞬态错图窗口）。重订阅不携带 fromRevision：新 core 的 hello 首事件携带新图
+    // revision，配合下面的 reset(graph-switched) 让客户端全量重读自愈。
     for (const sub of subscribers.values()) {
       sub.un();
-      sub.un = pair.core.events(
-        sub.listener,
-        sub.fromRevision !== undefined ? { fromRevision: sub.fromRevision } : undefined,
-      );
+      sub.un = pair.core.events(sub.listener);
+      sub.fromRevision = undefined;
     }
-    send({
-      event: { type: "reset", reason: "graph-switched", graphId: pair.core.graphId },
-    });
+    // G2-12：reset 只推给有活跃订阅的连接——无订阅连接（如纯 CLI 请求会话）
+    // 收到 reset 无从消费，徒增噪声
+    if (subscribers.size > 0) {
+      send({
+        event: { type: "reset", reason: "graph-switched", graphId: pair.core.graphId },
+      });
+    }
   });
   /** 会话钉住的图：hello 带显式 graph 时设置（CLI 语义——本会话恒服务该图，D30） */
   let pinnedGraph: string | undefined;
@@ -220,6 +225,20 @@ export function createWireDispatcher(
             ok(req.id, { ok: true });
             setTimeout(() => ctx.onStale(), 20);
             return;
+          default: {
+            // G2-6：未知 wire op 必须有响应——此前 switch 无 default，请求悬挂到
+            // 客户端 30s 超时。回封闭码 UNKNOWN_COMMAND + 原请求 id。
+            const { id, op } = req as unknown as { id: string; op?: unknown };
+            fail(
+              id,
+              new TopoError({
+                code: "UNKNOWN_COMMAND",
+                message: `未知的 wire op：${typeof op === "string" ? `"${op}"` : String(op)}`,
+                hint: "op 集合见 protocol IpcRequest；客户端与 daemon 版本可能不匹配",
+              }),
+            );
+            return;
+          }
         }
       } finally {
         ctx.runtime.endOp();
