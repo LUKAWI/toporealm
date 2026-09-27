@@ -59,8 +59,6 @@ export async function serveDaemon(
 
   // 1.1.0 D30：当前图状态进 GraphRuntime——换载在请求入口就地发生（core/host 随之变化）
   const runtime = await GraphRuntime.open(opts.root, opts.graph);
-  const core = runtime.current().core;
-  const host = runtime.current().host;
 
   let resolveStopped!: () => void;
   const stopped = new Promise<void>((r) => (resolveStopped = r));
@@ -72,7 +70,9 @@ export async function serveDaemon(
     for (const c of connections) c.destroy();
     await new Promise<void>((r) => server.close(() => r()));
     if (web) await web.close();
-    core.dispose();
+    // A4：dispose 当前图内核的责任归 GraphRuntime——换载后启动时捕获的旧引用
+    // 早已失效，只有 runtime.dispose() 能释放真正在役的内核（fs.watch/定时器）
+    runtime.dispose();
     resolveStopped();
   }
 
@@ -155,6 +155,8 @@ export async function serveDaemon(
   }
 
   refreshIdle();
+  // 返回时的内核快照（web 已可能触达：取 current 而非启动时捕获，A4 同源修正）
+  const { core, host } = runtime.current();
   return {
     instanceId: core.instanceId,
     graphId: core.graphId,

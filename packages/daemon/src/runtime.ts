@@ -81,6 +81,17 @@ export class GraphRuntime implements WireRuntimeLike {
     };
   }
 
+  /**
+   * 释放当前图内核与换载监听（A4：dispose 责任归 runtime）。
+   * 修复前 serveDaemon.stop() dispose 的是启动时捕获的 core 引用——任意一次换载后，
+   * 当前图内核的 fs.watch 与 reconcile 定时器永不清理（库用法/测试泄漏，detached
+   * 进程靠 process.exit 兜底）。stop 是唯一释放口，必须经此方法收口。
+   */
+  dispose(): void {
+    this.swapListeners.clear();
+    this.pair.core.dispose();
+  }
+
   /** 请求入口：active 指针变化 → 换载（mtime 缓存，未变化零成本）。失败吞掉（跟随语义）。 */
   async maybeSwap(): Promise<void> {
     if (this.swapPromise) {
@@ -89,15 +100,19 @@ export class GraphRuntime implements WireRuntimeLike {
     }
     const stamp = await this.readActiveStamp();
     if (stamp === null || stamp === this.activeStampCache) return;
-    this.activeStampCache = stamp;
     const target = await readActiveGraphId(
       workspacePaths(this.pair.core.root).activeFile,
     );
-    if (!target || target === this.pair.core.graphId) return;
-    this.swapPromise = this.doSwap(target).finally(() => {
-      this.swapPromise = null;
-    });
-    await this.swapPromise.catch(() => {});
+    if (!target || target === this.pair.core.graphId) {
+      this.activeStampCache = stamp;
+      return;
+    }
+    // A3：等待窗口内可能已有显式换载（ensureGraph）入场——让位且不消费 stamp，
+    // 下一请求重查。修复前此处无条件赋值会覆写进行中的 swapPromise → 双换载竞态
+    //（双开内核/泄漏/dispose 落错对象）。
+    if (this.swapPromise) return;
+    this.activeStampCache = stamp;
+    await this.startSwap(target).catch(() => {});
   }
 
   /** 显式目标图（hello 带 graph）：必要时换载；失败如实上抛，旧图继续服务（R2）。 */
@@ -105,7 +120,27 @@ export class GraphRuntime implements WireRuntimeLike {
     if (graphId === this.pair.core.graphId) return;
     if (this.swapPromise) await this.swapPromise;
     if (graphId === this.pair.core.graphId) return;
-    await this.doSwap(graphId);
+    // A3：与 maybeSwap 同构走 startSwap——换载全程持 swapPromise 门，
+    // 并发双开/绕过独占（Y2）不再可能。
+    await this.startSwap(graphId);
+  }
+
+  /**
+   * 换载入口（A3 收口）：swapPromise 的赋值先于 doSwap 任何 body 执行。
+   * 修复前 `this.swapPromise = this.doSwap(target)` 的 RHS 先同步执行 doSwap 体
+   * 到首个 await，期间 beginOp 的门检查已通过——op 的 inflight 落在正被换载的
+   * 旧内核上；ensureGraph 直呼 doSwap 则完全不设门。现在 beginOp 在换载全程
+   * 看到非空 swapPromise，单线程下 break→inflight++ 无让渡点，门语义完整。
+   */
+  private startSwap(target: string): Promise<void> {
+    const p = (async () => {
+      await null; // 先让渡：保证下面的赋值先于 doSwap 体（drain 检查 / open）执行
+      await this.doSwap(target);
+    })().finally(() => {
+      this.swapPromise = null;
+    });
+    this.swapPromise = p;
+    return p;
   }
 
   /** 请求门：与换载互斥（Y2）。op 全程持门；beginOp 等待进行中的换载完成。 */
