@@ -4,10 +4,23 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
+import { isolateGlobalHome } from "../../../tests/test-env.js";
 
 // ---------- e2e：真实 bin（node bin/toporealm.mjs）+ IPC daemon 自动拉起 ----------
 // 验收路径 = blueprint §9 M1「CLI 全流程走通」：新建图→加对象→改→undo→redo→log 一条龙
+// 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录并随 process.env 传给 CLI 子进程，
+// 再由 IpcClient spawn（不覆写 env）传给 daemon 孙进程——防开发机全局池模块混入装载。
+
+let restoreHome: (() => void) | undefined;
+
+beforeAll(async () => {
+  restoreHome = (await isolateGlobalHome()).restore;
+});
+
+afterAll(() => {
+  restoreHome?.();
+});
 
 const bin = fileURLToPath(new URL("../bin/toporealm.mjs", import.meta.url));
 

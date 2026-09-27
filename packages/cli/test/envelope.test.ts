@@ -4,15 +4,24 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { MemoryClient } from "@lukawi/toporealm-client";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { run } from "../src/index.js";
+import { isolateGlobalHome } from "../../../tests/test-env.js";
 
 // ---------- CLI golden 信封 + 退出码表驱动（blueprint §8：MemoryClient 后端） ----------
+// 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录，防开发机 ~/.toporealm
+// 全局池模块泄漏进 MemoryClient → ModuleHost.load（其只读 process.env，不看 deps.env）。
 
 let root: string;
+let restoreHome: (() => void) | undefined;
 
 beforeAll(async () => {
+  restoreHome = (await isolateGlobalHome()).restore;
   root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-cli-"));
+});
+
+afterAll(() => {
+  restoreHome?.();
 });
 
 function makeDeps(cwd: string) {

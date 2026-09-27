@@ -4,10 +4,22 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import type { Session } from "@lukawi/toporealm-protocol";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { IpcClient } from "../src/ipc.js";
 import { MemoryClient } from "../src/memory.js";
 import { waitFor } from "./contract.js";
+import { isolateGlobalHome } from "../../../tests/test-env.js";
+
+// 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录，防开发机 ~/.toporealm
+// 全局池的 workflow 模块（ns=wf）与 fixture workflow-mini 命名空间冲突；
+// memory 走进程内读 env，IPC 经 spawn 继承父 env 传给 daemon。
+let restoreHome: (() => void) | undefined;
+beforeAll(async () => {
+  restoreHome = (await isolateGlobalHome()).restore;
+});
+afterAll(() => {
+  restoreHome?.();
+});
 
 // ---------- M2 模块缝在 memory/IPC 两 adapter 复跑（blueprint §8：传输一致性） ----------
 // catalog()/run() 进 wire 契约；命令→钩子 veto→所有权全链路打公共缝。

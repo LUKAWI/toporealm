@@ -2,7 +2,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { TopoError } from "@lukawi/toporealm-protocol";
 import { ModuleHost } from "../src/index.js";
@@ -10,10 +10,32 @@ import exampleFixture from "../../../tests/fixtures/modules/example/index.js";
 
 // ---------- S2：fixture 模块直 activate 进内存 daemon（blueprint §8） ----------
 // 所有权法、钩子 veto、目录自省、注册冻结全部在真缝上测。
+// 测试隔离（1.2.0 G5）：所有 load 显式注入空临时 globalRoot（双池发现的参数缝），
+// 防开发机 ~/.toporealm 全局池模块（ns=wf）与 fixture workflow-mini 命名空间冲突。
 
 const fixturesDir = fileURLToPath(
   new URL("../../../tests/fixtures/modules/", import.meta.url),
 );
+
+let isolatedGlobalRoot: string | undefined;
+
+/** 空全局根（懒创建，全文件共享）：显式参数注入，不读进程环境 */
+async function emptyGlobalRoot(): Promise<string> {
+  if (isolatedGlobalRoot === undefined) {
+    isolatedGlobalRoot = await fsp.mkdtemp(
+      path.join(os.tmpdir(), "toporealm-mh-global-"),
+    );
+  }
+  return isolatedGlobalRoot;
+}
+
+afterAll(async () => {
+  if (isolatedGlobalRoot !== undefined) {
+    await fsp
+      .rm(isolatedGlobalRoot, { recursive: true, force: true })
+      .catch(() => {});
+  }
+});
 
 /** 绑定表 → modules.yaml 文本（path 来源；JSON 双引号写法兼容 Windows 反斜杠路径） */
 function bindingYaml(entries: Record<string, string>): string {
@@ -48,7 +70,10 @@ async function openWithModules(
   bindings?: Record<string, string>,
 ): Promise<{ core: DaemonCore; host: ModuleHost }> {
   const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
-  const host = await ModuleHost.load(core, { root });
+  const host = await ModuleHost.load(core, {
+    root,
+    globalRoot: await emptyGlobalRoot(),
+  });
   return { core, host };
 }
 
@@ -125,7 +150,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
   it("M6：requires.modules 缺失 → 启动大声失败并点名缺失 + fix", async () => {
     const root = await tmpWorkspace({ "workflow-mini": fixturePath("workflow-mini") });
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
-    const err = await ModuleHost.load(core, { root }).catch((e: unknown) => e);
+    const err = await ModuleHost.load(core, { root, globalRoot: await emptyGlobalRoot() }).catch((e: unknown) => e);
     expect(TopoError.is(err)).toBe(true);
     expect((err as TopoError).code).toBe("MISSING_MODULE");
     expect((err as TopoError).message).toContain("example");
@@ -163,7 +188,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
       "utf8",
     );
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
-    const err = await ModuleHost.load(core, { root }).catch((e: unknown) => e);
+    const err = await ModuleHost.load(core, { root, globalRoot: await emptyGlobalRoot() }).catch((e: unknown) => e);
     expect((err as TopoError).code).toBe("INVALID_INPUT");
     expect((err as TopoError).message).toContain("循环");
     core.dispose();
@@ -184,7 +209,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
       "utf8",
     );
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
-    const err = await ModuleHost.load(core, { root }).catch((e: unknown) => e);
+    const err = await ModuleHost.load(core, { root, globalRoot: await emptyGlobalRoot() }).catch((e: unknown) => e);
     expect((err as TopoError).code).toBe("INVALID_INPUT");
     expect((err as TopoError).message).toContain("toporealm.module/v2");
     core.dispose();
@@ -415,7 +440,10 @@ describe("S2 钩子与执法：VETOED 结构化否决 / 所有权 / 词汇偏差
       "utf8",
     );
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
-    const host = await ModuleHost.load(core, { root });
+    const host = await ModuleHost.load(core, {
+      root,
+      globalRoot: await emptyGlobalRoot(),
+    });
     const err = await host.run("duck.boom").catch((e: unknown) => e);
     expect(TopoError.is(err)).toBe(true);
     expect((err as TopoError).code).toBe("INVALID_INPUT");

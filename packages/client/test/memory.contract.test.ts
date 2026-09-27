@@ -2,20 +2,30 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MemoryClient, MemorySession } from "../src/memory.js";
 import {
   runSessionContractSuite,
   sleep,
   type ContractSuiteContext,
 } from "./contract.js";
+import { isolateGlobalHome } from "../../../tests/test-env.js";
+
+// 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录，防开发机 ~/.toporealm
+// 全局池模块泄漏进 MemoryClient → ModuleHost.load（未注入 globalRoot 走 globalPaths()）。
 
 let root: string;
+let restoreHome: (() => void) | undefined;
 
 beforeAll(async () => {
+  restoreHome = (await isolateGlobalHome()).restore;
   root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-mem-"));
   await fsp.mkdir(path.join(root, ".toporealm"), { recursive: true });
   await DaemonCore.createGraph(root, "g1");
+});
+
+afterAll(() => {
+  restoreHome?.();
 });
 
 function makeCtx(): ContractSuiteContext {

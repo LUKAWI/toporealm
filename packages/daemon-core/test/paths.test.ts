@@ -2,9 +2,24 @@ import { describe, expect, it } from "vitest";
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import process from "node:process";
 import { ensureGlobalDir, globalPaths, graphPaths, workspacePaths } from "../src/index.js";
 
 // ---------- 全局目录（1.1.0 D26）：TOPOREALM_HOME 覆盖 + 惰性确保 ----------
+// 测试隔离（1.2.0 G5）：缺省解析用例对 TOPOREALM_HOME sanitize（保存/删除/恢复）——
+// 「缺省 = ~/.toporealm」的断言只在环境变量未设置时成立，不依赖外层运行环境。
+
+/** 临时摘除 TOPOREALM_HOME 再执行断言，结束后按原状恢复（含未设置态） */
+function withoutHomeOverride<T>(fn: () => T): T {
+  const prev = process.env["TOPOREALM_HOME"];
+  delete process.env["TOPOREALM_HOME"];
+  try {
+    return fn();
+  } finally {
+    if (prev === undefined) delete process.env["TOPOREALM_HOME"];
+    else process.env["TOPOREALM_HOME"] = prev;
+  }
+}
 
 describe("workspace/graph 布局（1.1.0 D26）", () => {
   it("图存储收编进 .toporealm/graphs/<id>", () => {
@@ -19,7 +34,7 @@ describe("workspace/graph 布局（1.1.0 D26）", () => {
 
 describe("globalPaths", () => {
   it("缺省解析到 ~/.toporealm，不触盘", () => {
-    const g = globalPaths();
+    const g = withoutHomeOverride(() => globalPaths());
     expect(g.root).toBe(path.join(os.homedir(), ".toporealm"));
     expect(g.modulesDir).toBe(path.join(os.homedir(), ".toporealm", "modules"));
   });
@@ -31,7 +46,7 @@ describe("globalPaths", () => {
   });
 
   it("空白字符串的覆盖视为未设置", () => {
-    const g = globalPaths({ TOPOREALM_HOME: "   " });
+    const g = withoutHomeOverride(() => globalPaths({ TOPOREALM_HOME: "   " }));
     expect(g.root).toBe(path.join(os.homedir(), ".toporealm"));
   });
 });

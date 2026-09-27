@@ -10,14 +10,19 @@ import {
   waitFor,
   type ContractSuiteContext,
 } from "./contract.js";
+import { isolateGlobalHome } from "../../../tests/test-env.js";
 
 // ---------- S1 契约在 WS adapter 上复跑（blueprint §8：同一套用例三 adapter 复跑） ----------
 // 传输面：daemon 进程内 serveDaemon + WsClient（wire 信封 /ws，D22）。
+// 测试隔离（1.2.0 G5）：TOPOREALM_HOME 指向一次性空目录，防开发机 ~/.toporealm
+// 全局池模块泄漏进 serveDaemon → ModuleHost.load（未注入 globalRoot 走 globalPaths()）。
 
 let root: string;
 let daemon: RunningDaemon;
+let restoreHome: (() => void) | undefined;
 
 beforeAll(async () => {
+  restoreHome = (await isolateGlobalHome()).restore;
   root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-ws-"));
   await fsp.mkdir(path.join(root, ".toporealm"), { recursive: true });
   await DaemonCore.createGraph(root, "g1");
@@ -31,6 +36,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await daemon.stop();
+  restoreHome?.();
 });
 
 function makeCtx(): ContractSuiteContext {
