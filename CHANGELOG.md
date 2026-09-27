@@ -1,5 +1,87 @@
 # Changelog
 
+## 1.2.0 - 2026-09-26
+
+主题：**修复与内部优化**（blueprint §1.11，D35–D42）。依据：架构评审 + 四路功能核验
+（`docs/rebuild/plan-1.2.0-fixes.md`）。公共契约不变：CLI 语法、错误码封闭集（仅加
+`details` 字段）、wire 既有消息（仅加 `ReadQuery.adjacent`）、module.yaml schema、
+graph v3 格式。模块仓 `@lukawi/toporealm-workflow` 同发 1.0.1（帮助与报错 UX 五项）。
+
+### 正确性修复（并发面，全部有运行级回归测试）
+
+- **fix(daemon-core)**：commit/undo/redo/外部吸收管线 promise 链互斥——原实现
+  revision 在 stage 定版、land 才生效，persist 的 await 让渡点上并发提交同
+  revision 双写、内存丢更新、`ifRevision` 失效（实测 `.log=[1,2,2]`、先提交对象
+  重启后才"复活"）。同步提交路径（模块 `api.commit`）经 module-host 的
+  `runExclusive` 段独占管线（发布前对抗审查抓出的遗漏，异步 handler 中途
+  api.commit 与在途管线交织可复现同签名腐蚀）。
+- **fix(client)**：WsSession 回放双缺陷——缺口自愈先推进基准再重订（缺口事件永不
+  补齐，违反自声明 I3）；重连握手覆写 `lastRevision`（退避窗口内提交 3/3 复现
+  永不补送且无 reset，WebUI"看似在同步"实则带旧数据）。
+- **fix(daemon)**：换载门 TOCTOU 收口——`startSwap` 先挂 `swapPromise` 再执行
+  （消除 `beginOp` 穿透）；`ensureGraph` 走同一互斥门（并发双开内核、跨图劈半
+  落盘实测修复）；`GraphRuntime.dispose()` 归一当前核清理（原 stop() 只 dispose
+  启动时的旧核，换载后 watcher 泄漏）。
+
+### 功能修复（看似没 bug 但实际不可用的一批）
+
+- **fix(web-ui)**：顶栏图切换下拉与只读预览覆盖层整链复活——四个 store 字段漏
+  `$state` 致模板永不重渲染（D30 功能自发布起不可达的根因）；预览失败可见性、
+  reset 重读的会话泄漏、按 reason 分文案、in-flight 守卫、死 CSS 清理、vite dev
+  代理、mount 级预览用例 11 例。
+- **fix(cli)**：`find` 多 `--kind` 恒空集（交集语义）改本地并集；`--kind` 改可重复
+  单值（`read --kind X <id>` 不再把 id 吞进 kind 静默返回整类）；单点 `read` 对
+  过滤旗标显式报错；undo/redo 打印实际步数；`serve --port` 复用时明示；migrate
+  信封位置文案；`help` 去除已废除的 version 动词承诺。
+- **fix(client)**：daemon 启动失败真实死因上抛（原 CLI 只报「等待就绪超时」，
+  坏模块/坏 modules.yaml/坏 graph.yaml 的精确原因被 `stdio:"ignore"` 丢弃）。
+- **fix(distribution)**：`writeBinding` 原子写（能写出让 daemon 拒启的半个
+  modules.yaml）；npm pack/tar 子进程 120s 超时；**损坏模块自愈（D42）**：
+  `module rm <id> --force` 对清单不可读目录豁免所有权标记（原 CLI 内无任何命令
+  能修复砖化的项目池）。
+- **fix(daemon-core)**：.log 追加前确保末尾换行（半行残行毒化后续好行，重启丢审计）；
+  外部编辑吸收被拒下沉 warning（盘错误与执法拒绝可区分）。
+- **fix(web)**：未知 wire op 回 UNKNOWN_COMMAND（原悬挂 30s）；换载重订阅收口
+  （reset 只推有订阅连接，消除瞬态错图窗口）。
+- **fix(module-host)**：modules.yaml 损坏包 TopoError（不再裸 YAMLParseError）。
+
+### 契约补全（blueprint D36–D38，均只增不改义）
+
+- `ReadQuery.adjacent`：邻域查询——`read <id>` 单命令单次读（原命中路径 2 次读、
+  wire 全量），协议加法。
+- `VETOED` 的 `details.vetoes[]` 增 `module` 字段：点名否决模块（对齐 §1.1 既有承诺）。
+- `GraphSummary.warnings?`：status 上浮装载期 warning（原只落 detached daemon 的
+  stderr，用户实际不可见）。
+
+### 结构优化
+
+- **SessionTransport 基座（D40）**：Session 十法与 pending/超时/failAll 管道收敛
+  唯一份，三 adapter 只留传输个性（删重复约 220 行）；`IpcResultMap` 转正为
+  op→result 类型脊柱；契约套件零改动全绿；浏览器出口不变。
+- **core 假面收口（D35）**：删恒抛的 `core.run`，`core.catalog` 收窄 kinds 投影，
+  命令目录聚合归 module-host 独占。
+- **清单解析归一**：安装器与装载器共用 `parseModuleManifest`/`readModuleBindings`
+  （严格度=一个参数），`modules-yaml.ts` 删除；requires/kinds 形状坏的清单**安装期
+  即拒**（原装载期才炸）。
+- **布局收口**：`projectPoolDir`/`globalPoolDir`/单一 `listGraphs`（CLI 与
+  `/api/graphs` 同一实现）；批次 D 机械清理净删 406 行。
+
+### 面向 workflow 模块用户（`@lukawi/toporealm-workflow` 1.0.1）
+
+- 12 条 `wf.*` 帮助统一列出必填/可选输入键；`create-task` 帮助写明 id 只放
+  `--input`；`claim-task` 键名统一 `claimBy`；`create-relation` 写明 `depends_on`
+  方向语义（source=前置/target=后继）；输入缺键报错点名命令与键名（原
+  「source 不能为空」无法定位归属）；`record-report` 消歧 input.id=报告自身、
+  target=任务。
+
+### 文档与配套
+
+- PROJECT-STATUS 刷新；README 中英（动词数、快速上手 id、1.0→break 声明、0.x
+  构想标注）；blueprint 错误码 fix 示例/§2 包名/§1.8 前言形态分层对齐；CONTEXT
+  「静态预览」用词注记；claude 插件 hooks 兜底静默（CLI 不在 PATH 时会话启动
+  零噪音）+ 插件版本对齐 1.2.0；测试隔离债根治（默认环境全量绿，不再依赖开发者机
+  `~/.toporealm` 状态）。
+
 ## 1.1.3 - 2026-09-26
 
 - **fix(web)：WebUI 白屏根修（blueprint §1.10 D34）**——1.1.2 的

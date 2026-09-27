@@ -601,6 +601,8 @@ module.yaml schema、graph v3 格式（全部只增不改；不新增用户可�
   标记检查，但必须显式 `--force`；正常模块仍走 marker 执法。动机：项目池坏模块
   使 daemon 拒启（D27 大声失败，不变）后 CLI 无自愈路径。daemon 启动失败的真实
   死因随超时错误上抛（spawn stderr 捕获），`DAEMON_UNREACHABLE` 语义不变。
+  C3 解析归一后「不可读」判定随装载同款严格解析收紧（缺 entry 的半合法目录归入
+  可 `--force` 清理之列）——本决策的自然推论。
 - **撤项**：D30⑥ reset 事件 `instanceId` 载荷不再实现（客户端经响应 instanceId
   检测已足）；D28 Y4④ hooks.json 兜底静默改为插件自包含 node 包装脚本实现
   （跨平台，不依赖 shell 语义）；D29 残留文案（version 动词、`new` 指路）随
