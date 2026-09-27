@@ -374,6 +374,30 @@ describe("外部编辑吸收（文件监视 → external 走同一管线）", ()
     expect(core.read({ ids: ["r-bad"] }).entities).toHaveLength(0);
     core.dispose();
   });
+
+  it("B6：吸收被拒下沉 warning（revision + 拒绝原因摘要），吞错不中断行为不变", async () => {
+    const root = await tmpWorkspace();
+    const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
+    await core.commit({ changes: [{ op: "put", kind: "k", id: "keep" }] }, "cli");
+    const p = graphPaths(root, "g1");
+    await fsp.writeFile(
+      path.join(p.relations, "r-bad.yaml"),
+      "id: r-bad\nkind: r\nsource: keep\ntarget: gone\npayload: {}\n",
+      "utf8",
+    );
+    await fsp.rm(path.join(p.objects, "keep.yaml"));
+    const absorbed = await core.reconcileExternal();
+    // 行为不变：不抛、不应用、内存态保持
+    expect(absorbed).toBe(false);
+    expect(core.read({ ids: ["keep"] }).entities).toHaveLength(1);
+    // 不再无声吞掉：warnings 面可读，含 revision 与拒绝原因摘要
+    expect(core.warnings).toHaveLength(1);
+    const w = core.warnings[0] as string;
+    expect(w).toContain("reconcileExternal");
+    expect(w).toContain("revision 1");
+    expect(w).toContain("关系端点不存在"); // 悬空边执法的拒绝原因
+    core.dispose();
+  });
 });
 
 describe("磁盘卫生（Windows 原子写）", () => {

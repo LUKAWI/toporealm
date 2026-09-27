@@ -1186,9 +1186,14 @@ export class DaemonCore {
           append: true,
         });
         applied = true;
-      } catch {
-        // 执法拒绝（如手改产生悬空边）：保持内存态，不回写、不循环
+      } catch (err) {
+        // 执法拒绝（如手改产生悬空边）：保持内存态，不回写、不循环——吞错不中断的
+        // 行为本身不变；B6 把失败原因下沉 warnings（含 revision 与原因摘要），
+        // 不再无声吞掉
         applied = false;
+        this.warn(
+          `reconcileExternal 吸收被拒（revision ${this.revision_}，${changes.length} 处外部改动未应用）：${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       if (applied) {
         // commit 事件已由 convert 广播；再发 reset 提示客户端全量重读（blueprint §3）
@@ -1204,7 +1209,13 @@ export class DaemonCore {
     if (this.reconcileTimer) clearTimeout(this.reconcileTimer);
     this.reconcileTimer = setTimeout(() => {
       this.reconcileTimer = null;
-      this.reconcileExternal().catch(() => {});
+      // B6：reconcileExternal 自身不应抛（吸收被拒已在内部转 warning）；真抛了
+      // （如装载/落盘 IO 异常）下沉 warning，不中断文件监视
+      this.reconcileExternal().catch((err) => {
+        this.warn(
+          `reconcileExternal 异常（revision ${this.revision_}）：${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
     }, EXTERNAL_DEBOUNCE_MS);
   }
 
