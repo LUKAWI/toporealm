@@ -1,12 +1,5 @@
 import http from "node:http";
-import fsp from "node:fs/promises";
-import path from "node:path";
-import {
-  DaemonCore,
-  graphPaths,
-  loadManifest,
-  workspacePaths,
-} from "@lukawi/toporealm-daemon-core";
+import { DaemonCore, listGraphs } from "@lukawi/toporealm-daemon-core";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   type IpcMessage,
@@ -182,27 +175,9 @@ async function handleGraphsList(
 ): Promise<void> {
   try {
     const core = runtime.current().core;
-    const ws = workspacePaths(core.root);
-    let names: string[] = [];
-    try {
-      names = (await fsp.readdir(ws.graphsDir)).filter((n) => !n.startsWith("."));
-    } catch {
-      /* 无 graphs 目录 = 空列表 */
-    }
-    const graphs: { id: string; label?: string; revision: number; current: boolean }[] = [];
-    for (const id of names.sort()) {
-      try {
-        const m = await loadManifest(graphPaths(core.root, id));
-        graphs.push({
-          id,
-          ...(m.label !== undefined ? { label: m.label } : {}),
-          revision: m.revision,
-          current: id === core.graphId,
-        });
-      } catch {
-        /* 非 graph 目录跳过 */
-      }
-    }
+    // C4：与 cli 的 graphs 动词共用 daemon-core 单一实现（同排序/容错口径）；
+    // current 标记经 active 指针（readActiveGraphId），不再是 daemon 当前加载图
+    const graphs = await listGraphs(core.root);
     json(res, 200, { graphs });
   } catch (err) {
     json(res, 500, { error: String(err) });

@@ -3,7 +3,14 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { ensureGlobalDir, globalPaths, graphPaths, workspacePaths } from "../src/index.js";
+import {
+  ensureGlobalDir,
+  globalPaths,
+  globalPoolDir,
+  graphPaths,
+  projectPoolDir,
+  workspacePaths,
+} from "../src/index.js";
 
 // ---------- 全局目录（1.1.0 D26）：TOPOREALM_HOME 覆盖 + 惰性确保 ----------
 // 测试隔离（1.2.0 G5）：缺省解析用例对 TOPOREALM_HOME sanitize（保存/删除/恢复）——
@@ -68,5 +75,21 @@ describe("ensureGlobalDir", () => {
     await fsp.mkdir(path.join(home, "modules", "some-module"), { recursive: true });
     await ensureGlobalDir({ TOPOREALM_HOME: home });
     await expect(fsp.stat(path.join(home, "modules", "some-module"))).resolves.toBeTruthy();
+  });
+});
+
+describe("池目录助手（1.2.0 C4 布局知识收口）", () => {
+  it("projectPoolDir = <root>/.toporealm/modules；globalPoolDir 复用 globalPaths", () => {
+    expect(projectPoolDir("R")).toBe(path.join("R", ".toporealm", "modules"));
+    expect(projectPoolDir("R")).toBe(workspacePaths("R").topoDir + path.sep + "modules");
+    const env = { TOPOREALM_HOME: "  /tmp/topo-home-pool  " };
+    expect(globalPoolDir(env)).toBe(globalPaths(env).modulesDir);
+    expect(globalPoolDir(env)).toBe(
+      path.join(path.resolve("/tmp/topo-home-pool"), "modules"),
+    );
+    // 缺省 env 复用 globalPaths() 的同一条解析
+    expect(withoutHomeOverride(() => globalPoolDir())).toBe(
+      withoutHomeOverride(() => globalPaths().modulesDir),
+    );
   });
 });

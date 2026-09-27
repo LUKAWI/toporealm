@@ -31,6 +31,11 @@ export async function ensureGlobalDir(env?: NodeJS.ProcessEnv): Promise<string> 
   return g.root;
 }
 
+/** 全局模块池目录（C4 布局知识收口：与 projectPoolDir 对偶的直呼形态，复用 globalPaths）。 */
+export function globalPoolDir(env: NodeJS.ProcessEnv = process.env): string {
+  return globalPaths(env).modulesDir;
+}
+
 // ---------- 工作区与图目录布局（blueprint §3） ----------
 
 export interface WorkspacePaths {
@@ -53,6 +58,11 @@ export function workspacePaths(root: string): WorkspacePaths {
     daemonDir: path.join(topoDir, "daemon"),
     activeFile: path.join(topoDir, "active"),
   };
+}
+
+/** 项目模块池目录（<root>/.toporealm/modules，目录即注册）——池布局唯一出处（C4 收口）。 */
+export function projectPoolDir(root: string): string {
+  return path.join(workspacePaths(root).topoDir, "modules");
 }
 
 export interface GraphPaths {

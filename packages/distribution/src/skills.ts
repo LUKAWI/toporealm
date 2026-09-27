@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { globalPaths, workspacePaths } from "@lukawi/toporealm-daemon-core";
+import { globalPaths, projectPoolDir } from "@lukawi/toporealm-daemon-core";
 
 // ---------- 技能索引（1.1.0 D28 / 评审 Y4）：池即唯一存储的读取面 ----------
 //
@@ -112,20 +112,20 @@ export async function skillsIndex(opts: {
       ...(await scanModuleSkills(path.join(globalBase, "modules", id), id, "global")),
     );
   }
-  // 项目池（cwd 无工作区 = 跳过）
+  // 项目池（cwd 无工作区 = 跳过）；池路径唯一出处 projectPoolDir（C4 布局知识收口）
   if (opts.root !== undefined) {
     let projectIds: string[] = [];
     try {
-      projectIds = (
-        await fsp.readdir(workspacePaths(opts.root).topoDir + path.sep + "modules")
-      ).filter((n) => !n.startsWith("."));
+      projectIds = (await fsp.readdir(projectPoolDir(opts.root))).filter(
+        (n) => !n.startsWith("."),
+      );
     } catch {
       /* 无工作区/空池 */
     }
     for (const id of projectIds.sort()) {
       out.push(
         ...(await scanModuleSkills(
-          path.join(workspacePaths(opts.root).topoDir, "modules", id),
+          path.join(projectPoolDir(opts.root), id),
           id,
           "project",
         )),

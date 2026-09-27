@@ -3,7 +3,6 @@ import { TopoError, isValidGraphId } from "@lukawi/toporealm-protocol";
 import {
   DaemonCore,
   graphPaths,
-  loadManifest,
   workspacePaths,
   writeActiveGraphId,
 } from "@lukawi/toporealm-daemon-core";
@@ -64,37 +63,9 @@ export async function activateGraph(
   await writeActiveGraphId(workspacePaths(root).activeFile, graphId);
 }
 
-export interface GraphListEntry {
-  id: string;
-  label?: string;
-  revision: number;
-  current: boolean;
-}
-
-export async function listGraphs(
-  root: string,
-  currentGraphId?: string,
-): Promise<GraphListEntry[]> {
-  const ws = workspacePaths(root);
-  let names: string[];
-  try {
-    names = await fsp.readdir(ws.graphsDir);
-  } catch {
-    return [];
-  }
-  const out: GraphListEntry[] = [];
-  for (const id of names.sort()) {
-    try {
-      const m = await loadManifest(graphPaths(root, id));
-      out.push({
-        id,
-        ...(m.label !== undefined ? { label: m.label } : {}),
-        revision: m.revision,
-        current: currentGraphId === id,
-      });
-    } catch {
-      /* 非 graph 目录（无 v2 manifest）跳过 */
-    }
-  }
-  return out;
-}
+// 图列表单一实现在 daemon-core（C4 布局知识收口，cli 的 graphs 动词与 web /api/graphs
+// 同口径）；client 是 cli 的转出口（cli 依赖方向不含 daemon-core）。
+export {
+  listGraphs,
+  type GraphListEntry,
+} from "@lukawi/toporealm-daemon-core";
