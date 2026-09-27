@@ -1,5 +1,8 @@
 import net from "node:net";
+import crypto from "node:crypto";
 import fs from "node:fs";
+import fsp from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
@@ -64,13 +67,45 @@ function defaultDaemonCommand(): { cmd: string; args: string[] } {
 /**
  * 拉起单属主 daemon（detached 常驻，blueprint §5）：脱离拉起者独立存活，
  * 退出由空闲超时/清理路径负责。toporealm serve 复用（可附 --web-port 等参数）。
+ *
+ * G2-1：daemon 的 stderr 不再丢弃——落 os.tmpdir() 下按 root 哈希定址的见证文件。
+ * 不用 pipe：detached daemon 比 CLI 长寿，CLI 退出即关闭 pipe 读端，daemon 之后的
+ * stderr 写（启动横幅/警告）会 EPIPE 波及常驻进程；落盘文件则与拉起者生命周期无关，
+ * 连接超时时客户端可读尾部把 toporeald 真实死因附进错误（坏模块/坏 YAML/坏 manifest）。
  */
+export function daemonStderrLogPath(root: string): string {
+  const name = `toporealm-${crypto
+    .createHash("sha256")
+    .update(path.resolve(root))
+    .digest("hex")
+    .slice(0, 16)}`;
+  return path.join(os.tmpdir(), `${name}.toporeald-stderr.log`);
+}
+
+/** 读 daemon stderr 见证文件尾部（无文件/读失败 → 空串；上限 ~800 字符） */
+export async function daemonStderrTail(root: string): Promise<string> {
+  try {
+    const text = await fsp.readFile(daemonStderrLogPath(root), "utf8");
+    const trimmed = text.trim();
+    return trimmed.length > 800 ? trimmed.slice(-800) : trimmed;
+  } catch {
+    return "";
+  }
+}
+
 export function spawnDaemonDetached(
   target: { root: string; graphId: string },
   extraArgs: string[] = [],
   cmd: { cmd: string; args: string[] } | undefined = undefined,
 ): void {
   const c = cmd ?? defaultDaemonCommand();
+  // 见证文件按次截断重写：只关心最近一次拉起的输出
+  let stderrFd: number | undefined;
+  try {
+    stderrFd = fs.openSync(daemonStderrLogPath(target.root), "w");
+  } catch {
+    /* 见证文件打不开不阻断拉起（可观测性增强，非执法） */
+  }
   try {
     const child = spawn(
       c.cmd,
@@ -79,7 +114,7 @@ export function spawnDaemonDetached(
         // detached：daemon 必须脱离拉起者独立常驻（blueprint §5）——拉起它的
         // CLI/中间进程退出时不得连带被杀（POSIX 入新进程组，Windows 独立作业）。
         detached: true,
-        stdio: "ignore", // 不继承 stdio 句柄：拉起者退出关闭管道也不波及 daemon
+        stdio: ["ignore", "ignore", stderrFd !== undefined ? stderrFd : "ignore"], // stderr 落见证文件（G2-1）
         windowsHide: true,
       },
     );
@@ -89,6 +124,9 @@ export function spawnDaemonDetached(
       code: "DAEMON_UNREACHABLE",
       message: `无法拉起 daemon：${String(err)}`,
     });
+  } finally {
+    // fd 已随 spawn 继承给子进程；父侧副本立即关闭（见证文件由子进程独占续写）
+    if (stderrFd !== undefined) fs.closeSync(stderrFd);
   }
 }
 
@@ -129,10 +167,19 @@ export class IpcClient implements DaemonClient {
     let lastSpawnAt = 0;
     for (;;) {
       if (Date.now() > deadline) {
+        // G2-1：把 toporeald 的真实死因（坏模块/坏 modules.yaml/坏 graph.yaml →
+        // 其启动即退，死因已在 stderr 见证文件）附进超时错误——不再只给一句
+        // 「等待就绪超时」让用户手动复现。封闭码不变（DAEMON_UNREACHABLE）。
+        const tail = await daemonStderrTail(target.root);
         throw new TopoError({
           code: "DAEMON_UNREACHABLE",
-          message: "等待 daemon 就绪超时",
-          hint: "手动运行 toporeald --root <dir> --graph <id> 观察输出",
+          message:
+            tail !== ""
+              ? `等待 daemon 就绪超时；toporeald 退出原因：${tail}`
+              : "等待 daemon 就绪超时",
+          ...(tail !== ""
+            ? {}
+            : { hint: "手动运行 toporeald --root <dir> --graph <id> 观察输出" }),
         });
       }
       const ep = await readEndpoint(target.root);
