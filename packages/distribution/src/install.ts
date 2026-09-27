@@ -363,10 +363,22 @@ async function installFromNpm(opts: InstallOptions): Promise<InstallResult> {
 export async function installModule(opts: InstallOptions): Promise<InstallResult> {
   // 自动判定：现存目录 = path 来源；否则一律按 npm spec（npm pack 本身也接受本地目录，
   // 测试即用显式 kind: "npm" 对 fixture 目录走完整 pack 流程）
-  const kind = opts.kind ?? ((await isDir(opts.source)) ? "path" : "npm");
+  const sourceIsDir = await isDir(opts.source);
+  const kind = opts.kind ?? (sourceIsDir ? "path" : "npm");
+  // G2-10④：本地路径拼写错误此前被 auto-detect 当 npm spec 去 pack，npm 的
+  // registry 报错把「目录不存在」友好提示埋掉——形如本地路径且不存在时前移检查
+  if (kind === "npm" && opts.kind === undefined && !sourceIsDir && looksLikeLocalPath(opts.source)) {
+    const abs = path.resolve(opts.source);
+    throw new TopoError({
+      code: "INVALID_INPUT",
+      message: `本地模块目录不存在：${abs}`,
+      hint: "检查路径拼写；安装 npm 包直接给包名（name、name@1.2.0、@scope/pkg），不带路径分隔符",
+      details: { path: abs },
+    });
+  }
   if (kind === "npm") return installFromNpm(opts);
   const abs = path.resolve(opts.source);
-  if (!(await isDir(abs))) {
+  if (!sourceIsDir && !(await isDir(abs))) {
     throw new TopoError({
       code: "INVALID_INPUT",
       message: `本地模块目录不存在：${abs}`,
@@ -378,6 +390,17 @@ export async function installModule(opts: InstallOptions): Promise<InstallResult
     writeProjectBinding: !opts.global,
     root: opts.root,
   });
+}
+
+/** G2-10④：形如本地路径的 source（npm 包名/awesome@1.0 不算——@scope 起头是包名） */
+function looksLikeLocalPath(source: string): boolean {
+  if (source.startsWith("@")) return false;
+  return (
+    path.isAbsolute(source) ||
+    source.startsWith(".") ||
+    source.includes("/") ||
+    source.includes("\\")
+  );
 }
 
 async function isDir(p: string): Promise<boolean> {
@@ -397,6 +420,13 @@ export interface RemoveOptions {
   global?: boolean;
   /** 测试注入：全局目录根 */
   globalRoot?: string;
+  /**
+   * G2-9/blueprint D42：损坏模块自愈通道。清单不可读的目录无法确认安装来源
+   * （所有权标记可能同损）——显式 force 才豁免所有权标记检查删除，解掉
+   * 「损坏模块砖化 daemon 且唯一出路手工 rmdir」的死结；清单可读的外来/无标记
+   * 目录不受 force 影响，marker 执法不变。
+   */
+  force?: boolean;
 }
 
 export interface RemoveResult {
@@ -409,6 +439,16 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
   const dir = opts.global
     ? path.join(globalModulesDir(opts), opts.id)
     : path.join(projectModulesDir(opts.root), opts.id);
+  // G2-10③：「未安装」与「装了但无标记/损坏」分开说——rm 一个未安装的 id 不再
+  // 报「无所有权标记」误导
+  if (!(await isDir(dir))) {
+    throw new TopoError({
+      code: "INVALID_INPUT",
+      message: `模块 "${opts.id}" 未安装（${dir} 不存在）`,
+      hint: "toporealm module list 查看已装模块；path 绑定的模块由手工管理，不经安装器卸载",
+      details: { module: opts.id, dir },
+    });
+  }
   // 卸载只删自己带标记的目录：无标记 = 可能是用户手写/外来目录，拒绝
   let marker: SourceMarker | undefined;
   try {
@@ -417,12 +457,31 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
     marker = undefined;
   }
   if (!marker || marker.format !== "toporealm.module-source/v1" || marker.id !== opts.id) {
-    throw new TopoError({
-      code: "INVALID_INPUT",
-      message: `模块 "${opts.id}" 没有安装器所有权标记（${SOURCE_MARKER}），拒绝删除`,
-      hint: "只有 toporealm module add 安装的目录可卸载；path 绑定与外来目录手工管理",
-      details: { module: opts.id, dir },
-    });
+    // 无有效所有权标记：先看清单可不可读——可读 → marker 执法不变（--force 不豁免）；
+    // 不可读（G2-9 损坏模块）→ 显式 force 豁免，错误文案直指清理命令
+    let brokenReason: string | undefined;
+    try {
+      await probeManifest(dir);
+    } catch (err) {
+      brokenReason = err instanceof TopoError ? err.message : String(err);
+    }
+    if (brokenReason === undefined) {
+      throw new TopoError({
+        code: "INVALID_INPUT",
+        message: `模块 "${opts.id}" 没有安装器所有权标记（${SOURCE_MARKER}），拒绝删除`,
+        hint: "只有 toporealm module add 安装的目录可卸载；path 绑定与外来目录手工管理",
+        details: { module: opts.id, dir },
+      });
+    }
+    if (!opts.force) {
+      throw new TopoError({
+        code: "INVALID_INPUT",
+        message: `模块 "${opts.id}" 清单不可读，无法确认安装来源，拒绝删除（${dir}）：${brokenReason}`,
+        hint: "损坏模块会让 daemon 装载大声失败；确认清理时用 --force 显式豁免所有权检查",
+        fix: `toporealm module rm ${opts.id}${opts.global ? " --global" : ""} --force`,
+        details: { module: opts.id, dir },
+      });
+    }
   }
   // 项目池卸载顺带清 legacy 绑定（workspace 残留）；path 绑定手工管理，拒绝误删
   if (!opts.global) {

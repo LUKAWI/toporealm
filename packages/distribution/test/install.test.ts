@@ -237,4 +237,83 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     },
     15_000,
   );
+
+  // ---------- G2-9 损坏模块自愈（blueprint D42）+ G2-10③④ ----------
+
+  it("G2-9：坏清单模块——无 --force 拒绝且错误指路 --force；有 --force 删除成功", async () => {
+    const root = await makeWorkspace();
+    const brokenDir = path.join(root, ".toporealm", "modules", "brokenmod");
+    // 用户手工拷进来一个清单损坏的目录（marker 同损）→ daemon 装载大声失败的典型现场
+    await fsp.mkdir(brokenDir, { recursive: true });
+    await fsp.writeFile(path.join(brokenDir, "module.yaml"), "format: nope\n", "utf8");
+    // 无 --force：拒绝，报错直指清理命令
+    const noForce: unknown = await removeModule({ root, id: "brokenmod" }).then(
+      () => null,
+      (e) => e,
+    );
+    expect(noForce).toBeInstanceOf(TopoError);
+    const topo = noForce as TopoError;
+    expect(topo.code).toBe("INVALID_INPUT");
+    expect(topo.message).toContain("清单不可读");
+    expect(topo.fix).toBe("toporealm module rm brokenmod --force");
+    await expect(fsp.access(brokenDir)).resolves.toBeUndefined(); // 原样保留
+    // 有 --force：豁免所有权检查，删除成功
+    const res = await removeModule({ root, id: "brokenmod", force: true });
+    expect(res.removedDir).toBe(brokenDir);
+    await expect(fsp.access(brokenDir)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("G2-9：清单可读的无标记外来目录不受 --force 影响（marker 执法不变）", async () => {
+    const root = await makeWorkspace();
+    const handmade = path.join(root, ".toporealm", "modules", "handmade");
+    await fsp.mkdir(handmade, { recursive: true });
+    await fsp.writeFile(
+      path.join(handmade, "module.yaml"),
+      "format: toporealm.module/v2\nid: handmade\nnamespace: handmade\nversion: 1.0.0\n",
+      "utf8",
+    );
+    // 完整合法清单 + 无 marker：--force 也不豁免
+    await expect(removeModule({ root, id: "handmade", force: true })).rejects.toMatchObject({
+      code: "INVALID_INPUT",
+      message: expect.stringContaining("所有权标记"),
+    });
+    await expect(fsp.access(handmade)).resolves.toBeUndefined();
+    // 带标记的正常模块：--force 与行为无关，照常删除（执法路径不回归）
+    const r = await installModule({ root, source: exampleV2 });
+    await removeModule({ root, id: r.id, force: true });
+    await expect(fsp.access(r.dir)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("G2-10③：rm 未安装的 id 报「未安装」，不再误报「无所有权标记」", async () => {
+    const root = await makeWorkspace();
+    const err: unknown = await removeModule({ root, id: "never-installed" }).then(
+      () => null,
+      (e) => e,
+    );
+    expect(err).toBeInstanceOf(TopoError);
+    expect((err as TopoError).message).toContain("未安装");
+    expect((err as TopoError).message).not.toContain("所有权标记");
+  });
+
+  it("G2-10④：不存在形如本地路径的 source → 友好报错（不再当 npm spec 去 pack）", async () => {
+    const root = await makeWorkspace();
+    // 绝对路径不存在
+    const abs = path.join(root, "no-such-module");
+    await expect(installModule({ root, source: abs })).rejects.toMatchObject({
+      code: "INVALID_INPUT",
+      message: expect.stringContaining("本地模块目录不存在"),
+    });
+    // 相对路径不存在（带 ./）
+    await expect(installModule({ root, source: "./also-missing" })).rejects.toMatchObject({
+      code: "INVALID_INPUT",
+      message: expect.stringContaining("本地模块目录不存在"),
+    });
+    // 对照：@scope 包名缺 registry 仍走 npm（报 npm 错，不是「目录不存在」）
+    const npmErr: unknown = await installModule({ root, source: "@scope/definitely-not-here" }).then(
+      () => null,
+      (e) => e,
+    );
+    expect(npmErr).toBeInstanceOf(TopoError);
+    expect((npmErr as TopoError).message).not.toContain("本地模块目录不存在");
+  }, 30_000);
 });
