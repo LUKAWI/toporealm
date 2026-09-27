@@ -191,7 +191,11 @@ function humanSummary(s: GraphSummary): string {
       .join(" ") || "(empty)";
   return (
     `${s.graphId} @ rev ${s.revision} · ${counts}\n` +
-    `  undo ${s.canUndo ? "✓" : "✗"} · redo ${s.canRedo ? "✓" : "✗"} · modules ${s.modules.length}`
+    `  undo ${s.canUndo ? "✓" : "✗"} · redo ${s.canRedo ? "✓" : "✗"} · modules ${s.modules.length}` +
+    // D38：内核 warning 上浮（有才显示）
+    (s.warnings !== undefined && s.warnings.length > 0
+      ? `\n  warnings:\n${s.warnings.map((w) => `    · ${w}`).join("\n")}`
+      : "")
   );
 }
 
@@ -272,9 +276,18 @@ async function dispatch(
       ];
       return { envelope: { ok: true, data: entry }, human: lines.join("\n") };
     }
+    // D26 既有承诺：help 尾部回显解析后的全局根与项目根实际路径（usage.ts 是静态
+    // 文本，动态行在输出时追加；--json 走 data.paths 透传）
+    const paths = {
+      globalRoot: globalPaths(env).root,
+      projectPool: path.join(workspacePaths(root).topoDir, "modules"),
+    };
     return {
-      envelope: { ok: true, data: { verbs: CORE_VERBS, commands } },
-      human: helpText(commands),
+      envelope: { ok: true, data: { verbs: CORE_VERBS, commands, paths } },
+      human:
+        helpText(commands) +
+        `  全局池根 ${paths.globalRoot}\n` +
+        `  项目池根 ${paths.projectPool}\n`,
     };
   }
   // ★模块命令即顶层子命令（点号与核心动词零冲突，blueprint §4）：<ns.name> [target] [--input '<json>']

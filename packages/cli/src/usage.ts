@@ -90,6 +90,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   text += `
 help [cmd]                     帮助（core 静态表 + 目录动态聚合，单一真相）
   --version                    查看版本（version 子命令已废除，仅旗标）
+
+解析路径（D26：以下两行由 help 输出按当前环境回显实际值）：
 `;
   return text;
 }
