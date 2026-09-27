@@ -185,6 +185,20 @@ describe("CLI --json 信封 + 退出码", () => {
     expect(emptyTail.code).toBe(2);
   });
 
+  it("read <id> 不存在 → UNKNOWN_ID + did-you-mean（D36 邻域读空集路径，行为不变）", async () => {
+    const miss = await exec(["--json", "read", "t9x"]);
+    expect(miss.code).toBe(1);
+    const env = jsonOf(miss) as {
+      error: { code: string; hint?: string; details?: { suggestions?: string[] } };
+    };
+    expect(env.error.code).toBe("UNKNOWN_ID");
+    expect(env.error.hint).toContain("是不是想用");
+    expect(env.error.details?.suggestions).toContain("t1");
+    const human = await exec(["read", "t9x"]);
+    expect(human.code).toBe(1);
+    expect(human.err).toContain('[UNKNOWN_ID] 实体不存在："t9x"');
+  });
+
   it("B1：find 多 --kind 取并集（core where 是交集，多 kind 不得恒空）；单 kind 行为不变", async () => {
     await exec(["--json", "add", "wf.note", "--id", "n1", "--payload", JSON.stringify({ tag: "multi" })]);
     await exec(["--json", "set", "t1", "tag=multi"]);

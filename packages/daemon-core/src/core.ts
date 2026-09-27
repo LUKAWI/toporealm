@@ -204,8 +204,21 @@ export class DaemonCore {
     const ids = query?.ids ? new Set(query.ids) : undefined;
     const kinds = query?.kinds ? new Set(query.kinds) : undefined;
     const where = query?.where ?? [];
+    // D36 邻域过滤：命中 = 锚实体自身 + source/target 相触的关系。线性扫描即可
+    // （返回面已从 O(全图) 收敛到 O(邻域)，端点索引是 M5+ 图规模议题）；锚不存在
+    // → 空集，与 ids 过滤的纯过滤语义对齐，不抛 UNKNOWN_ID。
+    const adjacent = query?.adjacent;
     const out: EntityRecord[] = [];
     for (const r of [...this.objects.values(), ...this.relations.values()]) {
+      if (
+        adjacent !== undefined &&
+        !(
+          r.id === adjacent ||
+          (isRelation(r) && (r.source === adjacent || r.target === adjacent))
+        )
+      ) {
+        continue;
+      }
       if (ids && !ids.has(r.id)) continue;
       if (kinds && !kinds.has(r.kind)) continue;
       if (!matchWhere(r, where)) continue;

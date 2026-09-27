@@ -439,9 +439,11 @@ ${agentSnippet()}`),
       const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         if (id !== undefined) {
-          // 单点邻域：实体 + 触达它的关系
-          const res = await s.read({ ids: [id] });
-          if (res.entities.length === 0) {
+          // 单点邻域（D36）：一次邻域读 = 锚实体 + 触达它的双向关系（core 一处过滤；
+          // wire 从「id 探测 + 全图拉回客户端过滤」两次读收敛为一次邻域读）
+          const res = await s.read({ adjacent: id });
+          const entity = res.entities.find((e) => e.id === id);
+          if (entity === undefined) {
             const all = await s.read({ fields: ["id"] });
             const candidates = all.entities.map((e) => e.id);
             const suggestions = suggestClosest(id, candidates);
@@ -455,11 +457,10 @@ ${agentSnippet()}`),
               details: { id, suggestions },
             });
           }
-          const entity = res.entities[0] as EntityRecord;
-          const allRels = await s.read();
-          const relations = allRels.entities
+          // 邻域集里除锚外全是相触关系；锚自身是关系时（read <关系id>）不算相触
+          const relations = res.entities
             .filter(isRelation)
-            .filter((r) => r.source === id || r.target === id);
+            .filter((r) => r.id !== id);
           return {
             data: { entity, relations },
             human: humanEntities([entity]) + `\n  · ${relations.length} relation(s)`,
@@ -609,8 +610,13 @@ ${agentSnippet()}`),
       return withSession(deps, root, g.graph, async (s) => {
         let kind = kindFlag;
         if (kind === undefined) {
-          // 仅一种关系类型时可省 --kind（story 10）
-          const all = await s.read();
+          // 仅一种关系类型时可省 --kind（story 10）。枚举语义是**全图**关系类型：
+          // D36 邻域读（adjacent: src）只覆盖 src 相触边，src 未触达的类型会被漏判，
+          // 改变 story 10 行为（如全图唯一类型建在别的端点对上）——故保留全图读，
+          // 仅用既有 fields 投影裁掉 payload，压小 wire 常数（isRelation 判别靠 source/target）。
+          const all = await s.read({
+            fields: ["id", "kind", "source", "target"],
+          });
           const relKinds = [
             ...new Set(all.entities.filter(isRelation).map((r) => r.kind)),
           ];

@@ -319,6 +319,45 @@ export function runSessionContractSuite(
       expect(r.entities[0]).toEqual({ id: id2, payload: { st: "todo" } });
     });
 
+    it("read adjacent（D36 邻域）：锚 + 双向相触关系；叠加过滤；不存在锚 → 空集", async () => {
+      const a = uniq("na");
+      const b = uniq("nb");
+      const c = uniq("nc");
+      const r1 = uniq("nr1");
+      const r2 = uniq("nr2");
+      await s.commit({
+        changes: [
+          { op: "put", kind: "na", id: a, payload: { t: 1 } },
+          { op: "put", kind: "na", id: b },
+          { op: "put", kind: "na", id: c },
+          { op: "rel", kind: "na.rel", id: r1, source: a, target: b },
+          { op: "rel", kind: "na.rel", id: r2, source: c, target: a },
+        ],
+      });
+      // 锚实体在前，相触关系双向都返回（出边 r1 + 入边 r2），按入图序
+      const r = await s.read({ adjacent: a });
+      expect(r.entities.map((e) => e.id)).toEqual([a, r1, r2]);
+      // 叠加既有过滤：kinds 交集只剩关系
+      const onlyRels = await s.read({ adjacent: a, kinds: ["na.rel"] });
+      expect(onlyRels.entities.map((e) => e.id)).toEqual([r1, r2]);
+      // fields 投影穿透邻域集（锚是对象：无 source/target 段）
+      const proj = await s.read({
+        adjacent: a,
+        fields: ["id", "source", "target"],
+      });
+      expect(proj.entities).toEqual([
+        { id: a },
+        { id: r1, source: a, target: b },
+        { id: r2, source: c, target: a },
+      ]);
+      // 不存在的锚 → 空集（纯过滤面，不抛 UNKNOWN_ID，与 ids 过滤语义对齐）
+      expect((await s.read({ adjacent: uniq("ghost") })).entities).toEqual([]);
+      // 关系作锚：悬空边执法保证端点必为对象 → 只返回自身，无相触关系
+      expect(
+        (await s.read({ adjacent: r1 })).entities.map((e) => e.id),
+      ).toEqual([r1]);
+    });
+
     it("events：hello 首事件；commit 事件 patch 连续（I3）；退订停更", async () => {
       const seen: TopoEvent[] = [];
       const un = await s.events((e) => seen.push(e));
