@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 import { MemoryClient } from "@lukawi/toporealm-client";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { TopoError } from "@lukawi/toporealm-protocol";
+import { readModuleBindings } from "@lukawi/toporealm-module-host";
 import { afterAll, describe, expect, it } from "vitest";
 import { installModule, listModules, removeModule, run, SOURCE_MARKER } from "../src/install.js";
-import { readBindingsRaw, writeBinding } from "../src/modules-yaml.js";
 
 // ---------- M4 安装器（blueprint §2 distribution / §1.6 D23①） ----------
 // npm 来源走真实 `npm pack --ignore-scripts`（对 fixture 本地包 pack，离线可复现）；
@@ -142,7 +142,7 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     const res = await removeModule({ root, id: "example" });
     expect(res.removedDir).toBe(r.dir);
     await expect(fsp.access(r.dir)).rejects.toMatchObject({ code: "ENOENT" });
-    const bindings = await readBindingsRaw(path.join(root, ".toporealm", "modules.yaml"));
+    const bindings = (await readModuleBindings(root)).bindings;
     expect(bindings["example"]).toBeUndefined();
 
     // 无标记目录 → 拒绝
@@ -195,21 +195,6 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     await expect(fsp.access(path.join(globalRoot, "modules", "example"))).rejects.toMatchObject({
       code: "ENOENT",
     });
-  });
-
-  it("B4：writeBinding 走原子写——内容完整可回读、无 .tmp 残留", async () => {
-    const root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-bindings-"));
-    roots.push(root);
-    const file = path.join(root, ".toporealm", "modules.yaml");
-    await writeBinding(file, "a", { source: "path", path: "/x" });
-    await writeBinding(file, "b", { source: "workspace" });
-    await writeBinding(file, "a", undefined); // 删除条目
-    // 内容完整（保留其他条目 + 删除生效）
-    const bindings = await readBindingsRaw(file);
-    expect(bindings).toEqual({ b: { source: "workspace" } });
-    // 原子写（同目录 tmp + rename）不残留临时文件
-    const names = await fsp.readdir(path.dirname(file));
-    expect(names.filter((n) => n.includes(".tmp-"))).toEqual([]);
   });
 
   it(
@@ -267,9 +252,10 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     const root = await makeWorkspace();
     const handmade = path.join(root, ".toporealm", "modules", "handmade");
     await fsp.mkdir(handmade, { recursive: true });
+    // C3 后「清单可读」= 通过装载同款严格解析（必填字段含 entry）——此处给全合法清单
     await fsp.writeFile(
       path.join(handmade, "module.yaml"),
-      "format: toporealm.module/v2\nid: handmade\nnamespace: handmade\nversion: 1.0.0\n",
+      "format: toporealm.module/v2\nid: handmade\nnamespace: handmade\nversion: 1.0.0\nentry: ./index.js\n",
       "utf8",
     );
     // 完整合法清单 + 无 marker：--force 也不豁免
@@ -327,4 +313,69 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     // 走到 npm pack 流程后报的是 pack/manifest 类错误，而不是「本地模块目录不存在」
     expect((err as TopoError).message).not.toContain("本地模块目录不存在");
   }, 30_000);
+
+  // ---------- C3 清单解析归一：安装期与装载期同一解析器、同一形状校验 ----------
+
+  /** 造一个清单内容可定制的本地模块目录（path 来源安装的最小现场）。 */
+  async function makeModuleDir(moduleYaml: string): Promise<string> {
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-c3-mod-"));
+    roots.push(dir);
+    await fsp.writeFile(path.join(dir, "module.yaml"), moduleYaml, "utf8");
+    return dir;
+  }
+
+  it("C3：requires.modules 非 string[] → 安装期 INVALID_INPUT（不再装进去后装载期才炸）", async () => {
+    const root = await makeWorkspace();
+    const src = await makeModuleDir(
+      [
+        "format: toporealm.module/v2",
+        "id: badreq",
+        "namespace: badreq",
+        'version: "1.0.0"',
+        "entry: ./index.js",
+        "requires:",
+        '  modules: "cards"', // 形状坏：必须是 string[]
+      ].join("\n"),
+    );
+    const err: unknown = await installModule({ root, source: src }).then(() => null, (e) => e);
+    expect(err).toBeInstanceOf(TopoError);
+    const topo = err as TopoError;
+    expect(topo.code).toBe("INVALID_INPUT"); // 封闭集内既有码
+    expect(topo.message).toContain("requires.modules");
+    expect(topo.message).toContain(src); // 安装期报错含来源路径
+    // 失败零副作用：无落位
+    await expect(
+      fsp.access(path.join(root, ".toporealm", "modules", "badreq")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("C3：缺 entry 的清单安装期即拒（该清单装载期必炸，seam 前移）", async () => {
+    const root = await makeWorkspace();
+    const src = await makeModuleDir(
+      "format: toporealm.module/v2\nid: noentry\nnamespace: noentry\nversion: 1.0.0\n",
+    );
+    await expect(installModule({ root, source: src })).rejects.toMatchObject({
+      code: "INVALID_INPUT",
+      message: expect.stringContaining("entry"),
+    });
+    await expect(
+      fsp.access(path.join(root, ".toporealm", "modules", "noentry")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("C3：modules.yaml 损坏 → 安装器大声失败（rm/list 不再静默当空绑定降级）", async () => {
+    const root = await makeWorkspace();
+    const r = await installModule({ root, source: exampleV2 });
+    await fsp.writeFile(
+      path.join(root, ".toporealm", "modules.yaml"),
+      "example: { source: path\n  broken: [unclosed\n",
+      "utf8",
+    );
+    await expect(listModules(root)).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    // rm 不再因「绑定读失败被吞」绕过 path 绑定保护直接删目录
+    await expect(removeModule({ root, id: r.id })).rejects.toMatchObject({
+      code: "INVALID_INPUT",
+    });
+    await expect(fsp.access(r.dir)).resolves.toBeUndefined(); // 目录原样保留
+  });
 });

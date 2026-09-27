@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { TopoError } from "@lukawi/toporealm-protocol";
-import { workspacePaths } from "@lukawi/toporealm-daemon-core";
+import { projectPoolDir } from "@lukawi/toporealm-daemon-core";
 import { parse } from "yaml";
 import { readModuleBindings } from "./bindings.js";
 import type { ModuleManifestV2 } from "@lukawi/toporealm-protocol";
@@ -29,12 +29,34 @@ export interface DiscoveryResult {
   warnings: string[];
 }
 
-/** 解析 module.yaml（v2 声明）；id 必须与目录名/绑定键一致。host 与双池发现共用。 */
+/** parseModuleManifest 选项（1.2.0 C3 清单解析归一）。 */
+export interface ParseModuleManifestOptions {
+  /**
+   * 严格度开关，缺省 true（装载期语义）。false 仅豁免「绑定键一致」类检查
+   * （boundId 与清单 id 的比对）——安装期 id 来自清单本身，尚无绑定键可比。
+   * format / 必填字段（含 entry）与 requires/kinds 形状校验、规范化不受影响：
+   * 两场景同规，装不进 daemon 的清单在安装期即报，错误不再后移一个 seam。
+   */
+  strict?: boolean;
+  /**
+   * 清单文件名（相对 dir），缺省 module.yaml。npm 包形态由 package.json 的
+   * "toporealm" 字段指位，安装器传入实际相对路径。
+   */
+  manifestFile?: string;
+}
+
+/**
+ * 解析 module.yaml（v2 声明）；strict（缺省）时 id 必须与目录名/绑定键一致。
+ * host 与双池发现共用；安装器/列表以 strict:false 借用同一实现（C3，取代
+ * distribution 的私有宽松 probe）。
+ */
 export async function parseModuleManifest(
   dir: string,
   boundId: string,
+  opts?: ParseModuleManifestOptions,
 ): Promise<ModuleManifestV2> {
-  const file = path.join(dir, "module.yaml");
+  const manifestName = opts?.manifestFile ?? "module.yaml";
+  const file = path.join(dir, manifestName);
   let text: string;
   try {
     text = await fsp.readFile(file, "utf8");
@@ -42,7 +64,7 @@ export async function parseModuleManifest(
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       throw new TopoError({
         code: "INVALID_INPUT",
-        message: `模块 "${boundId}" 缺少 module.yaml（${dir}）`,
+        message: `模块 "${boundId}" 缺少 ${manifestName}（${dir}）`,
         details: { module: boundId, dir },
       });
     }
@@ -52,13 +74,13 @@ export async function parseModuleManifest(
   if (!raw || typeof raw !== "object") {
     throw new TopoError({
       code: "INVALID_INPUT",
-      message: `模块 "${boundId}" 的 module.yaml 不是映射（${file}）`,
+      message: `模块 "${boundId}" 的 ${manifestName} 不是映射（${file}）`,
     });
   }
   if (raw.format !== "toporealm.module/v2") {
     throw new TopoError({
       code: "INVALID_INPUT",
-      message: `模块 "${boundId}" 的 module.yaml 不是 toporealm.module/v2 格式（${file}）`,
+      message: `模块 "${boundId}" 的 ${manifestName} 不是 toporealm.module/v2 格式（${file}）`,
       details: { module: boundId, format: String(raw.format) },
     });
   }
@@ -66,13 +88,13 @@ export async function parseModuleManifest(
     if (typeof raw[key] !== "string" || (raw[key] as string).length === 0) {
       throw new TopoError({
         code: "INVALID_INPUT",
-        message: `模块 "${boundId}" 的 module.yaml 缺少必填字段 "${key}"`,
+        message: `模块 "${boundId}" 的 ${manifestName} 缺少必填字段 "${key}"`,
         details: { module: boundId, field: key },
       });
     }
   }
   const id = raw.id as string;
-  if (id !== boundId) {
+  if (opts?.strict !== false && id !== boundId) {
     throw new TopoError({
       code: "INVALID_INPUT",
       message: `绑定键 "${boundId}" 与 module.yaml id "${id}" 不一致`,
@@ -172,9 +194,8 @@ export async function discoverModules(
     effective.set(id, { id, dir, pool: "global", manifest });
   }
 
-  // ② 项目池：坏模块大声失败；同 id 遮蔽全局
-  const projectPoolDir = path.join(workspacePaths(root).topoDir, "modules");
-  for (const dir of await listPoolDirs(projectPoolDir)) {
+  // ② 项目池：坏模块大声失败；同 id 遮蔽全局（池路径唯一出处 projectPoolDir，C4 收口）
+  for (const dir of await listPoolDirs(projectPoolDir(root))) {
     const id = path.basename(dir);
     const manifest = await parseModuleManifest(dir, id);
     if (effective.has(id)) {

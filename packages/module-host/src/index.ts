@@ -1,6 +1,7 @@
 export { ModuleHost, type ModuleHostLoadOptions } from "./host.js";
 export {
   readModuleBindings,
+  writeModuleBinding,
   modulesFile,
   type ModuleBinding,
   type ModulesBindings,
@@ -12,5 +13,6 @@ export {
   parseModuleManifest,
   type DiscoveryResult,
   type ModulePool,
+  type ParseModuleManifestOptions,
   type PoolEntry,
 } from "./discover.js";

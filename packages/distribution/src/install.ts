@@ -6,9 +6,16 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { TopoError, isValidEntityId } from "@lukawi/toporealm-protocol";
-import { globalPaths, workspacePaths } from "@lukawi/toporealm-daemon-core";
-import { parse } from "yaml";
-import { readBindingsRaw, writeBinding } from "./modules-yaml.js";
+import type { ModuleManifestV2 } from "@lukawi/toporealm-protocol";
+import { globalPaths, projectPoolDir } from "@lukawi/toporealm-daemon-core";
+// C3 清单解析归一：module.yaml / modules.yaml 的解析与写入唯一出处是 module-host
+// （依赖方向实测无环：module-host 只依赖 daemon-core + protocol）。安装器不再持有
+// 私有宽松实现——能过装载的解析器就是安装期的解析器，只是严格度开关不同。
+import {
+  parseModuleManifest,
+  readModuleBindings,
+  writeModuleBinding,
+} from "@lukawi/toporealm-module-host";
 
 // ---------- 模块安装器（blueprint §2 distribution / §1.6 D23①） ----------
 //
@@ -56,13 +63,6 @@ export interface InstallResult {
   origin: SourceMarker["origin"];
   /** 提示语：daemon 下次触达自动装载新模块集 */
   note: string;
-}
-
-interface ManifestProbe {
-  id: string;
-  namespace: string;
-  version: string;
-  format: string;
 }
 
 // ---------- 子进程（D23④：win32 前置 System32 到 PATH，规避 Git Bash 的 GNU tar 破坏 npm pack） ----------
@@ -158,10 +158,17 @@ function parsePackFilename(stdout: string): string | undefined {
   return last !== undefined && last.endsWith(".tgz") ? last : undefined;
 }
 
-// ---------- 清单探测（npm 包与本地目录共用） ----------
+// ---------- 清单探测（npm 包与本地目录共用；C3 归一：解析统一走 module-host 严格实现） ----------
 
-async function probeManifest(dir: string): Promise<ManifestProbe> {
-  let raw: Record<string, unknown> | undefined;
+/**
+ * 安装/列表用清单探测。解析、格式与必填字段（含 entry）、requires/kinds 形状校验
+ * 与规范化全部走 module-host 的 parseModuleManifest——装不进 daemon 的清单在安装期
+ * 即报 INVALID_INPUT，错误不再后移到装载期。
+ * strict:false 只豁免「绑定键一致」：安装期 id 来自清单本身，尚无绑定键可比；列表
+ * 场景目录名即 id，同 id 时一致检查也天然通过。boundId 位传来源目录，仅为错误文案
+ * 保留「哪来的」语境（含路径）。
+ */
+async function probeManifest(dir: string): Promise<ModuleManifestV2> {
   // package.json "toporealm" 字段指向清单（fixture 包形态）；缺省 module.yaml 在包根
   let manifestRel = "module.yaml";
   try {
@@ -179,73 +186,36 @@ async function probeManifest(dir: string): Promise<ManifestProbe> {
       });
     }
   }
-  try {
-    const text = await fsp.readFile(path.join(dir, manifestRel), "utf8");
-    raw = parse(text) as Record<string, unknown>;
-  } catch {
-    raw = undefined;
-  }
-  if (!raw || typeof raw !== "object") {
+  const manifest = await parseModuleManifest(dir, dir, {
+    strict: false,
+    manifestFile: manifestRel,
+  });
+  // 安装器特有检查（装载语义不管目录名）：id 将用作 .toporealm/modules/ 目录名
+  if (!isValidEntityId(manifest.id) || /\s/.test(manifest.id)) {
     throw new TopoError({
       code: "INVALID_INPUT",
-      message: `来源缺少模块清单（${manifestRel}）：${dir}`,
-      hint: "npm 包用 package.json 的 \"toporealm\" 字段指向 module.yaml；本地目录把 module.yaml 放在根",
+      message: `模块 id 非法："${manifest.id}"（将用作 .toporealm/modules/ 目录名）`,
     });
   }
-  if (raw["format"] !== "toporealm.module/v2") {
-    throw new TopoError({
-      code: "INVALID_INPUT",
-      message: `模块清单不是 toporealm.module/v2（${String(raw["format"] ?? "缺 format")}）`,
-      hint: "1.0 只安装 v2 清单；0.x 模块由各自仓库先升级（声明投影参考 toporealm migrate 报告）",
-      details: { format: String(raw["format"] ?? "") },
-    });
-  }
-  for (const key of ["id", "namespace", "version"] as const) {
-    if (typeof raw[key] !== "string" || (raw[key] as string).length === 0) {
-      throw new TopoError({
-        code: "INVALID_INPUT",
-        message: `模块清单缺少必填字段 "${key}"`,
-        details: { field: key },
-      });
-    }
-  }
-  const id = raw["id"] as string;
-  if (!isValidEntityId(id) || /\s/.test(id)) {
-    throw new TopoError({
-      code: "INVALID_INPUT",
-      message: `模块 id 非法："${id}"（将用作 .toporealm/modules/ 目录名）`,
-    });
-  }
-  return {
-    id,
-    namespace: raw["namespace"] as string,
-    version: raw["version"] as string,
-    format: "toporealm.module/v2",
-  };
+  return manifest;
 }
 
 // ---------- 安装 ----------
 
-function projectModulesDir(root: string): string {
-  return path.join(workspacePaths(root).topoDir, "modules");
-}
-
-function bindingsFile(root: string): string {
-  return path.join(workspacePaths(root).topoDir, "modules.yaml");
-}
-
-/** 全局池位：确保目录存在（写路径惰性创建，D26）。 */
+/**
+ * 全局池位（C4 布局收口：modulesDir 的唯一出处是 daemon-core 的 globalPaths）。
+ * 显式 globalRoot（测试注入）走 TOPOREALM_HOME 覆盖形态复用同一解析器——不经
+ * globalPoolDir(env) 是因为它尚无显式 root 入参（相邻问题，见报告）。
+ */
 function globalModulesDir(opts: { globalRoot?: string }): string {
-  const base =
-    opts.globalRoot !== undefined
-      ? opts.globalRoot
-      : globalPaths().root;
-  return path.join(base, "modules");
+  return globalPaths(
+    opts.globalRoot !== undefined ? { TOPOREALM_HOME: opts.globalRoot } : process.env,
+  ).modulesDir;
 }
 
-/** 安装落位：--global → 全局池（惰性确保）；否则项目池（已存在）。 */
+/** 安装落位：--global → 全局池（惰性确保）；否则项目池（已存在，池路径唯一出处 projectPoolDir）。 */
 async function placementDir(opts: { global?: boolean; globalRoot?: string; root: string }): Promise<string> {
-  if (!opts.global) return projectModulesDir(opts.root);
+  if (!opts.global) return projectPoolDir(opts.root);
   const dir = globalModulesDir(opts);
   await fsp.mkdir(dir, { recursive: true });
   return dir;
@@ -253,7 +223,7 @@ async function placementDir(opts: { global?: boolean; globalRoot?: string; root:
 
 async function markInstalled(
   dir: string,
-  probe: ManifestProbe,
+  probe: ModuleManifestV2,
   origin: SourceMarker["origin"],
 ): Promise<void> {
   const marker: SourceMarker = {
@@ -453,7 +423,7 @@ export interface RemoveResult {
 export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
   const dir = opts.global
     ? path.join(globalModulesDir(opts), opts.id)
-    : path.join(projectModulesDir(opts.root), opts.id);
+    : path.join(projectPoolDir(opts.root), opts.id);
   // G2-10③：「未安装」与「装了但无标记/损坏」分开说——rm 一个未安装的 id 不再
   // 报「无所有权标记」误导
   if (!(await isDir(dir))) {
@@ -498,9 +468,11 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
       });
     }
   }
-  // 项目池卸载顺带清 legacy 绑定（workspace 残留）；path 绑定手工管理，拒绝误删
+  // 项目池卸载顺带清 legacy 绑定（workspace 残留）；path 绑定手工管理，拒绝误删。
+  // C3：绑定读走 module-host 的 readModuleBindings——modules.yaml 损坏时大声失败，
+  // 不再静默当空绑定继续（那会绕过 path 绑定保护直接删目录）。
   if (!opts.global) {
-    const bindings = await readBindingsRaw(bindingsFile(opts.root));
+    const { bindings } = await readModuleBindings(opts.root);
     const binding = bindings[opts.id];
     if (binding && binding.source === "path") {
       throw new TopoError({
@@ -510,7 +482,7 @@ export async function removeModule(opts: RemoveOptions): Promise<RemoveResult> {
         details: { module: opts.id, binding },
       });
     }
-    if (binding) await writeBinding(bindingsFile(opts.root), opts.id, undefined);
+    if (binding) await writeModuleBinding(opts.root, opts.id, undefined);
   }
   await fsp.rm(dir, { recursive: true, force: true });
   return {
@@ -544,9 +516,9 @@ export async function listModules(
   opts: { globalRoot?: string } = {},
 ): Promise<ModuleListEntry[]> {
   const out: ModuleListEntry[] = [];
-  const globalBase = opts.globalRoot !== undefined ? opts.globalRoot : globalPaths().root;
-  const globalPool = path.join(globalBase, "modules");
-  const projectPool = projectModulesDir(root);
+  // 池路径唯一出处：projectPoolDir（C4）/ globalPaths().modulesDir（显式 globalRoot 走覆盖形态）
+  const globalPool = globalModulesDir(opts);
+  const projectPool = projectPoolDir(root);
 
   const scanPool = async (
     poolDir: string,
@@ -587,7 +559,8 @@ export async function listModules(
   const globals = await scanPool(globalPool, "global");
   const projects = await scanPool(projectPool, "project");
 
-  const bindings = await readBindingsRaw(bindingsFile(root));
+  // C3：绑定读走 module-host 规范实现——modules.yaml 损坏大声失败（与装载同规）
+  const { bindings } = await readModuleBindings(root);
   const paths = new Map<string, ModuleListEntry>();
   for (const [id, binding] of Object.entries(bindings)) {
     if (binding.source !== "path" || !binding.path) continue;

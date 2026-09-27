@@ -2,8 +2,8 @@ import crypto from "node:crypto";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { TopoError } from "@lukawi/toporealm-protocol";
-import { workspacePaths } from "@lukawi/toporealm-daemon-core";
-import { parse } from "yaml";
+import { atomicWriteFile, workspacePaths } from "@lukawi/toporealm-daemon-core";
+import { parse, stringify } from "yaml";
 
 // ---------- modules.yaml 绑定（blueprint §3）：{ [id]: { source, path? } } ----------
 // M2 支持本地来源：path（任意目录）与 workspace（.toporealm/modules/<id>/，M4 安装器
@@ -85,5 +85,24 @@ export async function readModuleBindings(root: string): Promise<{
     };
   }
   return { bindings, raw };
+}
+
+/**
+ * 写入单个绑定（保留其他条目；binding 为 undefined = 删除该键）。
+ * C3：写前经 readModuleBindings 全量校验读入——文件损坏时大声失败（裸解析错误
+ * 已在 G2-8 包成 TopoError(INVALID_INPUT) + 路径），不再像安装器旧私有实现那样静默跳过坏条目
+ * 后整体重写（那会顺手把坏条目洗掉，掩盖绑定文件已损的事实）。
+ * B4：原子写（同目录 tmp + rename，EPERM/EACCES/EBUSY 短退避）——与 graph.yaml/
+ * endpoint 同一机制，防 Windows 杀软/索引器瞬时锁导致绑定文件半写损坏。
+ */
+export async function writeModuleBinding(
+  root: string,
+  id: string,
+  binding: ModuleBinding | undefined,
+): Promise<void> {
+  const { bindings } = await readModuleBindings(root);
+  if (binding === undefined) delete bindings[id];
+  else bindings[id] = binding;
+  await atomicWriteFile(modulesFile(root), stringify(bindings, { lineWidth: 0 }));
 }
 
