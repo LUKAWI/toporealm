@@ -6,8 +6,8 @@ import { loadManifest } from "./store.js";
 //
 // 单一实现（1.2.0 C4 布局知识收口）：cli 的 graphs 动词与 web /api/graphs 共用此函数，
 // 防「预览列表与 toporealm graphs 行为漂移」。语义与原 client/provision.ts 版一致：
-// readdir（无 graphs 目录 = 空列表，绝不建目录）→ 排序 → 逐个 loadManifest
-// （损坏/非图目录容错跳过）→ { id, label, revision, current } 投影。
+// readdir（无 graphs 目录 = 空列表，绝不建目录）→ 隐藏目录（`.` 开头）预过滤 → 排序
+// → 逐个 loadManifest（损坏/非图目录容错跳过）→ { id, label, revision, current } 投影。
 //
 // current 标记：显式 currentGraphId 优先（cli 的 --graph/TOPOREALM_GRAPH 解析序），
 // 缺省经 .toporealm/active 指针（readActiveGraphId）——web 预览 API 即走此缺省。
@@ -34,6 +34,9 @@ export async function listGraphs(
     currentGraphId ?? (await readActiveGraphId(ws.activeFile)) ?? null;
   const out: GraphListEntry[] = [];
   for (const id of names.sort()) {
+    // 隐藏目录预过滤（P2-3，与 web 版原实现对齐）：`.staging-*` 等含合法 manifest 的
+    // 隐藏目录不是可进入的图——cli graphs 与 web /api/graphs 两端一致收紧
+    if (id.startsWith(".")) continue;
     try {
       const m = await loadManifest(graphPaths(root, id));
       out.push({

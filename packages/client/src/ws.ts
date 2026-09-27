@@ -21,6 +21,8 @@ import {
 //   · 异常断线自动重连（指数退避，次数可配）；
 //   · 重连成功带 fromRevision = 本地最后 revision 重新订阅（daemon 回放补洞 / 发 reset
 //     自愈，不变量 I3）；事件途中发现补丁缺口同样触发重订阅回放；
+//   · 重连握手发现 graphId 变化（跟随会话断线期间 daemon 换图，P2-1）→
+//     reset(graph-switched) + 采用服务端 revision + 全新订阅（旧图 from 对新图无意义）；
 //   · 重连握手发现 instanceId 变化 = SESSION_STALE：在途请求失败 + 向监听者广播
 //     reset(daemon-restarted)（目录缓存作废重拉，§5）；会话对象透明续用于新 daemon。
 // 依赖环境提供标准 WebSocket（浏览器 / Node ≥22）。
@@ -266,17 +268,32 @@ export class WsSession extends SessionTransport implements Session {
         continue;
       }
       this.reconnecting = false;
+      // P2-1：跟随会话跨图重连。断线期间 daemon 可能已换载（跟随语义 hello 不带
+      // graph，重连握手落在 active 当前图上）——旧图 lastRevision 对新图毫无意义：
+      // 以它作 from 重订会让 daemon 回放新图补丁，客户端把别图补丁应用到旧图状态
+      // 且无 reset。图变了 → 广播 reset(graph-switched)（客户端全量重读自愈，§5）、
+      // 采用服务端 revision、全新订阅不带 from。图未变时维持 A2b 语义不变。
+      const oldGraph = this.graphId;
       this.graphId = res.graphId;
+      const graphSwitched = oldGraph !== "" && oldGraph !== res.graphId;
       // A2b：重连窗口回放。若 daemon revision 领先本地（退避窗口内有提交），
       // 保留本地基准并以其重订——daemon 会回放 (本地, 现顶] 窗口；
       // 修复前此处无条件覆写 lastRevision 再重订 → 窗口内提交永不补送且无 reset。
       // 若 daemon 未领先（回退/换血），采用服务端值（instanceId 变化路径已有 reset 广播兜底）。
       const localRevision = this.lastRevision;
-      const behind = localRevision !== null && res.revision > localRevision;
+      const behind =
+        !graphSwitched && localRevision !== null && res.revision > localRevision;
       if (!behind) this.lastRevision = res.revision;
       if (oldInstance !== "" && oldInstance !== this.instanceId) {
         // daemon 重启：目录缓存作废 → 广播 reset，客户端全量重读（§5）
         this.emit({ type: "reset", reason: "daemon-restarted" });
+      }
+      if (graphSwitched) {
+        this.emit({
+          type: "reset",
+          reason: "graph-switched",
+          graphId: res.graphId,
+        });
       }
       if (this.subscribed && this.subToken === null) {
         try {

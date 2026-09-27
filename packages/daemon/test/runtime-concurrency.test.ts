@@ -168,6 +168,32 @@ describe("GraphRuntime 换载门（A3）", () => {
 });
 
 describe("daemon 生命周期（A4 dispose 收口）", () => {
+  it("P2-4：换载中途 stop() → 在途换载完成后新核也被 dispose（不泄漏新内核）", async () => {
+    const root = await tmpRoot("p2p4", ["g1", "g2"]);
+    const disposeSpy = vi.spyOn(DaemonCore.prototype, "dispose");
+    try {
+      const runtime = await GraphRuntime.open(root, "g1");
+      // 持一个在途 op：换载入场后停在排空等待（swapPromise 在持、新核未开）
+      await runtime.beginOp();
+      const swapP = runtime.ensureGraph("g2");
+      // 换载中途 stop：dispose 必须先等 swapPromise 完成再释放当前核
+      // （修复前同步 dispose 只释放旧核 g1，换载完成接管的新核 g2 无人释放）
+      const disposeP = runtime.dispose();
+      runtime.endOp(); // 放行 → 换载完成（g2 新核接管、g1 旧核被 doSwap dispose）
+      await swapP;
+      await disposeP;
+      expect(runtime.current().core.graphId).toBe("g2");
+      // 被释放内核按身份断言：g1（doSwap 换出）+ g2（dispose 收尾）各恰一次。
+      // 修复前 dispose 是同步的：g1 被释放两次（dispose 一次 + doSwap 一次），
+      // 新核 g2 无人释放（泄漏）——只数次数会误绿，必须核对 this 身份。
+      expect(
+        disposeSpy.mock.contexts.map((c) => (c as DaemonCore).graphId),
+      ).toEqual(["g1", "g2"]);
+    } finally {
+      disposeSpy.mockRestore();
+    }
+  });
+
   it("serveDaemon 换载后 stop()：当前图内核被 dispose（watcher 清理，外部编辑不再被后台吸收）", async () => {
     const root = await tmpRoot("a4", ["g1", "g2"]);
     const daemon = await serveDaemon({ root, graph: "g1", idleMs: 0, web: false });

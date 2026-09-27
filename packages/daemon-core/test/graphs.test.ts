@@ -45,6 +45,15 @@ describe("listGraphs（daemon-core 文件层单一实现）", () => {
     });
   });
 
+  it("隐藏目录（. 开头）不列出——即使含合法 v3 manifest（P2-3：.staging-* 残留不是可进入的图）", async () => {
+    const root = await tmpRoot();
+    await DaemonCore.createGraph(root, "visible");
+    // C4 收敛期丢失 web 版原有预过滤时的探针形态：隐藏目录带合法 manifest 会被列出
+    await DaemonCore.createGraph(root, ".staging-x");
+    const rows = await listGraphs(root);
+    expect(rows.map((r) => r.id)).toEqual(["visible"]);
+  });
+
   it("current 缺省经 active 指针（readActiveGraphId）；显式 currentGraphId 优先（cli --graph 解析序）", async () => {
     const root = await tmpRoot();
     await DaemonCore.createGraph(root, "one");

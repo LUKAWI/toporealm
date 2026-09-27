@@ -491,10 +491,16 @@ export class ModuleHost {
     this.currentCommits = commits;
     let out: CommandOutput;
     try {
-      out = (await cmd.handler({
-        ...(target !== undefined ? { target } : {}),
-        input: input as Record<string, unknown>,
-      })) as CommandOutput;
+      // P0-1：handler 契约级异步——await 之后调 api.commit → commitSync，若裸跑会
+      // 落进在途异步管线的让渡窗口（stage 定版与 land 生效之间）→ 同 revision 双写。
+      // 把 handler 整体包进 core.runExclusive 独占段：段内 commitSync 同步内联执行，
+      // 其它连接的 wire commit/undo/redo 排队等 handler 完成（与 convert 同款尾链）。
+      out = (await this.core.runExclusive(async () =>
+        cmd.handler({
+          ...(target !== undefined ? { target } : {}),
+          input: input as Record<string, unknown>,
+        }),
+      )) as CommandOutput;
     } catch (err) {
       // 自包含模块零运行时依赖（D24④：发布包不含 dependencies），持不到 TopoError
       // 的类身份——分发面对「封闭集码 + 消息」的鸭子类型错误如实认领重建，其余原样上抛

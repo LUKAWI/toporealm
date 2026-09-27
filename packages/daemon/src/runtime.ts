@@ -86,8 +86,19 @@ export class GraphRuntime implements WireRuntimeLike {
    * 修复前 serveDaemon.stop() dispose 的是启动时捕获的 core 引用——任意一次换载后，
    * 当前图内核的 fs.watch 与 reconcile 定时器永不清理（库用法/测试泄漏，detached
    * 进程靠 process.exit 兜底）。stop 是唯一释放口，必须经此方法收口。
+   * P2-4：先等在途换载完成再释放——doSwap 在 await DaemonCore.open/attach 期间
+   * stop() 到来时，直接 dispose 只会释放旧核，换载完成后接管的新核无人释放
+   * （watcher/定时器泄漏）。await 期间可能有排队中的后续换载入场（并发 ensureGraph），
+   * 故循环等到 swapPromise 清零，再 dispose 当前 pair.core；disposed 防重入。
    */
-  dispose(): void {
+  private disposed = false;
+
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    this.disposed = true;
+    while (this.swapPromise) {
+      await this.swapPromise.catch(() => {});
+    }
     this.swapListeners.clear();
     this.pair.core.dispose();
   }

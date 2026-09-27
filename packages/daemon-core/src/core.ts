@@ -768,6 +768,22 @@ export class DaemonCore {
     this.onWarning?.(message);
   }
 
+  /**
+   * 独占段（P0-1）：把 fn 整体串进提交管线尾链（与 convert 同款排队模式）。
+   * 模块命令 handler 契约级异步（protocol CommandHandler）——handler 在 await 后
+   * 调 api.commit → commitSync，若不在独占段内，该同步提交会落进在途异步管线的
+   * 让渡窗口（stage 定版 revision 与 land 生效之间）→ 同 revision 双 stage、
+   * .log 双行、内存丢更新。module-host 的 run 把 handler 执行期整体包进此段：
+   * 段内 commitSync 同步内联执行（管线 busy 的是自己，无交织），其它连接的
+   * wire commit/undo/redo 排队等 handler 完成。
+   * fn 的返回值/异常原样透传（尾链吞错只保证链不断，见 tail 字段注释）。
+   */
+  runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    const p = this.tail.then(fn, fn);
+    this.tail = p.catch(() => {});
+    return p;
+  }
+
   private convert(plan: {
     kind: LogEntry["kind"];
     origin: Origin;
@@ -777,7 +793,9 @@ export class DaemonCore {
   }): Promise<CommitResult> {
     // A1：管线互斥。commit/undo/redo/external 的异步转换全走此入口，
     // 整段 stage→persist→land 串入尾链排队执行——persistAsync 的 await 让渡点上
-    // 不再有并发提交穿透；convertSync（模块同步提交）无让渡点，不受影响。
+    // 不再有并发提交穿透。convertSync（模块同步提交）无自身让渡点，但其安全
+    // 前提是调用方处于 runExclusive 段内（host.run 已把模块命令 handler 整体包进
+    // 独占段）：裸调（别人的让渡窗口里）仍会与在途 convert 双写同一 revision。
     const run = async (): Promise<CommitResult> => {
       const st = this.stage(plan);
       await this.persistAsync(plan, st);

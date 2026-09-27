@@ -71,8 +71,9 @@ export async function serveDaemon(
     await new Promise<void>((r) => server.close(() => r()));
     if (web) await web.close();
     // A4：dispose 当前图内核的责任归 GraphRuntime——换载后启动时捕获的旧引用
-    // 早已失效，只有 runtime.dispose() 能释放真正在役的内核（fs.watch/定时器）
-    runtime.dispose();
+    // 早已失效，只有 runtime.dispose() 能释放真正在役的内核（fs.watch/定时器）。
+    // P2-4：dispose 现在 async——等待在途换载完成后释放（换载中途 stop 也不漏新核）
+    await runtime.dispose();
     resolveStopped();
   }
 
