@@ -104,6 +104,14 @@ export class DaemonCore {
   /** 正在落盘时抑制监视回调（内容比对本身也是安全网） */
   private persistDepth = 0;
   private disposed = false;
+  /**
+   * 提交管线串行尾链（A1）：异步 convert 把整段 stage→persist→land 串进此链。
+   * stage 定版 revision（revision_+1）与 land 生效之间隔着 persistAsync 的每个 await
+   * 让渡点，wire/IPC 层并发到达的提交若不串行会双写同一 revision（.log 两行、
+   * land 整体覆盖丢内存更新、ifRevision 失效）。尾链恒吞错——单个失败不断链，
+   * 错误仍由该次 convert 返回的 promise 如实上抛。
+   */
+  private tail: Promise<unknown> = Promise.resolve();
 
   /** 钩子相位：before 期内提交 = REENTRANT_COMMIT；after 期内提交 = 排队追加（D21） */
   private hookPhase: "none" | "before" | "after" = "none";
@@ -756,16 +764,24 @@ export class DaemonCore {
     this.onWarning?.(message);
   }
 
-  private async convert(plan: {
+  private convert(plan: {
     kind: LogEntry["kind"];
     origin: Origin;
     label?: string;
     changes: readonly Change[];
     append: boolean;
   }): Promise<CommitResult> {
-    const st = this.stage(plan);
-    await this.persistAsync(plan, st);
-    return this.land(plan, st);
+    // A1：管线互斥。commit/undo/redo/external 的异步转换全走此入口，
+    // 整段 stage→persist→land 串入尾链排队执行——persistAsync 的 await 让渡点上
+    // 不再有并发提交穿透；convertSync（模块同步提交）无让渡点，不受影响。
+    const run = async (): Promise<CommitResult> => {
+      const st = this.stage(plan);
+      await this.persistAsync(plan, st);
+      return this.land(plan, st);
+    };
+    const p = this.tail.then(run, run);
+    this.tail = p.catch(() => {});
+    return p;
   }
 
   private convertSync(plan: {
