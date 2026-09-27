@@ -285,7 +285,7 @@ async function installFromDir(
     throw new TopoError({
       code: "ID_EXISTS",
       message: `模块 "${probe.id}" 已安装（${finalDir}）`,
-      hint: "更新 = 先卸载再安装（模块集启动冻结，更新后需重启 daemon）",
+      hint: "更新 = 先卸载再安装（模块集在 daemon 下次触达时自动换血生效）",
       fix: `toporealm module rm ${probe.id}`,
       details: { module: probe.id, dir: finalDir },
     });

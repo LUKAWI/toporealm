@@ -76,7 +76,7 @@ it(
     const cmds = await cli(["--json", "cmds"]);
     expect(cmds.code).toBe(0);
     const cat = jsonOf(cmds) as { data: { modules: { id: string; namespace: string }[]; commands: { id: string }[] } };
-    expect(cat.data.modules).toEqual([{ id: "workflow", version: "1.0.0", namespace: "wf" }]);
+    expect(cat.data.modules).toEqual([{ id: "workflow", version: "1.0.1", namespace: "wf" }]);
     const cmdIds = cat.data.commands.map((c) => c.id);
     expect(cmdIds).toContain("wf.create-task");
     expect(cmdIds).toContain("wf.next-actions");
