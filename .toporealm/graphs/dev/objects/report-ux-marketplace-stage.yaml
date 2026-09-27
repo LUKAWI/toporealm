@@ -1,0 +1,13 @@
+id: report-ux-marketplace-stage
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: ux-marketplace-stage-eperm
+  summary: 查证 claude-plugin 官方规范后定根本修法：marketplace 本地目录即 marketplace 根（相对 source、禁 ..）。修复 commit b862f6f（tag 1.0.23）：plugins/dev-marketplace/ 独立根 + 双添加面 source 更新 + 蓝图 D35 + README 中英。验证：JSON 合法、零符号链接、暂存模拟 marketplace 可读且 source 在暂存副本内解析 OK、整仓暂存 EPERM 反证
+  artifacts:
+    - plugins/dev-marketplace/.claude-plugin/marketplace.json
+    - plugins/dev-marketplace/toporealm
+    - README.md
+    - docs/rebuild/blueprint.md
+  blockers: []
+  createdAt: 2026-09-27T01:54:17.046Z

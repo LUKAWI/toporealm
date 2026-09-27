@@ -1,0 +1,24 @@
+id: ux-marketplace-stage-eperm
+kind: wf.task
+payload:
+  title: 本地添加 marketplace 暂存整仓仍 EPERM：dev-marketplace 独立根
+  status: passed
+  definitionOfDone:
+    - dev-marketplace 暂存模拟通过且 source 暂存后可解析
+    - 两个添加面的 source 均解析到 plugin.json
+    - README 中英双面指引
+  attempts: 0
+  maxAttempts: 3
+  reviewSuggested: false
+  class: quick
+  plan: 宿主本地目录方式添加时把整仓拷进暂存区后才解析 plugin source——1.0.21 的载荷收窄只治安装阶段。按 claude-plugin 规范（source 相对路径从 marketplace 根算起、禁 ..、本地目录可整作 marketplace）新增 plugins/dev-marketplace/ 完整 marketplace 根（marketplace.json + source ./toporealm），本地添加该目录即可，零链接零 node_modules；GitHub 面根 marketplace source 改指 plugins/dev-marketplace/toporealm（D35，commit b862f6f）
+  createdAt: 2026-09-27T01:54:15.931Z
+  updatedAt: 2026-09-27T01:54:17.773Z
+  startedAt: 2026-09-27T01:54:16.637Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T01:54:17.441Z
+    by: main-session
+    note: 规范查证 + 结构验证 + 暂存模拟三面；宿主 UI 实测由用户重试完成
+  completedAt: 2026-09-27T01:54:17.773Z
