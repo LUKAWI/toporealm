@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
-import path from "node:path";
 import { parse, stringify } from "yaml";
+import { atomicWriteFile } from "@lukawi/toporealm-daemon-core";
 
 // ---------- modules.yaml 绑定的安装器侧读写（blueprint §3：{ [id]: { source, path? } }） ----------
 // 格式的规范解析住 module-host（readModuleBindings）；这里只做安装器需要的最小读写。
@@ -49,6 +49,7 @@ export async function writeBinding(
   const bindings = await readBindingsRaw(file);
   if (binding === undefined) delete bindings[id];
   else bindings[id] = binding;
-  await fsp.mkdir(path.dirname(file), { recursive: true });
-  await fsp.writeFile(file, stringify(bindings, { lineWidth: 0 }), "utf8");
+  // B4：原子写（同目录 tmp + rename，EPERM/EACCES/EBUSY 短退避）——与 graph.yaml/
+  // endpoint 同一机制，防 Windows 杀软/索引器瞬时锁导致绑定文件半写损坏
+  await atomicWriteFile(file, stringify(bindings, { lineWidth: 0 }));
 }

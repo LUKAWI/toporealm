@@ -5,9 +5,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { MemoryClient } from "@lukawi/toporealm-client";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
+import { TopoError } from "@lukawi/toporealm-protocol";
 import { afterAll, describe, expect, it } from "vitest";
-import { installModule, listModules, removeModule, SOURCE_MARKER } from "../src/install.js";
-import { readBindingsRaw } from "../src/modules-yaml.js";
+import { installModule, listModules, removeModule, run, SOURCE_MARKER } from "../src/install.js";
+import { readBindingsRaw, writeBinding } from "../src/modules-yaml.js";
 
 // ---------- M4 安装器（blueprint §2 distribution / §1.6 D23①） ----------
 // npm 来源走真实 `npm pack --ignore-scripts`（对 fixture 本地包 pack，离线可复现）；
@@ -195,4 +196,45 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
       code: "ENOENT",
     });
   });
+
+  it("B4：writeBinding 走原子写——内容完整可回读、无 .tmp 残留", async () => {
+    const root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-bindings-"));
+    roots.push(root);
+    const file = path.join(root, ".toporealm", "modules.yaml");
+    await writeBinding(file, "a", { source: "path", path: "/x" });
+    await writeBinding(file, "b", { source: "workspace" });
+    await writeBinding(file, "a", undefined); // 删除条目
+    // 内容完整（保留其他条目 + 删除生效）
+    const bindings = await readBindingsRaw(file);
+    expect(bindings).toEqual({ b: { source: "workspace" } });
+    // 原子写（同目录 tmp + rename）不残留临时文件
+    const names = await fsp.readdir(path.dirname(file));
+    expect(names.filter((n) => n.includes(".tmp-"))).toEqual([]);
+  });
+
+  it(
+    "B7：子进程超时 kill 并抛 TopoError(INVALID_INPUT)，消息含超时摘要；正常子进程不受影响",
+    async () => {
+      const err: unknown = await run(
+        process.execPath,
+        ["-e", "setInterval(() => {}, 60_000);"], // 挂起的 fake 子进程
+        process.env,
+        undefined,
+        300, // 注入短超时
+      ).then(
+        () => null,
+        (e) => e,
+      );
+      expect(err).toBeInstanceOf(TopoError);
+      const topo = err as TopoError;
+      expect(topo.code).toBe("INVALID_INPUT"); // 封闭集内既有码，不新造
+      expect(topo.message).toContain("超时");
+      expect(topo.message).toContain("300ms");
+      // 对照组：快速完成的子进程照常 resolve
+      await expect(
+        run(process.execPath, ["-e", "process.exit(0)"], process.env, undefined, 10_000),
+      ).resolves.toMatchObject({ code: 0 });
+    },
+    15_000,
+  );
 });

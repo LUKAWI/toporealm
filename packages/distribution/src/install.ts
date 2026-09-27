@@ -41,6 +41,11 @@ export interface InstallOptions {
   kind?: "npm" | "path";
   /** 测试注入：npm/tar 子进程环境（win32 下默认前置 System32 到 PATH，D23④） */
   env?: NodeJS.ProcessEnv;
+  /**
+   * B7：npm pack / tar 子进程超时（ms）；超时 kill 子进程并抛 TopoError(INVALID_INPUT)。
+   * 缺省 120_000——npm pack 无超时会让 CLI 在网络/registry 卡死时永久挂起。
+   */
+  timeoutMs?: number;
 }
 
 export interface InstallResult {
@@ -77,15 +82,47 @@ interface RunResult {
   stderr: string;
 }
 
-function run(cmd: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string): Promise<RunResult> {
+/** 子进程缺省超时（B7）：npm pack 网络卡死时不能永久挂起 */
+const DEFAULT_CHILD_TIMEOUT_MS = 120_000;
+
+/**
+ * 跑子进程，带可注入超时（B7）：超时 kill 子进程并抛 TopoError（码取封闭集内的
+ * INVALID_INPUT，与 failNpm 的 npm 失败同类）。导出仅为测试注入短超时用。
+ */
+export function run(
+  cmd: string,
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  cwd?: string,
+  timeoutMs: number = DEFAULT_CHILD_TIMEOUT_MS,
+): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     const c = spawn(cmd, args, { cwd, env, windowsHide: true });
     let stdout = "";
     let stderr = "";
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      c.kill();
+      reject(
+        new TopoError({
+          code: "INVALID_INPUT",
+          message: `子进程超时（${timeoutMs}ms）：${cmd} ${args.join(" ")}`.slice(0, 400),
+          hint: "npm 来源默认超时 120s（InstallOptions.timeoutMs 可调）；网络/registry 问题先手动 npm pack 验证",
+        }),
+      );
+    }, timeoutMs);
+    const settle = (fn: () => void): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn();
+    };
     c.stdout.on("data", (d: Buffer) => (stdout += d.toString()));
     c.stderr.on("data", (d: Buffer) => (stderr += d.toString()));
-    c.once("error", reject);
-    c.once("exit", (code) => resolve({ code: code ?? -1, stdout, stderr }));
+    c.once("error", (err) => settle(() => reject(err)));
+    c.once("exit", (code) => settle(() => resolve({ code: code ?? -1, stdout, stderr })));
   });
 }
 
@@ -287,6 +324,7 @@ async function installFromNpm(opts: InstallOptions): Promise<InstallResult> {
       [...npm.args, "pack", opts.source, "--ignore-scripts", "--json", "--pack-destination", tmp],
       env,
       tmp,
+      opts.timeoutMs,
     );
     if (r.code !== 0) failNpm("pack", opts.source, r);
     const filename = parsePackFilename(r.stdout);
@@ -306,6 +344,8 @@ async function installFromNpm(opts: InstallOptions): Promise<InstallResult> {
         : "tar",
       ["-xzf", path.join(tmp, filename), "-C", pkgDir, "--strip-components", "1"],
       env,
+      undefined,
+      opts.timeoutMs,
     );
     if (t.code !== 0) failNpm("tar 解包", filename, t);
     // return await：finally 的 tmp 清理必须等 installFromDir 结束——裸 return 会让
