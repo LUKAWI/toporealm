@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "toporealm skills index",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/skills-index.mjs\"",
             "timeout": 10
           }
         ]

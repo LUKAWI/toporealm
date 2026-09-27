@@ -177,7 +177,7 @@ export interface CommandRunResult { message?: string; data?: unknown; commits?: 
 **错误码全表（~17，封闭集只增不改义，全部带 hint + fix）**
 | 码 | 层 | hint/fix 示例 |
 |---|---|---|
-| NO_WORKSPACE / NO_CURRENT_GRAPH / GRAPH_NOT_FOUND | 环境 | fix: `toporealm new` / `toporealm use` |
+| NO_WORKSPACE / NO_CURRENT_GRAPH / GRAPH_NOT_FOUND | 环境 | fix: `toporealm creategraph` / `toporealm use` |
 | UNKNOWN_ID / UNKNOWN_KIND / ID_EXISTS | 实体 | did-you-mean 来自活图/词汇表 |
 | DANGLING_RELATION | 执法一 | 点名悬空边 + fix 建/删 |
 | OWNERSHIP_VIOLATION | 执法二 | 点名模块与越界 kind |
@@ -384,8 +384,8 @@ FormSpec 如何过缝到达 WebUI、0.x `manifest.meta` 死亡后图级档位放
 
 > 1.1.0 规划裁决（grilling 会话 2026-09-26，经对抗性架构评审后全量采纳）。
 > 完整论证与源码证据见 `docs/rebuild/decisions-110.md`；ADR-0007（作用域模型）、
-> ADR-0008（宿主技能分发）为其中两条架构级决策的正式化。本文以下正文（§2–§9）
-> 仍描述 1.0 形态，1.1.0 以本节为准。
+> ADR-0008（宿主技能分发）为其中两条架构级决策的正式化。本文以下正文形态不一：
+> §2/§6–§9 仍为 1.0 形态，§3/§4/§5 已收敛为 1.1 形态；1.1.0 一律以本节为准。
 
 **D25（兼容性立场）：1.1.0 直接破坏。** 动词改名不留旧名、布局变更不做迁移工具、
 CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃——真实用户基数≈0。
@@ -632,7 +632,7 @@ packages/
 
 **依赖方向（全部单向）**：protocol ← client ← cli/web-ui；protocol ← daemon-core ← module-host ← 模块；模块 → module-sdk（纯类型）。distribution 只被 cli 冷路径调用。
 
-**发布物**：`@lukawi/toporealm`（bin: `toporealm`，聚合 cli+daemon+client+distribution）、`@lukawi/toporealm-client`（第三方集成）、`@lukawi/toporealm/module-sdk` 子路径。可选后置：`@lukawi/toporealm-mcp`（桥未烧）。
+**发布物**：`@lukawi/toporealm`（bin: `toporealm`，聚合 cli+daemon+client+distribution）、`@lukawi/toporealm-client`（第三方集成）、`@lukawi/toporealm-module-sdk`（独立包，模块作者类型）。可选后置：`@lukawi/toporealm-mcp`（桥未烧）。
 
 ---
 

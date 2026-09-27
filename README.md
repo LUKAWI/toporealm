@@ -14,6 +14,8 @@ npm install -g @lukawi/toporealm        # toporealm（CLI）+ toporeald（daemon
 
 要求 Node ≥ 22（WS 传输依赖全局 WebSocket）。第三方集成可单独安装 `@lukawi/toporealm-client`。
 
+> **从 1.0 升级**：1.1.0 是破坏性版本——动词改名不留旧名（`new`→`creategraph` 等）、布局变更不做迁移工具；`@lukawi/toporealm-client` 的 `^1.0.0` 依赖已 break，详见 [CHANGELOG 1.1.0](CHANGELOG.md)。
+
 ## 快速上手
 
 ```bash
@@ -35,7 +37,7 @@ toporealm undo                         # 一切皆可撤销（含外部编辑）
 ```bash
 toporealm module add --global @lukawi/toporealm-workflow   # 装进全局池（所有项目生效；不带 --global 则仅本项目）
 toporealm cmds                                     # 目录自省：wf.* 命令即顶层子命令
-toporealm wf.create-task --input '{"title":"首发任务"}'
+toporealm wf.create-task --input '{"id":"first-task","title":"首发任务"}'
 toporealm skills index                             # 模块技能索引（agent 按路径 Read 全文）
 ```
 
@@ -60,7 +62,7 @@ Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
 | 包 | 职责 |
 |---|---|
 | `@lukawi/toporealm` | 聚合发布物（本包：toporealm + toporeald 两个 bin） |
-| `@lukawi/toporealm-cli` | ~16 动词、`--json` 信封、退出码、did-you-mean |
+| `@lukawi/toporealm-cli` | 20 个核心动词、`--json` 信封、退出码、did-you-mean |
 | `@lukawi/toporealm-daemon` | 可执行入口：IPC/Web 伺服、自动拉起、空闲退出、instanceId |
 | `@lukawi/toporealm-daemon-core` | 提交管线、内存图态、YAML 存储、提交日志、undo 游标、文件监视 |
 | `@lukawi/toporealm-client` | DaemonClient 三实现：Memory / IPC / WS |
@@ -70,7 +72,7 @@ Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
 
 | 内容 | 位置 |
 |---|---|
-| 设计哲学 | [Toporealm设计构想.md](Toporealm设计构想.md) |
+| 设计哲学 | [Toporealm设计构想.md](Toporealm设计构想.md)（0.x 早期构想，含已被 ADR-0006 废除的 MCP 方案，仅作历史） |
 | 1.0 蓝图（实现规范） | [docs/rebuild/blueprint.md](docs/rebuild/blueprint.md) |
 | 统一术语 | [CONTEXT.md](CONTEXT.md) |
 | 架构决策 | [docs/adr/](docs/adr/) |

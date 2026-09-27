@@ -14,6 +14,8 @@ npm install -g @lukawi/toporealm        # two bins: toporealm (CLI) + toporeald 
 
 Requires Node ≥ 22 (WS transport needs the global WebSocket). For third-party integrations, install `@lukawi/toporealm-client` on its own.
 
+> **Upgrading from 1.0**: 1.1.0 is a breaking release — verbs renamed with no legacy aliases (`new` → `creategraph` etc.), layout changes ship without a migration tool; the `^1.0.0` dependency on `@lukawi/toporealm-client` is broken. See the [CHANGELOG 1.1.0](CHANGELOG.md).
+
 ## Quick start
 
 ```bash
@@ -35,7 +37,7 @@ The daemon is transparently spawned on first contact and exits when idle; browse
 ```bash
 toporealm module add --global @lukawi/toporealm-workflow   # global pool (all projects; omit --global for this project only)
 toporealm cmds                                     # introspect: wf.* commands become top-level subcommands
-toporealm wf.create-task --input '{"title":"First task"}'
+toporealm wf.create-task --input '{"id":"first-task","title":"First task"}'
 toporealm skills index                             # module skill index (agents Read the SKILL.md paths)
 ```
 
@@ -59,7 +61,7 @@ Modules are two-layer: `module.yaml` declares identity/namespace/vocabulary (coo
 
 One sentence: **humans via CLI, agents via CLI+skills, browsers via WS — all hitting a single-owner daemon; modules are two-layer extensions loaded into the daemon; the core enforces exactly two rules.**
 
-Primary documentation is in Chinese: [blueprint](docs/rebuild/blueprint.md) (implementation spec) · [glossary](CONTEXT.md) · [ADRs](docs/adr/) · [project status](docs/PROJECT-STATUS.md) · [design philosophy](Toporealm设计构想.md) · [CHANGELOG](CHANGELOG.md).
+Primary documentation is in Chinese: [blueprint](docs/rebuild/blueprint.md) (implementation spec) · [glossary](CONTEXT.md) · [ADRs](docs/adr/) · [project status](docs/PROJECT-STATUS.md) · [design philosophy](Toporealm设计构想.md) (early 0.x concept, includes the MCP approach since abolished by ADR-0006 — historical only) · [CHANGELOG](CHANGELOG.md).
 
 > **Library consumers**: the `-*` subpackages currently ship TS sources directly (`main`/`exports` point at `src/*.ts`); consuming them as libraries requires TS runtime support. The CLI/daemon bins bundle tsx loading and work out of the box.
 >
