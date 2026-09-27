@@ -568,6 +568,44 @@ CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃�
 - API 面（`/api/graphs`、`/api/graphs/:id/snapshot`、`/ws`）不依赖静态产物，
   纯 WS 模式下照常服务（`--no-web` 才是完整关闭）。
 
+### 1.11 规划期补遗（1.2.0：D35–D42）
+
+1.2.0 为**修复与内部优化版本**：不改 CLI 语法、错误码既有语义、wire 既有消息、
+module.yaml schema、graph v3 格式（全部只增不改；不新增用户可见功能）。依据与
+完整工作分解：`docs/rebuild/plan-1.2.0-fixes.md`（架构评审 + 四路功能核验回填）。
+
+- **D35（core 假面收口）**：删除 `core.run`（恒抛 UNKNOWN_COMMAND，全仓零调用
+  者）；`core.catalog` 收窄为 kinds 投影（modules "0.0.0" / commands 空目录段
+  删除）。命令目录聚合是 module-host 独占职责（D12 不变）。protocol 类型面
+  不破坏（Catalog.kinds 不动）。
+- **D36（ReadQuery 邻域扩展——协议加法）**：`ReadQuery` 增 `adjacent?: EntityId`：
+  返回与该实体相触的关系（可叠加既有过滤）。动机：`read <id>` 一次命令三次全图
+  读、`link` 缺省 --kind 与 host 命令 did-you-mean 各自全量拉回客户端过滤；
+  收敛为 core 一处实现，wire 面从 O(全图) 降 O(邻域)。
+- **D37（VETOED 点名否决模块）**：module-host 注册钩子时包装归属，VETOED 的
+  `details.vetoes[]` 增 `module` 字段（加法）。对齐 §1.1 错误码表既有承诺。
+- **D38（GraphSummary.warnings 上浮）**：`GraphSummary` 增 `warnings?: string[]`
+  （加法），status 输出装载期 warning。对齐 D27「warning 必须上浮到
+  status/module list」的前半句（module list 已达标）。
+- **D39（client→module-host 依赖边登记）**：MemoryClient 为 S2 直激活测试缝装载
+  ModuleHost——该边正式登记进 §2 依赖图；发布包
+  `@lukawi/toporealm-client` 随之携带 module-host 为已知代价（该包是开发/测试缝）。
+- **D40（SessionTransport 与 IpcResultMap 转正）**：client 三 adapter（ipc/ws/
+  memory）的会话管道（pending/timeout/failAll/listener）收敛为共享传输基座，
+  `IpcResultMap`（wire.ts，现为零使用死代码）转正为其类型脊柱。Session 公共缝
+  与三套契约套件不变（安全网）。
+- **D41（forms WebUI 消费延后）**：`catalog.forms` 目录投影维持（D24② 前半），
+  WebUI 消费端按 §7 预留推迟——1.2.0 不做 UI 功能。§1.3 注明 `ui.titleKey` 为
+  声明层保留字段，1.x 目录投影不携带，显示名约定 `payload.title`。
+- **D42（损坏模块清理路径）**：`module rm` 对「清单不可读」的模块目录豁免所有权
+  标记检查，但必须显式 `--force`；正常模块仍走 marker 执法。动机：项目池坏模块
+  使 daemon 拒启（D27 大声失败，不变）后 CLI 无自愈路径。daemon 启动失败的真实
+  死因随超时错误上抛（spawn stderr 捕获），`DAEMON_UNREACHABLE` 语义不变。
+- **撤项**：D30⑥ reset 事件 `instanceId` 载荷不再实现（客户端经响应 instanceId
+  检测已足）；D28 Y4④ hooks.json 兜底静默改为插件自包含 node 包装脚本实现
+  （跨平台，不依赖 shell 语义）；D29 残留文案（version 动词、`new` 指路）随
+  1.2.0 文案批清理。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
