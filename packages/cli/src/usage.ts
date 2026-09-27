@@ -85,7 +85,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
     text += `  （本图未装载模块；toporealm cmds 自省目录）\n`;
   }
   text += `
-help [cmd] / version           帮助（core 静态表 + 目录动态聚合，单一真相）与版本
+help [cmd]                     帮助（core 静态表 + 目录动态聚合，单一真相）
+  --version                    查看版本（version 子命令已废除，仅旗标）
 `;
   return text;
 }
@@ -151,9 +152,15 @@ export class Argv {
     return n;
   }
 
-  /** 剩余位置参数 */
+  /**
+   * 剩余位置参数。
+   * F1（语义收紧）：过滤未消费的 `--` 开头 token——flag 查询漏吃（未知 flag / 顺序
+   * 颠倒）时不再把 flag 误当位置参数（id/kind/target）。书写纪律仍是「flag 先于
+   * 位置参数」（见 help 各动词用法行）；find 的 --kind 可变长值段会吞掉后续 k=v，
+   * 属波3 G2，另行处理。
+   */
   positionals(): string[] {
-    return this.rest;
+    return this.rest.filter((t) => !t.startsWith("--"));
   }
 }
 

@@ -25,6 +25,7 @@ import {
   type EntityRecord,
   type GraphSummary,
   type ReadQuery,
+  type ReadResult,
   type Session,
 } from "@lukawi/toporealm-protocol";
 import {
@@ -202,10 +203,13 @@ function humanEntities(entities: readonly EntityRecord[]): string {
         typeof e.payload?.["title"] === "string"
           ? ` ${e.payload["title"] as string}`
           : "";
+      // F2：--fields 投影后 kind 可能不在记录里（如 --fields id）——缺省省略方括号段，
+      // 不输出 "[undefined]"
+      const kindSeg = e.kind !== undefined ? ` [${e.kind}]` : "";
       if (isRelation(e)) {
-        return `  ${e.id} [${e.kind}] ${e.source} -> ${e.target}${title}`;
+        return `  ${e.id}${kindSeg} ${e.source} -> ${e.target}${title}`;
       }
-      return `  ${e.id} [${e.kind}]${title}`;
+      return `  ${e.id}${kindSeg}${title}`;
     })
     .join("\n");
 }
@@ -222,9 +226,23 @@ async function dispatch(
 
   if (verb === undefined || verb === "help") {
     // help [cmd]：core 静态表 + 目录动态聚合（单一真相，blueprint §4）
+    // B8：version 子命令已废除（--version 旗标）——help 不再特判 "version"，
+    // 未知目标与顶层动词一致落 did-you-mean/未知命令路径（exit 2）
     const helpTarget = g.rest[1];
+    if (
+      helpTarget !== undefined &&
+      !helpTarget.includes(".") &&
+      !(CORE_VERBS as readonly string[]).includes(helpTarget)
+    ) {
+      const versionNote =
+        helpTarget === "version" ? "（版本查看：toporealm --version）" : "";
+      throw new UsageError(
+        `未知命令 "${helpTarget}"${unknownVerbSuggestion(helpTarget)}${versionNote}`,
+        "toporealm help",
+      );
+    }
     const root = g.root ?? defaultRoot(deps);
-    const cat = helpTarget === "version" ? null : await fetchCatalog(deps, root, g.graph);
+    const cat = await fetchCatalog(deps, root, g.graph);
     const commands = cat?.commands ?? [];
     const entry =
       helpTarget !== undefined && helpTarget.includes(".")
@@ -444,20 +462,41 @@ ${agentSnippet()}`),
         throw new UsageError("用法：toporealm find <k=v>... [--kind K] [--fields f]");
       }
       const eq = parseKvPairs(kvArgs);
-      const where = [
-        ...kinds.map((kind) => ({ kind, eq })),
-        ...(kinds.length > 0 ? [] : [{ eq }]),
-      ];
       const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
-        const res = await s.read({
-          where,
-          ...(fields.length > 0 ? { fields: fields as ReadQuery["fields"] } : {}),
-        });
+        // B1：core.read 的 where 各条件取交集——多个 --kind 编成多条 where 恒为空集。
+        // 多 kind 时本地按 kind 分次 read 再按 id 合并去重（wire 语义不变，分批全是
+        // 合法单 kind 查询）；0/1 个 kind 维持单次 read。
+        const readOnce = async (kind?: string) =>
+          s.read({
+            ...(kind !== undefined ? { where: [{ kind, eq }] } : { where: [{ eq }] }),
+            ...(fields.length > 0 ? { fields: fields as ReadQuery["fields"] } : {}),
+          });
+        let revision: number;
+        let entities: EntityRecord[];
+        if (kinds.length > 1) {
+          const results: ReadResult[] = [];
+          for (const kind of kinds) results.push(await readOnce(kind));
+          revision = results[0]!.revision;
+          const seen = new Set<string>();
+          entities = [];
+          for (const r of results) {
+            for (const e of r.entities) {
+              if (!seen.has(e.id)) {
+                seen.add(e.id);
+                entities.push(e);
+              }
+            }
+          }
+        } else {
+          const res = await readOnce(kinds[0]);
+          revision = res.revision;
+          entities = [...res.entities];
+        }
         return {
-          data: { revision: res.revision, entities: res.entities },
-          human: `${res.entities.length} hit(s) @ rev ${res.revision}\n${humanEntities(res.entities)}`,
-          revision: res.revision,
+          data: { revision, entities },
+          human: `${entities.length} hit(s) @ rev ${revision}\n${humanEntities(entities)}`,
+          revision,
         };
       });
     }
@@ -924,8 +963,12 @@ export async function run(argv: string[], deps: CliDeps = {}): Promise<number> {
     const topo = TopoError.is(e)
       ? e
       : new TopoError({
+          // B3：非 TopoError 的本地异常不得伪装成 daemon 不可达——错误码封闭集不破
+          // （沿用 DAEMON_UNREACHABLE），但 message 前缀 + details.local 让
+          // "CLI 本地内部错误" 可被人与 agent 分辨，不再误导去查 daemon
           code: "DAEMON_UNREACHABLE",
-          message: e instanceof Error ? e.message : String(e),
+          message: `cli internal error: ${e instanceof Error ? e.message : String(e)}`,
+          details: { local: true },
         });
     if (g.json) {
       err(JSON.stringify({ ok: false, error: topo.toJSON() }) + "\n");

@@ -6,6 +6,7 @@ import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { MemoryClient } from "@lukawi/toporealm-client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { run } from "../src/index.js";
+import { Argv } from "../src/usage.js";
 import { isolateGlobalHome } from "../../../tests/test-env.js";
 
 // ---------- CLI golden 信封 + 退出码表驱动（blueprint §8：MemoryClient 后端） ----------
@@ -184,6 +185,37 @@ describe("CLI --json 信封 + 退出码", () => {
     expect(emptyTail.code).toBe(2);
   });
 
+  it("B1：find 多 --kind 取并集（core where 是交集，多 kind 不得恒空）；单 kind 行为不变", async () => {
+    await exec(["--json", "add", "wf.note", "--id", "n1", "--payload", JSON.stringify({ tag: "multi" })]);
+    await exec(["--json", "set", "t1", "tag=multi"]);
+    // 多 kind：两种 kind 命中的并集（修复前 where 交集语义恒为空集）
+    const both = jsonOf(
+      await exec(["--json", "find", "tag=multi", "--kind", "wf.task", "--kind", "wf.note"]),
+    ) as { data: { entities: { id: string; kind: string }[] } };
+    expect(both.data.entities.map((e) => e.id).sort()).toEqual(["n1", "t1"]);
+    expect(both.data.entities.map((e) => e.kind).sort()).toEqual(["wf.note", "wf.task"]);
+    // 单 kind：维持单次 read，行为不变
+    const one = jsonOf(
+      await exec(["--json", "find", "tag=multi", "--kind", "wf.note"]),
+    ) as { data: { entities: { id: string }[] } };
+    expect(one.data.entities.map((e) => e.id)).toEqual(["n1"]);
+    // 无 kind：行为不变
+    const none = jsonOf(await exec(["--json", "find", "tag=multi"])) as {
+      data: { entities: { id: string }[] };
+    };
+    expect(none.data.entities.map((e) => e.id).sort()).toEqual(["n1", "t1"]);
+  });
+
+  it("F2：--fields 投影缺 kind 时人类输出省略方括号段（不出现 [undefined]）", async () => {
+    const projected = await exec(["read", "--kind", "wf.task", "--fields", "id"]);
+    expect(projected.code).toBe(0);
+    expect(projected.out).not.toContain("[undefined]");
+    expect(projected.out).toContain("t1");
+    // 对照：完整读出的实体仍带 [kind] 段
+    const full = await exec(["read", "--kind", "wf.task"]);
+    expect(full.out).toContain("[wf.task]");
+  });
+
   it("undo/redo/log", async () => {
     const before = (jsonOf(await exec(["--json", "status"])) as { revision: number }).revision;
     const u = jsonOf(await exec(["--json", "undo"])) as { revision: number };
@@ -214,6 +246,58 @@ describe("CLI --json 信封 + 退出码", () => {
     const noWs = await exec(["--json", "status"], noWsRoot);
     expect(noWs.code).toBe(1);
     expect(jsonOf(noWs)).toMatchObject({ ok: false, error: { code: "NO_WORKSPACE" } });
+  });
+
+  it("B3：CLI 本地内部错误不再伪装 daemon 不可达——message 前缀 + details.local，退出码语义不变(1)", async () => {
+    const collected = { out: "", err: "" };
+    const code = await run(["--json", "status"], {
+      clientFactory: () => {
+        throw new Error("boom: 本地炸了");
+      },
+      cwd: root,
+      env: {},
+      out: (s: string) => (collected.out += s),
+      err: (s: string) => (collected.err += s),
+    });
+    expect(code).toBe(1); // 领域错误退出码语义不变
+    const envelope = JSON.parse(collected.err) as {
+      ok: boolean;
+      error: { code: string; message: string; details?: Record<string, unknown> };
+    };
+    expect(envelope.ok).toBe(false);
+    expect(envelope.error.code).toBe("DAEMON_UNREACHABLE"); // 错误码封闭集不破
+    expect(envelope.error.message).toContain("cli internal error:");
+    expect(envelope.error.message).toContain("boom");
+    expect(envelope.error.details?.["local"]).toBe(true);
+    // 人类模式同样带前缀
+    const human = { out: "", err: "" };
+    const humanCode = await run(["status"], {
+      clientFactory: () => {
+        throw new Error("boom: 本地炸了");
+      },
+      cwd: root,
+      env: {},
+      out: (s: string) => (human.out += s),
+      err: (s: string) => (human.err += s),
+    });
+    expect(humanCode).toBe(1);
+    expect(human.err).toContain("cli internal error:");
+  });
+
+  it("B8：help version 落未知命令路径（exit 2 + did-you-mean + --version 指路）；--version 旗标不受影响", async () => {
+    const r = await exec(["--json", "help", "version"]);
+    expect(r.code).toBe(2);
+    const envelope = jsonOf(r) as { error: { message: string } };
+    expect(envelope.error.message).toContain('未知命令 "version"');
+    expect(envelope.error.message).toContain("--version");
+    // help 文本不再把 version 列为动词，改为 --version 旗标说明
+    const h = await exec(["help"]);
+    expect(h.out).not.toContain("help [cmd] / version");
+    expect(h.out).toContain("--version");
+    // 旗标路径不受影响
+    const v = await exec(["--version"]);
+    expect(v.code).toBe(0);
+    expect(v.out).toContain("toporealm");
   });
 
   it("graphs 列表带 current 标记", async () => {
@@ -325,4 +409,27 @@ describe("M2 CLI：模块命令面", () => {
     },
     60_000,
   );
+});
+
+// ---------- F1：Argv.positionals 过滤未消费的 flag token（语义收紧） ----------
+
+describe("Argv 位置参数（F1）", () => {
+  it("positionals 不再包含 -- 开头的未消费 token；已消费 flag 的常规流程不回归", () => {
+    // 未知/漏吃的 flag 不再误当位置参数
+    expect(new Argv(["--unknown", "t1"]).positionals()).toEqual(["t1"]);
+    // module add --global 风格：flag 先吃、位置参数后取
+    const g = new Argv(["--global", "some-pkg"]);
+    expect(g.flag("--global")).toBe(true);
+    expect(g.positionals()).toEqual(["some-pkg"]);
+    // flag 在后的写法也不回归（以现有用例场景为准）
+    const g2 = new Argv(["some-pkg", "--global"]);
+    expect(g2.flag("--global")).toBe(true);
+    expect(g2.positionals()).toEqual(["some-pkg"]);
+    // find：k=v 位置参数 + --kind 值段，互不干扰
+    const f = new Argv(["status=done", "--kind", "wf.task"]);
+    expect(f.values("--kind")).toEqual(["wf.task"]);
+    expect(f.positionals()).toEqual(["status=done"]);
+    // 非 flag 的 - 开头短值不受影响（如 undo -n 场景的 "-1" 类 token 不误删）
+    expect(new Argv(["-1"]).positionals()).toEqual(["-1"]);
+  });
 });
