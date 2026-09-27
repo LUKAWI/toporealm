@@ -400,7 +400,8 @@ export class ModuleHost {
         });
       }
     }
-    for (const k of this.core.catalog().kinds) {
+    // D35：core.catalog 已收窄为 kinds 投影（modules/commands 目录段是本聚合的独占职责）
+    for (const k of this.core.catalog()) {
       if (!kinds.has(k.kind)) kinds.set(k.kind, k);
     }
     let commands: CatalogEntry[] = [...this.commands.entries()].map(

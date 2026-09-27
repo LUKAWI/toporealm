@@ -394,37 +394,21 @@ export class DaemonCore {
     );
   }
 
-  // ---------- 命令目录与模块命令（M1 无模块：恒空/恒 UNKNOWN_COMMAND） ----------
+  // ---------- 命令目录（D35 假面收口：core 只投影活图 kinds） ----------
+  //
+  // 完整目录（modules/commands/forms）是 module-host 独占职责（D12 不变）；
+  // core 假面上的 modules "0.0.0" / commands 空目录段与恒抛 UNKNOWN_COMMAND 的
+  // run 已删除——core 缝上没有命令分发，目录聚合只此一家。
 
-  catalog(): Catalog {
+  /** 活图 kinds 投影（owner 取命名空间前缀）；module-host.catalog 聚合时的活图兜底源。 */
+  catalog(): Catalog["kinds"] {
     this.touch();
     const kinds = new Set<Kind>();
     for (const o of this.objects.values()) kinds.add(o.kind);
     for (const r of this.relations.values()) kinds.add(r.kind);
-    return {
-      modules: this.loadedModules.map((id) => ({
-        id,
-        version: "0.0.0",
-        namespace: this.moduleNamespaces.get(id) ?? id,
-      })),
-      kinds: [...kinds].sort().map((kind) => {
-        const ns = kindNamespace(kind);
-        return ns ? { kind, owner: ns } : { kind };
-      }),
-      commands: [],
-    };
-  }
-
-  run(commandId: string): never {
-    this.touch();
-    throw new TopoError({
-      code: "UNKNOWN_COMMAND",
-      message: `未知命令 "${commandId}"`,
-      hint: "模块命令由 module-host 分发；core 缝上没有命令目录",
-      details: {
-        commandId,
-        suggestions: suggestClosest(commandId, []),
-      },
+    return [...kinds].sort().map((kind) => {
+      const ns = kindNamespace(kind);
+      return ns ? { kind, owner: ns } : { kind };
     });
   }
 

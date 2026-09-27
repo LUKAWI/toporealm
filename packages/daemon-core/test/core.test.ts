@@ -564,16 +564,19 @@ describe("M2 管线扩展：所有权 namespace 映射 / commitSync / 钩子相�
     core.dispose();
   });
 
-  it("registerModuleOwner + setLoadedModules：status/catalog 反映运行时模块集", async () => {
+  it("registerModuleOwner + setLoadedModules：status 反映运行时模块集；catalog 收窄为 kinds 投影（D35）", async () => {
     const root = await tmpWorkspace();
     const core = await DaemonCore.open({ root, graphId: "g1", watch: false });
     expect(core.status().modules).toEqual([]);
     core.registerModuleOwner("workflow", "wf");
     core.setLoadedModules(["workflow"]);
     expect(core.status().modules).toEqual(["workflow"]);
-    expect(core.catalog().modules).toEqual([
-      { id: "workflow", version: "0.0.0", namespace: "wf" },
-    ]);
+    // D35 假面收口：core.catalog 只投影活图 kinds；modules/commands 目录聚合归 module-host
+    await core.commit(
+      { changes: [{ op: "put", kind: "wf.task", id: "t1" }] },
+      "cli",
+    );
+    expect(core.catalog()).toEqual([{ kind: "wf.task", owner: "wf" }]);
     core.dispose();
   });
 });
