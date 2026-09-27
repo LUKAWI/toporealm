@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TopoError, type Change, type TopoEvent } from "./protocol";
 import { WebGraphStore } from "./store.svelte";
 import { makeFakeSession, obj, rel, type FakeSessionState } from "./test-support";
@@ -181,5 +181,132 @@ describe("WebGraphStore（1.0 Session 契约）", () => {
     release();
     await first;
     expect(store.writing).toBe(false);
+  });
+});
+
+// ── 1.2.0 G1：静态预览路径 + 会话生命周期（此前纯 store 字段断言测不出 $state 缺失，
+//    mount 级 DOM 断言在 App.test.ts；这里是 store 公共缝的行为面）──
+describe("静态预览与会话生命周期（1.2.0 G1）", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** /api/graphs 的内存假响应（store 只消费 ok/status/json） */
+  function jsonRes(body: unknown, status = 200): { ok: boolean; status: number; json: () => Promise<unknown> } {
+    return { ok: status >= 200 && status < 300, status, json: async () => body };
+  }
+
+  it("openPreview：拉取快照进 previewData，closePreview 清场", async () => {
+    const { store } = await loadedStore();
+    const fetchMock = vi.fn(async () =>
+      jsonRes({ graphId: "b", revision: 2, entities: [{ id: "b-1", kind: "plain", payload: { title: "B" } }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await store.openPreview("b");
+    expect(fetchMock).toHaveBeenCalledWith("/api/graphs/b/snapshot");
+    expect(store.previewGraphId).toBe("b");
+    expect(store.previewData).toMatchObject({ graphId: "b", revision: 2 });
+    expect(store.previewLoading).toBe(false);
+    store.closePreview();
+    expect(store.previewGraphId).toBe("");
+    expect(store.previewData).toBeNull();
+    expect(store.previewLoading).toBe(false);
+  });
+
+  it("openPreview 失败：进 actionMessage 可见反馈而非黑洞 error（G1-2）", async () => {
+    const { store } = await loadedStore();
+    vi.stubGlobal("fetch", vi.fn(async () => jsonRes({ error: "图不可读" }, 404)));
+    await store.openPreview("b");
+    expect(store.previewGraphId).toBe("");
+    expect(store.previewData).toBeNull();
+    expect(store.actionMessage).toContain("静态预览读取失败");
+    expect(store.actionMessage).toContain("图不可读");
+    // error 保持「无快照」全屏错误态语义：不残留预览失败（否则压住 reloadFromEvent 的状态提示）
+    expect(store.error).toBe("");
+  });
+
+  it("预览 in-flight 守卫：后发请求胜出，先发响应作废不落地（G1-5）", async () => {
+    const { store } = await loadedStore();
+    let releaseA!: () => void;
+    const gateA = new Promise<void>((r) => (releaseA = r));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith("/a/snapshot")) {
+          await gateA;
+          return jsonRes({ graphId: "a", revision: 1, entities: [] });
+        }
+        return jsonRes({ graphId: "b", revision: 2, entities: [] });
+      }),
+    );
+    const first = store.openPreview("a");
+    const second = store.openPreview("b");
+    releaseA();
+    await Promise.all([first, second]);
+    expect(store.previewGraphId).toBe("b");
+    expect(store.previewData).toMatchObject({ graphId: "b" });
+    expect(store.previewLoading).toBe(false);
+  });
+
+  it("closePreview 作废在途预览响应（G1-5）", async () => {
+    const { store } = await loadedStore();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        await gate;
+        return jsonRes({ graphId: "a", revision: 1, entities: [] });
+      }),
+    );
+    const pending = store.openPreview("a");
+    store.closePreview();
+    release();
+    await pending;
+    expect(store.previewGraphId).toBe("");
+    expect(store.previewData).toBeNull();
+    expect(store.previewLoading).toBe(false);
+  });
+
+  it("load 重读前先关闭旧会话：reset 自愈不泄漏 WS 连接（G1-3）", async () => {
+    const state = initialState();
+    const sessions: ReturnType<typeof makeFakeSession>[] = [];
+    const store = new WebGraphStore(async () => {
+      const session = makeFakeSession(state);
+      sessions.push(session);
+      return session;
+    });
+    await store.load();
+    expect(sessions).toHaveLength(1);
+
+    // daemon 侧外部编辑 → reset 事件 → reloadFromEvent → load：旧会话必须被关闭
+    state.revision += 1;
+    state.objects = [...state.objects, obj("hand-1", "hand", "人手改")];
+    sessions[0].emit({ type: "reset", reason: "external-edit" });
+    await vi.waitFor(() => expect(sessions.length).toBe(2));
+    await vi.waitFor(() => expect(sessions[0].calls.close).toBe(1));
+    expect(sessions[1].calls.read).toBe(1);
+
+    // 旧会话已退订：旧会话再广播事件不触发新的重读
+    const readsAfterReload = sessions[1].calls.read;
+    sessions[0].emit({ type: "reset", reason: "daemon-restarted" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(sessions[1].calls.read).toBe(readsAfterReload);
+
+    // dispose 收口最后一个会话
+    store.dispose();
+    expect(sessions[1].calls.close).toBe(1);
+  });
+
+  it("graph-switched reset：全量重读 + 提示切换后的目标图（G1-4）", async () => {
+    const state = initialState();
+    const session = makeFakeSession(state);
+    const store = new WebGraphStore(async () => session);
+    await store.load();
+    session.emit({ type: "reset", reason: "graph-switched", graphId: "g-next" });
+    await vi.waitFor(() => expect(session.calls.read).toBe(2));
+    expect(store.actionMessage).toContain("已切换到图");
+    expect(store.actionMessage).toContain("g-next");
+    expect(store.actionMessage).not.toContain("daemon 已重启");
   });
 });

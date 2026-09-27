@@ -311,13 +311,6 @@
     gap: var(--sp-3);
   }
 
-  .field-hint {
-    font-family: var(--font-sans);
-    font-size: var(--text-2xs);
-    color: var(--ink-faint);
-    line-height: 1.5;
-  }
-
   .form-error {
     display: flex;
     align-items: flex-start;

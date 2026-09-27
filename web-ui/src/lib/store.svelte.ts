@@ -31,6 +31,14 @@ export interface RecoveryState {
   message: string;
 }
 
+/** 工作区图条目（/api/graphs 返回形状；web/server.ts listGraphs 投影） */
+export interface GraphListEntry {
+  id: string;
+  label?: string;
+  revision: number;
+  current: boolean;
+}
+
 export type { CanvasSelection, Change, CommandRunResult, Entity, EntityId, GraphSnapshot, GraphSummary, RelationEntity };
 export { PatchGapError, WebGraphState };
 
@@ -85,12 +93,19 @@ export class WebGraphStore {
   private unsubscribe: (() => void) | null = null;
   private reloading = false;
   private session: Session | null = null;
-  /** 1.1.0 D30：工作区图列表（静态预览用；/api/graphs） */
-  graphsList: { id: string; label?: string; revision: number; current: boolean }[] = [];
-  /** 静态预览态：非当前图的只读快照（"" = 预览关闭） */
-  previewGraphId = "";
-  previewData: { graphId: string; revision: number; entities: { id: string; kind: string; payload?: Record<string, unknown> }[] } | null = null;
-  previewLoading = false;
+  /**
+   * 1.1.0 D30：工作区图列表（静态预览用；/api/graphs）。
+   * 1.2.0 G1-1：四个预览字段必须 $state——漏标注时 App.svelte 的
+   * `{#if store.graphsList.length > 0}` 首评 false 后永不重跑，切图下拉与预览覆盖层全部失联。
+   */
+  graphsList: GraphListEntry[] = $state([]);
+  /** 静态预览态：非当前图的只读快照（"" = 预览关闭；响应性同 G1-1） */
+  previewGraphId = $state("");
+  previewData: { graphId: string; revision: number; entities: { id: string; kind: string; payload?: Record<string, unknown> }[] } | null = $state(null);
+  /** 预览请求在途（G1-5：App.svelte 据此渲染加载指示） */
+  previewLoading = $state(false);
+  /** 预览请求序号：后发请求/关闭预览使先发响应作废（G1-5 in-flight 守卫，防后发先至错配） */
+  private previewSeq = 0;
 
   /** 会话来源（测试注入缝）；缺省 = 浏览器同源 WS（D22）。 */
   provider: () => Promise<Session> = async () => new WsClient().connect();
@@ -130,6 +145,7 @@ export class WebGraphStore {
 
   /** 首次加载：连接 → 全量读取 → 目录；失败进错误态（骨架屏退场，给出重试）。 */
   async load(): Promise<void> {
+    this.closeSession(); // 1.2.0 G1-3：reset/recovery 重读会再次进 here，先释放旧会话防 WS 连接堆积
     this.loading = true;
     this.error = "";
     try {
@@ -158,7 +174,7 @@ export class WebGraphStore {
     try {
       const res = await fetch("/api/graphs");
       if (!res.ok) return;
-      const body = (await res.json()) as { graphs: typeof this.graphsList };
+      const body = (await res.json()) as { graphs: GraphListEntry[] };
       this.graphsList = body.graphs;
     } catch {
       /* 静默：预览是增强能力 */
@@ -171,27 +187,37 @@ export class WebGraphStore {
       this.closePreview();
       return;
     }
+    const seq = ++this.previewSeq;
     this.previewLoading = true;
     this.previewGraphId = id;
+    this.previewData = null; // 新请求清场：加载期间不展示旧图陈旧预览（previewing 短暂为 false）
     try {
       const res = await fetch(`/api/graphs/${encodeURIComponent(id)}/snapshot`);
+      if (seq !== this.previewSeq) return; // 已有更新的请求或预览已关闭：响应作废
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `图 "${id}" 不可读`);
       }
-      this.previewData = (await res.json()) as typeof this.previewData;
+      const data = (await res.json()) as typeof this.previewData;
+      if (seq !== this.previewSeq) return;
+      this.previewData = data;
     } catch (cause) {
+      if (seq !== this.previewSeq) return;
       this.previewGraphId = "";
       this.previewData = null;
-      this.error = cause instanceof Error ? cause.message : "预览读取失败";
+      // G1-2：预览失败进 actionMessage 可见反馈。error 语义是「无快照」的全屏错误态
+      // （有快照时不渲染），且残留 error 会压住 reloadFromEvent 的状态提示（它以 !error 判定）。
+      this.actionMessage = `静态预览读取失败：${cause instanceof Error ? cause.message : "预览读取失败"}`;
     } finally {
-      this.previewLoading = false;
+      if (seq === this.previewSeq) this.previewLoading = false;
     }
   }
 
   closePreview(): void {
+    this.previewSeq++; // 作废在途预览响应（G1-5）
     this.previewGraphId = "";
     this.previewData = null;
+    this.previewLoading = false;
   }
 
   /** ReadResult（扁平 entities）→ GraphSnapshot（对象/关系分桶，blueprint §1）。 */
@@ -211,6 +237,11 @@ export class WebGraphStore {
   }
 
   dispose(): void {
+    this.closeSession();
+  }
+
+  /** 释放事件订阅并关闭当前会话（组件卸载与 load 重读共用；G1-3 自 dispose 抽出）。 */
+  private closeSession(): void {
     this.unsubscribe?.();
     this.unsubscribe = null;
     void this.session?.close().catch(() => {});
@@ -312,8 +343,13 @@ export class WebGraphStore {
         this.closePreview();
         void this.refreshGraphs();
       }
+      // G1-4：按 reason 区分提示——换载不是「daemon 已重启」
       void this.reloadFromEvent(
-        event.reason === "external-edit" ? "已采纳外部编辑，读取完整快照。" : "daemon 已重启，目录缓存作废并重新读取。",
+        event.reason === "external-edit"
+          ? "已采纳外部编辑，读取完整快照。"
+          : event.reason === "graph-switched"
+            ? `已切换到图 "${event.graphId ?? "?"}"，读取完整快照。`
+            : "daemon 已重启，目录缓存作废并重新读取。",
       );
       return;
     }

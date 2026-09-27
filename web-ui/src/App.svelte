@@ -166,6 +166,9 @@
 
   <!-- ── 主区：画布舞台 + 工具轨 ── -->
   <main class="main">
+    {#if store.previewLoading}
+      <div class="preview-loading" role="status">正在读取静态预览…</div>
+    {/if}
     {#if previewing && store.previewData}
       <div class="preview-pane" role="region" aria-label="图静态预览">
         <div class="preview-banner">
@@ -784,26 +787,6 @@
     cursor: not-allowed;
   }
 
-  .rail-badge {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
-    border-radius: 999px;
-    background: var(--wash-3);
-    border: 1px solid var(--line-strong);
-    color: var(--ink);
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 600;
-    line-height: 12px;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-    pointer-events: none;
-  }
-
   .rail-sep {
     width: 18px;
     height: 1px;
@@ -834,10 +817,6 @@
     overflow-y: auto;
   }
 
-  .graphs-flyout {
-    min-width: 260px;
-  }
-
   .raw-flyout {
     min-width: 380px;
     max-width: 480px;
@@ -858,144 +837,6 @@
     line-height: 1.6;
     margin: 0;
     padding: 0 var(--sp-1);
-  }
-
-  .flyout-actions {
-    display: flex;
-    gap: var(--sp-2);
-    padding: 0 var(--sp-1) var(--sp-1);
-  }
-
-  .flyout-btn {
-    flex: 1;
-    background: var(--wash-2);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    color: var(--ink);
-    font-family: var(--font-sans);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    padding: var(--sp-2) var(--sp-3);
-    cursor: pointer;
-    transition: background 0.13s var(--ease-out-quart);
-  }
-
-  .flyout-btn:hover {
-    background: var(--wash-3);
-  }
-
-  .flyout-btn:focus-visible {
-    outline: 2px solid var(--interactive);
-    outline-offset: 1px;
-  }
-
-  .graph-item {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-2);
-    border: none;
-    background: transparent;
-    border-radius: var(--r);
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.13s var(--ease-out-quart);
-  }
-
-  .graph-item:hover {
-    background: var(--wash-2);
-  }
-
-  .graph-item.active {
-    background: var(--wash-3);
-  }
-
-  .graph-item:focus-visible {
-    outline: 2px solid var(--interactive);
-    outline-offset: 1px;
-  }
-
-  .graph-item-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .graph-item-name {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--ink);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .graph-item-label {
-    font-family: var(--font-sans);
-    font-size: var(--text-2xs);
-    color: var(--ink-faint);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .graph-item-count {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    color: var(--ink-faint);
-    background: var(--wash-2);
-    border-radius: 999px;
-    padding: 1px 8px;
-    font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
-  }
-
-  .validation-summary {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-3);
-    background: rgba(229, 80, 79, 0.08);
-    border: 1px solid rgba(229, 80, 79, 0.35);
-    border-radius: var(--r);
-  }
-
-  .validation-summary.valid {
-    background: rgba(22, 163, 74, 0.08);
-    border-color: rgba(22, 163, 74, 0.35);
-  }
-
-  .validation-verdict {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    color: var(--status-failed);
-  }
-
-  .validation-summary.valid .validation-verdict {
-    color: var(--status-passed);
-  }
-
-  .validation-list {
-    margin: 0;
-    padding-left: var(--sp-4);
-    font-family: var(--font-sans);
-    font-size: var(--text-2xs);
-    line-height: 1.6;
-    color: var(--ink-muted);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .validation-list.errors {
-    color: var(--status-failed);
-  }
-
-  .validation-list.warnings {
-    color: var(--status-running);
   }
 
   .module-item {
@@ -1032,12 +873,6 @@
 
   .module-state.ok {
     color: var(--status-passed);
-  }
-
-  .module-reason {
-    flex-basis: 100%;
-    color: var(--ink-faint);
-    padding-left: var(--sp-3);
   }
 
   .raw-snapshot {
@@ -1225,6 +1060,24 @@
     background: rgba(255, 255, 255, 0.04);
     color: inherit;
     font-size: 12px;
+  }
+  /* G1-5：预览快照在途的轻量加载指示 */
+  .preview-loading {
+    position: absolute;
+    top: var(--sp-3);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: var(--z-overlay);
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--blur-panel);
+    backdrop-filter: var(--blur-panel);
+    border: 1px solid var(--glass-line);
+    border-radius: 999px;
+    box-shadow: var(--shadow-float);
+    padding: var(--sp-1) var(--sp-3);
+    font-size: var(--text-2xs);
+    font-family: var(--font-mono);
+    color: var(--ink);
   }
   .preview-pane {
     position: absolute;
