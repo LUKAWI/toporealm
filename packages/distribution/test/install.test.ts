@@ -316,4 +316,15 @@ describe("模块安装器（npm pack --ignore-scripts / 本地路径 / 所有权
     expect(npmErr).toBeInstanceOf(TopoError);
     expect((npmErr as TopoError).message).not.toContain("本地模块目录不存在");
   }, 30_000);
+
+  it("G2-10④补充：存在的 .tgz 文件不被「目录不存在」拦截，照旧走 npm pack（tarball 直装）", async () => {
+    const root = await makeWorkspace();
+    // 用 fixture 目录打一个真 tarball（npm pack 接受本地 tarball，原样返回其路径）
+    const tgz = path.join(root, "fake-1.0.0.tgz");
+    await fsp.writeFile(tgz, "not-a-real-tar");
+    const err: unknown = await installModule({ root, source: tgz }).then(() => null, (e) => e);
+    expect(err).toBeInstanceOf(TopoError);
+    // 走到 npm pack 流程后报的是 pack/manifest 类错误，而不是「本地模块目录不存在」
+    expect((err as TopoError).message).not.toContain("本地模块目录不存在");
+  }, 30_000);
 });

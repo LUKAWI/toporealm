@@ -366,8 +366,15 @@ export async function installModule(opts: InstallOptions): Promise<InstallResult
   const sourceIsDir = await isDir(opts.source);
   const kind = opts.kind ?? (sourceIsDir ? "path" : "npm");
   // G2-10④：本地路径拼写错误此前被 auto-detect 当 npm spec 去 pack，npm 的
-  // registry 报错把「目录不存在」友好提示埋掉——形如本地路径且不存在时前移检查
-  if (kind === "npm" && opts.kind === undefined && !sourceIsDir && looksLikeLocalPath(opts.source)) {
+  // registry 报错把「目录不存在」友好提示埋掉——形如本地路径且不存在时前移检查。
+  // 存在的文件（如 .tgz tarball，npm pack 原生接受）不拦，照旧走 npm 流程。
+  if (
+    kind === "npm" &&
+    opts.kind === undefined &&
+    !sourceIsDir &&
+    looksLikeLocalPath(opts.source) &&
+    !(await fileExists(opts.source))
+  ) {
     const abs = path.resolve(opts.source);
     throw new TopoError({
       code: "INVALID_INPUT",
@@ -406,6 +413,14 @@ function looksLikeLocalPath(source: string): boolean {
 async function isDir(p: string): Promise<boolean> {
   try {
     return (await fsp.stat(p)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function fileExists(p: string): Promise<boolean> {
+  try {
+    return (await fsp.stat(p)).isFile();
   } catch {
     return false;
   }
