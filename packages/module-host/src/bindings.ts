@@ -36,7 +36,20 @@ export async function readModuleBindings(root: string): Promise<{
     }
     throw err;
   }
-  const doc = parse(raw) as unknown;
+  const doc = (() => {
+    // G2-8：损坏的 modules.yaml 此前抛裸 YAMLParseError 绕过封闭错误码——大声失败
+    // 行为不变，但码契约缺位且不带文件路径。包成 TopoError(INVALID_INPUT) + 路径。
+    try {
+      return parse(raw) as unknown;
+    } catch (err) {
+      throw new TopoError({
+        code: "INVALID_INPUT",
+        message: `modules.yaml 无法解析（${modulesFile(root)}）：${err instanceof Error ? err.message : String(err)}`,
+        hint: "形如：example: { source: path, path: ../modules/example }",
+        details: { file: modulesFile(root) },
+      });
+    }
+  })();
   if (doc === undefined || doc === null) return { bindings: {}, raw };
   if (typeof doc !== "object" || Array.isArray(doc)) {
     throw new TopoError({
