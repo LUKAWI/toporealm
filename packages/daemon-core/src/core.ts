@@ -194,6 +194,8 @@ export class DaemonCore {
       modules: this.loadedModules,
       canUndo: this.cursor > 0,
       canRedo: this.cursor < this.logEntries.length,
+      // D38：warning 上浮到 status（此前只落 onWarning/stderr）；仅非空时携带
+      ...(this.warnings.length > 0 ? { warnings: [...this.warnings] } : {}),
     };
   }
 

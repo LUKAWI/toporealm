@@ -50,4 +50,6 @@ export interface GraphSummary {
   modules: readonly string[];
   canUndo: boolean;
   canRedo: boolean;
+  /** D38：内核 warning 上浮（after 排队被拒、外部编辑吸收被拒等）；仅非空时携带 */
+  warnings?: readonly string[];
 }

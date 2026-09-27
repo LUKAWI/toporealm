@@ -299,8 +299,31 @@ export class ModuleHost {
       hook: (name, fn) => {
         if (m.frozen) throw lateRegistration(m.id, `hook(${name})`);
         if (name === "before-commit") {
-          this.beforeCommitHooks.push(fn as BeforeCommitHook);
-          this.core.registerBeforeCommitHook(fn as BeforeCommitHook);
+          // D37：包装归属——钩子返回 veto 对象时由包装层直接抛 VETOED
+          // （details.vetoes[] 带 module 字段），在 core 通用抛错（core 不知模块归属）
+          // 前短路。core 的 for 循环收到异常经 try/finally（恢复 hookPhase）原样上抛，
+          // 管线语义不变；first-veto 短路顺序 = 注册序（激活序）不变。
+          const owned: BeforeCommitHook = (c) => {
+            const r = (fn as BeforeCommitHook)(c);
+            if (r && typeof r === "object" && "veto" in r) {
+              throw new TopoError({
+                code: "VETOED",
+                message: `提交被模块 "${m.id}" 否决：${r.veto}`,
+                hint: "领域校验由模块钩子执法；按否决理由调整变更后重试",
+                details: {
+                  vetoes: [
+                    {
+                      module: m.id,
+                      reason: r.veto,
+                      ...(r.details !== undefined ? { details: r.details } : {}),
+                    },
+                  ],
+                },
+              });
+            }
+          };
+          this.beforeCommitHooks.push(owned);
+          this.core.registerBeforeCommitHook(owned);
         } else {
           this.afterCommitHooks.push(fn as AfterCommitHook);
           this.core.registerAfterCommitHook(fn as AfterCommitHook);
