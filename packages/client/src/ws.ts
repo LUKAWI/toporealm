@@ -276,14 +276,20 @@ export class WsSession implements Session {
       }
       this.reconnecting = false;
       this.graphId = res.graphId;
-      this.lastRevision = res.revision;
+      // A2b：重连窗口回放。若 daemon revision 领先本地（退避窗口内有提交），
+      // 保留本地基准并以其重订——daemon 会回放 (本地, 现顶] 窗口；
+      // 修复前此处无条件覆写 lastRevision 再重订 → 窗口内提交永不补送且无 reset。
+      // 若 daemon 未领先（回退/换血），采用服务端值（instanceId 变化路径已有 reset 广播兜底）。
+      const localRevision = this.lastRevision;
+      const behind = localRevision !== null && res.revision > localRevision;
+      if (!behind) this.lastRevision = res.revision;
       if (oldInstance !== "" && oldInstance !== this.instanceId) {
         // daemon 重启：目录缓存作废 → 广播 reset，客户端全量重读（§5）
         this.emit({ type: "reset", reason: "daemon-restarted" });
       }
       if (this.subscribed && this.subToken === null) {
         try {
-          await this.sendSubscribe(this.lastRevision ?? undefined);
+          await this.sendSubscribe(behind ? (localRevision ?? undefined) : undefined);
         } catch {
           /* 重订阅失败 → 下次事件缺口触发 resync 兜底 */
         }
@@ -363,9 +369,13 @@ export class WsSession implements Session {
       }
     } else if (e.type === "commit") {
       if (this.lastRevision !== null && e.patch.fromRevision !== this.lastRevision) {
-        // 不变量 I3：补丁缺口 → 重订阅回放自愈（回放不了 daemon 发 reset，客户端全量重读）
+        // 不变量 I3：补丁缺口 → 重订阅回放自愈（回放不了 daemon 发 reset，客户端全量重读）。
+        // A2：先捕获缺口起点（推进前的 lastRevision）再推进基准——resync 的回放起点
+        // 必须是推进前的值，daemon 回放条件 revision > from 才能覆盖缺口区间；
+        // 修复前先 bump 再 resync → 缺口事件永不补齐。重复事件被 store 单调吸收，无害。
+        const missedFrom = this.lastRevision;
         this.lastRevision = e.patch.toRevision;
-        void this.resync();
+        void this.resync(missedFrom);
       } else {
         this.lastRevision = e.patch.toRevision;
       }
@@ -561,8 +571,9 @@ export class WsSession implements Session {
     }
   }
 
-  /** I3 自愈：退订旧 token → 带 fromRevision 重订阅（daemon 回放补洞或发 reset） */
-  private async resync(): Promise<void> {
+  /** I3 自愈：退订旧 token → 带 fromRevision 重订阅（daemon 回放补洞或发 reset）。
+   *  from 显式传入时用它作回放起点（缺口场景：推进前的 lastRevision，A2）。 */
+  private async resync(from?: number): Promise<void> {
     if (this.resyncing || !this.subscribed) return;
     this.resyncing = true;
     try {
@@ -575,7 +586,7 @@ export class WsSession implements Session {
           token: old,
         }).catch(() => {});
       }
-      await this.sendSubscribe(this.lastRevision ?? undefined);
+      await this.sendSubscribe(from ?? this.lastRevision ?? undefined);
     } catch {
       /* 连接问题：重连路径会恢复订阅 */
     } finally {
