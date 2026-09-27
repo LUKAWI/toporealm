@@ -43,6 +43,9 @@ Module skills are never copied or projected: skill files live only in the pools 
 consumes them via the marketplace plugin's SessionStart hook (`claude plugin marketplace add
 LUKAWI/toporealm` → `plugin install toporealm`); Pi discovers them natively through the
 aggregate package's built-in extension (`pi install npm:@lukawi/toporealm`).
+For local plugin development, add the `plugins/dev-marketplace/` directory as the marketplace
+(never the dev repo root — staging the whole repo drags in node_modules junctions and hits
+EPERM on Windows without Developer Mode).
 
 Modules are two-layer: `module.yaml` declares identity/namespace/vocabulary (coordination), `activate(api)` registers commands, forms and hooks (behavior). The core enforces exactly two rules — the **ownership rule** (a module may only touch kinds in its own namespace) and the **dangling-relation check**; all domain rules live in module before-commit hooks (with before/after snapshots, named veto against changes from any origin). To write your own module, install [`@lukawi/toporealm-module-sdk`](https://www.npmjs.com/package/@lukawi/toporealm-module-sdk) and follow the types.
 

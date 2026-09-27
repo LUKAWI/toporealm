@@ -430,10 +430,16 @@ CHANGELOG 声明 breaking；semver 严格性（破坏应升 2.0）明确放弃�
 - 模块技能文件只存在于池中（零拷贝、零投影再生）；toporealm 不写任何宿主自有目录
   （`~/.claude`、`.pi`、`.agents`）。**`host sync` 动词与整套投影机器删除**。模块
   作者义务收缩为：按 Agent Skills 标准带 `skills/` 目录。
-- **claude code**：基座 marketplace 插件（仓库根声明 marketplace，插件载荷在
-  `plugins/toporealm/`，一次性 `claude plugin marketplace add LUKAWI/toporealm` +
-  install）。载荷必须自包含且不含 node_modules——Windows 上宿主暂存拷贝会把
-  仓库 node_modules 的 junction 以绝对路径重建为符号链接，无开发者模式必 EPERM。
+- **claude code**：基座 marketplace 插件。两个添加面（D35）：
+  - **GitHub 方式**（用户面）：仓库根 marketplace 声明，插件载荷在
+    `plugins/dev-marketplace/toporealm/`，一次性 `claude plugin marketplace add
+    LUKAWI/toporealm` + install；git clone 无 node_modules，不涉链接特权。
+  - **本地目录方式**（开发面）：`plugins/dev-marketplace/` 本身是完整 marketplace
+    根（`.claude-plugin/marketplace.json` + `source: "./toporealm"`，规范禁止
+    `..`），添加这个目录即可——宿主暂存只拷该子树（纯文件，零链接）。
+    **不要**把开发仓库根当本地 marketplace 添加：宿主会把整仓拷进暂存区
+    （含 node_modules 的 npm junction，Windows 上以绝对路径重建为符号链接，
+    无开发者模式必 EPERM）；也不允许 `"source": "./"` 让整仓成为载荷。
   插件纯静态：基座 CLI 技能 +
   SessionStart 钩子。钩子运行 `toporealm skills index`（stdout 注入会话上下文）：
   扫描两池各模块 `skills/`，读 SKILL.md frontmatter，逐行输出

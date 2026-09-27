@@ -42,6 +42,8 @@ toporealm skills index                             # 模块技能索引（agent 
 模块技能不复制不投影：技能文件只存在池中——Claude Code 经 marketplace 插件的 SessionStart 钩子
 注入索引（`claude plugin marketplace add LUKAWI/toporealm` → `plugin install toporealm`）；
 Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
+本地开发迭代插件时添加 `plugins/dev-marketplace/` 目录为 marketplace（不要添加开发仓库根——
+暂存整仓会连带 node_modules 的 junction，Windows 上无开发者模式必 EPERM）。
 
 模块是双层结构：`module.yaml` 声明身份/命名空间/词汇（管协调），`activate(api)` 注册命令、表单与钩子（管行为）。core 只执法两条——**所有权法**（模块只能写自己命名空间下的主类型）与**悬空边检查**；领域规则全部是模块的 before-commit 钩子（带变更前后双快照，可署名否决一切来源的提交）。写你自己的模块：装 [`@lukawi/toporealm-module-sdk`](https://www.npmjs.com/package/@lukawi/toporealm-module-sdk) 看类型即可。
 
