@@ -1,0 +1,14 @@
+id: rep-v120-d
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-d-cleanup
+  summary: D批21文件：死代码三件/化石注释四处/ifRevision+undo-redo提参/cli withRoot 20处/ws排队预算对齐重连退避/removeModule倒序/as never收窄/bindingYaml四处+golden三方合一/孤儿夹具删除/globalPoolDirAt收口；净删406行
+  artifacts:
+    - packages/daemon-core/src/core.ts
+    - packages/cli/src/index.ts
+    - packages/client/src/ws.ts
+    - packages/distribution/src/install.ts
+  blockers: []
+  createdAt: 2026-09-27T05:50:36.703Z
+  notes: 两处声明过的行为修正（排队预算/removeModule顺序）+commitSync文案加法；serve轮询经核实非失配不改

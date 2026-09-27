@@ -1,0 +1,15 @@
+id: rep-v120-c2c4
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-c2c4
+  summary: C2：core.run 删除+catalog 收窄 kinds（D35）；C4：paths.ts 长出池目录助手+新建 graphs.ts 单一 listGraphs（client/web 同序实现收敛）；skills 手拼归一；re-export 链核实为承重链保持现状。+5用例
+  artifacts:
+    - packages/daemon-core/src/core.ts
+    - packages/daemon-core/src/graphs.ts
+    - packages/daemon-core/src/paths.ts
+    - packages/client/src/provision.ts
+    - packages/web/src/server.ts
+  blockers: []
+  createdAt: 2026-09-27T04:53:03.640Z
+  notes: cli/index.ts:283,878 与 discover.ts:176、install.ts 池路径手拼残留归 D 批收口

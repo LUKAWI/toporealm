@@ -1,0 +1,12 @@
+id: rep-v120-c3
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-c3-parser
+  summary: C3 解析归一：distribution 借入 module-host 解析（实测无环）；strict:false 只豁免绑定键一致；modules-yaml.ts 删除（-82行）；形状坏清单安装期即拒；writeModuleBinding 写前校验大声失败+B4原子写保留。+4用例
+  artifacts:
+    - packages/distribution/src/install.ts
+    - packages/module-host/src/discover.ts
+    - packages/module-host/src/bindings.ts
+  blockers: []
+  createdAt: 2026-09-27T05:19:29.800Z

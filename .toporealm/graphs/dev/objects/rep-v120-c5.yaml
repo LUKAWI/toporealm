@@ -1,0 +1,13 @@
+id: rep-v120-c5
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-c5-adjacent
+  summary: C5 邻域查询（D36）：ReadQuery.adjacent=锚自身+双向相触关系；cli read <id> 命中 2→1 次读；link/host 经评估保留（全图唯一类型语义+零行为变化硬约束）；golden 24 命令逐字一致。+3用例
+  artifacts:
+    - packages/protocol/src/query.ts
+    - packages/daemon-core/src/core.ts
+    - packages/cli/src/index.ts
+    - packages/client/test/contract.ts
+  blockers: []
+  createdAt: 2026-09-27T05:19:33.607Z

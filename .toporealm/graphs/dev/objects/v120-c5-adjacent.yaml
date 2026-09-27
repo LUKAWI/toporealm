@@ -2,7 +2,7 @@ id: v120-c5-adjacent
 kind: wf.task
 payload:
   title: 1.2.0 C5：邻域查询（D36）
-  status: pending
+  status: passed
   definitionOfDone:
     - read <id>单命令单次读
     - 协议加法有golden
@@ -13,4 +13,12 @@ payload:
   class: standard
   plan: ReadQuery.adjacent协议加法；core一处实现；cli read/link与host did-you-mean三处caller删客户端全量过滤
   createdAt: 2026-09-27T02:02:23.131Z
-  updatedAt: 2026-09-27T02:02:23.131Z
+  updatedAt: 2026-09-27T05:19:36.028Z
+  startedAt: 2026-09-27T04:53:11.043Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T05:19:34.848Z
+    by: main-session
+    note: typecheck绿；299+1skip；golden 归一随机字段后逐字一致
+  completedAt: 2026-09-27T05:19:36.028Z

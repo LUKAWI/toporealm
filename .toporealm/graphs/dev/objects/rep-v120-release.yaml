@@ -1,0 +1,13 @@
+id: rep-v120-release
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-release
+  summary: 1.2.0 交付完成：发布门四绿（typecheck/全量303+1skip/聚合pack+registry真冒烟/dev图dogfood全天复验）；发布前对抗审查抓出P0 convertSync绕链+P2×3全部修复（红→绿实证）；npm 10包@1.2.0+workflow@1.0.1发布成功，registry冒烟实证1.2.0+新帮助文案；tag v1.2.0+v1.0.1已推
+  artifacts:
+    - CHANGELOG.md
+    - docs/rebuild/plan-1.2.0-fixes.md
+    - packages/toporealm/lukawi-toporealm-1.2.0.tgz
+  blockers: []
+  createdAt: 2026-09-27T06:39:09.243Z
+  notes: GitHub Release 可后续补（gh 未验证）；npm publish 与双仓 push 均已完成

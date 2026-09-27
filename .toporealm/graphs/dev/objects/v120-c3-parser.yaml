@@ -2,7 +2,7 @@ id: v120-c3-parser
 kind: wf.task
 payload:
   title: 1.2.0 C3：清单解析归一
-  status: pending
+  status: passed
   definitionOfDone:
     - 安装期与装载期同标准报错
     - modules-yaml.ts删除
@@ -13,4 +13,12 @@ payload:
   class: standard
   plan: module.yaml/modules.yaml双解析器归一（distribution借入module-host解析或下沉叶子）；install/load严格度=参数；modules-yaml.ts消失
   createdAt: 2026-09-27T02:02:21.938Z
-  updatedAt: 2026-09-27T02:02:21.938Z
+  updatedAt: 2026-09-27T05:19:32.309Z
+  startedAt: 2026-09-27T04:53:08.591Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T05:19:31.073Z
+    by: main-session
+    note: typecheck绿；299+1skip
+  completedAt: 2026-09-27T05:19:32.309Z

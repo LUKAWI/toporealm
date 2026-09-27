@@ -1,0 +1,15 @@
+id: rep-v120-c1
+kind: wf.execution_report
+payload:
+  title: Execution report
+  taskId: v120-c1-transport
+  summary: C1 SessionTransport 基座落地：Session 十法骨架+共享管道唯一份；IpcResultMap 转正类型脊柱（删17处as断言）；三 adapter 薄化（ipc 83/ws 342/memory 82 行），删重复约220行；基座与 ws 零 node import（浏览器出口不变）；契约套件零改动全绿
+  artifacts:
+    - packages/client/src/transport.ts
+    - packages/client/src/ipc.ts
+    - packages/client/src/ws.ts
+    - packages/client/src/memory.ts
+    - packages/protocol/src/wire.ts
+  blockers: []
+  createdAt: 2026-09-27T04:52:59.890Z
+  notes: 历史行为如实保留：ipc/ws 订阅失败监听者处置差异经 onSubscribeFailed 钩子分别保留，建议后续统一

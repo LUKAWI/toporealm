@@ -2,7 +2,7 @@ id: v120-c2c4
 kind: wf.task
 payload:
   title: 1.2.0 C2+C4：core假面收口（D35）+布局收口
-  status: pending
+  status: passed
   definitionOfDone:
     - D35落地，全仓无core.run调用者
     - 图枚举单一实现
@@ -13,4 +13,12 @@ payload:
   class: standard
   plan: C2删core.run/catalog收窄kinds；C4 paths.ts长全（poolDir）+单一listGraphs+web/cli共用+re-export链收敛
   createdAt: 2026-09-27T02:02:20.746Z
-  updatedAt: 2026-09-27T02:02:20.746Z
+  updatedAt: 2026-09-27T04:53:06.143Z
+  startedAt: 2026-09-27T04:21:26.422Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T04:53:04.927Z
+    by: main-session
+    note: typecheck绿；291+1skip；grep core.run 零引用、手拼仅剩 paths.ts 内部
+  completedAt: 2026-09-27T04:53:06.143Z

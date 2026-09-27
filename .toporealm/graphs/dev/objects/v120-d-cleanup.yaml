@@ -2,7 +2,7 @@ id: v120-d-cleanup
 kind: wf.task
 payload:
   title: 1.2.0 批次D：P2 清理
-  status: pending
+  status: passed
   definitionOfDone:
     - 清理项逐条落实
     - 全量门禁绿
@@ -12,4 +12,12 @@ payload:
   class: quick
   plan: 死代码四件/注释漂移四件/undo-redo提参/withRoot helper/魔数对齐/install.ts顺序修正/孤儿夹具删除
   createdAt: 2026-09-27T02:02:24.321Z
-  updatedAt: 2026-09-27T02:02:24.321Z
+  updatedAt: 2026-09-27T05:50:39.156Z
+  startedAt: 2026-09-27T05:19:38.436Z
+  verification:
+    source: self
+    verdict: passed
+    at: 2026-09-27T05:50:37.938Z
+    by: main-session
+    note: 299+1skip与基线一致；typecheck绿
+  completedAt: 2026-09-27T05:50:39.156Z
