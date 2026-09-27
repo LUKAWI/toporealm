@@ -21,7 +21,7 @@ export interface ResolvedTarget {
   graphId: string;
 }
 
-/** active 指针读写（cli 的 new/use 用；实现住 daemon-core，避免与 daemon 重复） */
+/** active 指针读写（cli 的 creategraph/use 用；实现住 daemon-core，避免与 daemon 重复） */
 export {
   readActiveGraphId,
   writeActiveGraphId,
@@ -55,7 +55,7 @@ export async function resolveTarget(
     throw new TopoError({
       code: "NO_CURRENT_GRAPH",
       message: "工作区没有激活的图",
-      hint: "new 会新建并选中；use 切换已有图",
+      hint: "creategraph 会新建并选中；use 切换已有图",
       fix: "toporealm creategraph <graph>",
     });
   }
