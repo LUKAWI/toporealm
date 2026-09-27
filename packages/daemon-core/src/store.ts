@@ -267,11 +267,54 @@ export async function removeEntityFile(
 
 // ---------- .log（append-only JSONL；行 = LogEntry 超集） ----------
 
+/**
+ * G2-7：追加前确保文件以换行结尾。崩溃/断电可能在 .log 尾部留下无换行的半行残行；
+ * 直接 appendFile 会把新提交的好行拼在残行后面——重载时整行 JSON.parse 失败被当
+ * 残行跳过，好行被毒化吞掉（审计断档、undo 幅度缩水）。补一个 \n 让残行成独立行，
+ * readLog 跳过它即可，后续好行存活。
+ */
+async function ensureTrailingNewline(file: string): Promise<void> {
+  let st: fs.Stats;
+  try {
+    st = await fsp.stat(file);
+  } catch {
+    return; // 文件不存在（首次创建）→ 无残行
+  }
+  if (st.size === 0) return;
+  const fh = await fsp.open(file, "r+");
+  try {
+    const buf = Buffer.alloc(1);
+    await fh.read(buf, 0, 1, st.size - 1);
+    if (buf[0] !== 0x0a) await fh.write("\n", st.size, "utf8");
+  } finally {
+    await fh.close();
+  }
+}
+
+function ensureTrailingNewlineSync(file: string): void {
+  let st: fs.Stats;
+  try {
+    st = fs.statSync(file);
+  } catch {
+    return; // 文件不存在（首次创建）→ 无残行
+  }
+  if (st.size === 0) return;
+  const fd = fs.openSync(file, "r+");
+  try {
+    const buf = Buffer.alloc(1);
+    fs.readSync(fd, buf, 0, 1, st.size - 1);
+    if (buf[0] !== 0x0a) fs.writeSync(fd, "\n", st.size, "utf8");
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 export async function appendLogLine(
   p: GraphPaths,
   entry: StoredLogEntry,
 ): Promise<void> {
   await fsp.mkdir(p.dir, { recursive: true });
+  await ensureTrailingNewline(p.log); // G2-7：残行不毒化追加的好行
   await fsp.appendFile(p.log, JSON.stringify(entry) + "\n", "utf8");
 }
 
@@ -379,6 +422,7 @@ export function removeEntityFileSync(
 
 export function appendLogLineSync(p: GraphPaths, entry: StoredLogEntry): void {
   fs.mkdirSync(p.dir, { recursive: true });
+  ensureTrailingNewlineSync(p.log); // G2-7：残行不毒化追加的好行
   fs.appendFileSync(p.log, JSON.stringify(entry) + "\n", "utf8");
 }
 
