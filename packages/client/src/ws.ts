@@ -1,22 +1,20 @@
 import {
   TopoError,
-  type Catalog,
-  type CommandRunResult,
-  type CommitInput,
-  type CommitResult,
   type DaemonClient,
-  type EntityId,
-  type GraphSummary,
+  type IpcMessage,
   type IpcRequest,
   type IpcResponse,
-  type LogEntry,
-  type ReadQuery,
-  type ReadResult,
+  type IpcResultMap,
   type Session,
   type TopoEvent,
-  type Unsubscribe,
 } from "@lukawi/toporealm-protocol";
-// ---------- WsClient：浏览器/Node 的 WS 传输实现（blueprint §2/§5 + D22） ----------
+import {
+  PendingEntry,
+  SessionTransport,
+  type SessionOp,
+  type TypedRequest,
+} from "./transport.js";
+// ---------- WsClient：浏览器/Node 的 WS 传输实现（blueprint §2/§5 + D22/D40） ----------
 //
 // 同一 Session 契约的第三 adapter：WS 文本帧 = wire 信封（IpcRequest/IpcResponse/IpcPush），
 // 与 IPC 共用同一分发语义与同一事件扇出。D22 重连语义：
@@ -58,7 +56,6 @@ interface WsLike {
 }
 
 const WS_OPEN = 1;
-const REQUEST_TIMEOUT_MS = 30_000;
 
 function envWebSocket(): {
   new (url: string): unknown;
@@ -147,28 +144,23 @@ export class WsClient implements DaemonClient {
   }
 }
 
-type Pending = {
-  resolve: (v: unknown) => void;
-  reject: (e: unknown) => void;
-  timer: ReturnType<typeof setTimeout>;
-};
-
-export class WsSession implements Session {
+/**
+ * WS 会话 = 共享传输基座（transport.ts）+ WS 传输策略（D40）：
+ * 10 个 Session 方法与 pending/超时/failAll/扇出管道都在基座，这里保留 WS 个性——
+ * 重连（指数退避）、fromRevision 重订与缺口自愈（I3/A2）、instanceId 重连握手采纳、
+ * 重连窗口请求排队、连接就绪检查、userClosed/close 语义。
+ */
+export class WsSession extends SessionTransport implements Session {
   graphId = "";
   instanceId = "";
   /** 客户端已吸收到的图 revision（hello/read/commit/事件都对齐；I3 缺口检测基准） */
   private lastRevision: number | null = null;
   private ws: WsLike | null = null;
-  private next = 1;
-  private readonly pending = new Map<string, Pending>();
-  private readonly listeners = new Set<(e: TopoEvent) => void>();
-  private subToken: string | null = null;
   private subscribed = false;
   /** 订阅请求在途（带 fromRevision 时 hello 事件不改写 lastRevision——客户端落后是常态） */
   private subscribing = false;
   private subscribingWithFrom = false;
   private userClosed = false;
-  private dead = false;
   private reconnecting = false;
   private resyncing = false;
   /** 重连握手期：接受（可能变化的）instanceId，不触发在途失败路径 */
@@ -180,6 +172,7 @@ export class WsSession implements Session {
     private readonly url: string,
     opts: WsClientOptions,
   ) {
+    super();
     this.reconnect =
       opts.reconnect === undefined
         ? { maxAttempts: 30, baseDelayMs: 200, maxDelayMs: 2000 }
@@ -199,11 +192,11 @@ export class WsSession implements Session {
       },
     );
     this.attach();
-    const res = (await this.request({
+    const res = await this.request({
       id: this.nextId(),
       op: "hello",
       ...(graph !== undefined ? { graph } : {}),
-    })) as { graphId: string; revision: number };
+    });
     this.graphId = res.graphId;
     this.lastRevision = res.revision;
   }
@@ -216,9 +209,7 @@ export class WsSession implements Session {
     ws.addEventListener("message", (ev: unknown) => {
       const data = (ev as { data?: unknown }).data;
       try {
-        this.onMessage(
-          JSON.parse(String(data)) as IpcResponse | { event: TopoEvent },
-        );
+        this.onWireMessage(JSON.parse(String(data)) as IpcMessage);
       } catch {
         /* 无法解析的帧忽略 */
       }
@@ -307,17 +298,34 @@ export class WsSession implements Session {
     );
   }
 
-  // ---------- wire 消息 ----------
+  // ---------- 传输策略覆写（基座缝） ----------
 
-  private onMessage(m: IpcResponse | { event: TopoEvent }): void {
-    if ("event" in m) {
-      this.onEvent(m.event);
-      return;
+  /** Session 方法走重连排队：重连窗口内的请求等重连完成后发送（会话透明续用，不立即失败） */
+  protected override dispatch<O extends SessionOp>(
+    req: TypedRequest<O>,
+  ): Promise<IpcResultMap[O]> {
+    return this.requestQueued(req);
+  }
+
+  /** 字节策略：JSON 文本帧 */
+  protected override sendRequest(req: IpcRequest): void {
+    this.ws?.send(JSON.stringify(req));
+  }
+
+  /** 连接就绪检查：连接不在场且不在重连 → 请求立即失败（等重连完成后重试） */
+  protected override checkNotReady(): TopoError | null {
+    if (this.ws === null || (this.ws.readyState !== WS_OPEN && !this.reconnecting)) {
+      return new TopoError({
+        code: "SESSION_STALE",
+        message: "连接未就绪",
+        fix: "等待自动重连完成后重试",
+      });
     }
-    const p = this.pending.get(m.id);
-    if (!p) return;
-    this.pending.delete(m.id);
-    clearTimeout(p.timer);
+    return null;
+  }
+
+  /** instanceId 指纹：重连握手无条件下接受（变化才广播 reset）；连接存活期变化同 IPC 语义 */
+  protected override adoptInstance(m: IpcResponse, p: PendingEntry): boolean {
     if (this.adoptingInstance) {
       // 重连握手响应：无条件下接受新 instanceId（变化才广播 reset）
       this.adoptingInstance = false;
@@ -325,7 +333,7 @@ export class WsSession implements Session {
       this.instanceId = m.instanceId;
       if (!m.ok) {
         p.reject(TopoError.fromJSON(m.error));
-        return;
+        return true;
       }
       if (changed) {
         this.failAll(
@@ -337,11 +345,13 @@ export class WsSession implements Session {
         );
       }
       p.resolve(m.result);
-      return;
+      return true;
     }
     if (this.instanceId === "") {
       this.instanceId = m.instanceId;
-    } else if (m.instanceId !== this.instanceId) {
+      return false;
+    }
+    if (m.instanceId !== this.instanceId) {
       // 连接存活期间 daemon 被整体替换（WS 上罕见）——兜底同 IPC 语义
       this.instanceId = m.instanceId;
       this.failAll(
@@ -355,13 +365,13 @@ export class WsSession implements Session {
       p.reject(
         new TopoError({ code: "SESSION_STALE", message: "daemon 已重启（instanceId 变化）" }),
       );
-      return;
+      return true;
     }
-    if (m.ok) p.resolve(m.result);
-    else p.reject(TopoError.fromJSON(m.error));
+    return false;
   }
 
-  private onEvent(e: TopoEvent): void {
+  /** 事件落地：hello/commit 对齐 lastRevision 基准 + 缺口自愈（I3/A2），再扇出 */
+  protected override onEvent(e: TopoEvent): void {
     if (e.type === "hello") {
       // 带 fromRevision 订阅时 hello 只是锚点：客户端落后是常态，不改写基准
       if (!(this.subscribing && this.subscribingWithFrom)) {
@@ -383,187 +393,55 @@ export class WsSession implements Session {
     this.emit(e);
   }
 
-  private emit(e: TopoEvent): void {
-    for (const l of [...this.listeners]) {
-      try {
-        l(e);
-      } catch {
-        /* 监听器异常不阻断广播 */
-      }
-    }
-  }
-
-  private failAll(err: TopoError): void {
-    for (const [, p] of [...this.pending]) {
-      clearTimeout(p.timer);
-      p.reject(err);
-    }
-    this.pending.clear();
-  }
-
-  private nextId(): string {
-    return String(this.next++);
-  }
-
-  private request(req: IpcRequest): Promise<unknown> {
-    if (this.dead) {
-      return Promise.reject(
-        new TopoError({ code: "SESSION_STALE", message: "会话已失效", fix: "重新 connect" }),
-      );
-    }
-    if (this.ws === null || (this.ws.readyState !== WS_OPEN && !this.reconnecting)) {
-      return Promise.reject(
-        new TopoError({
-          code: "SESSION_STALE",
-          message: "连接未就绪",
-          fix: "等待自动重连完成后重试",
-        }),
-      );
-    }
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        if (this.pending.delete(req.id)) {
-          reject(
-            new TopoError({ code: "DAEMON_UNREACHABLE", message: "daemon 响应超时" }),
-          );
-        }
-      }, REQUEST_TIMEOUT_MS);
-      this.pending.set(req.id, { resolve, reject, timer });
-      try {
-        this.ws?.send(JSON.stringify(req));
-      } catch (err) {
-        clearTimeout(timer);
-        this.pending.delete(req.id);
-        reject(err);
-      }
-    });
-  }
-
-  /** 重连窗口内的请求：等重连完成后发送（会话透明续用，不立即失败） */
-  private async requestQueued(req: IpcRequest): Promise<unknown> {
+  /** 重连窗口内的请求：等重连完成后发送（上限 150×100ms——排队上限是 WS 个性） */
+  private async requestQueued<O extends SessionOp>(
+    req: TypedRequest<O>,
+  ): Promise<IpcResultMap[O]> {
     for (let i = 0; i < 150 && this.reconnecting && !this.dead; i++) {
       await new Promise((r) => setTimeout(r, 100));
     }
     return this.request(req);
   }
 
-  // ---------- Session 契约 ----------
-
-  async status(): Promise<GraphSummary> {
-    const st = (await this.requestQueued({
-      id: this.nextId(),
-      op: "status",
-    })) as GraphSummary;
-    this.absorb(st.revision);
-    return st;
-  }
-
-  async read(query?: ReadQuery): Promise<ReadResult> {
-    const res = (await this.requestQueued({
-      id: this.nextId(),
-      op: "read",
-      ...(query !== undefined ? { query } : {}),
-    })) as ReadResult;
-    this.absorb(res.revision);
-    return res;
-  }
-
-  async log(opts?: { limit?: number }): Promise<readonly LogEntry[]> {
-    return (await this.requestQueued({
-      id: this.nextId(),
-      op: "log",
-      ...(opts?.limit !== undefined ? { limit: opts.limit } : {}),
-    })) as readonly LogEntry[];
-  }
-
-  async commit(input: CommitInput): Promise<CommitResult> {
-    const r = (await this.requestQueued({
-      id: this.nextId(),
-      op: "commit",
-      input,
-    })) as CommitResult;
-    this.absorb(r.revision);
-    return r;
-  }
-
-  async undo(steps?: number): Promise<CommitResult> {
-    const r = (await this.requestQueued({
-      id: this.nextId(),
-      op: "undo",
-      ...(steps !== undefined ? { steps } : {}),
-    })) as CommitResult;
-    this.absorb(r.revision);
-    return r;
-  }
-
-  async redo(steps?: number): Promise<CommitResult> {
-    const r = (await this.requestQueued({
-      id: this.nextId(),
-      op: "redo",
-      ...(steps !== undefined ? { steps } : {}),
-    })) as CommitResult;
-    this.absorb(r.revision);
-    return r;
-  }
-
-  async catalog(module?: string): Promise<Catalog> {
-    return (await this.requestQueued({
-      id: this.nextId(),
-      op: "catalog",
-      ...(module !== undefined ? { module } : {}),
-    })) as Catalog;
-  }
-
-  async run(
-    commandId: string,
-    opts?: { target?: EntityId; input?: unknown },
-  ): Promise<CommandRunResult> {
-    return (await this.requestQueued({
-      id: this.nextId(),
-      op: "run",
-      commandId,
-      ...(opts !== undefined ? { opts } : {}),
-    })) as CommandRunResult;
-  }
-
-  async events(
-    listener: (e: TopoEvent) => void,
+  /** 首次订阅：subscribed 位 + fromRevision 缺省取本地基准（回放免全量，I3） */
+  protected override async ensureSubscribed(
     opts?: { fromRevision?: number },
-  ): Promise<Unsubscribe> {
-    this.listeners.add(listener);
+  ): Promise<void> {
     if (!this.subscribed) {
       this.subscribed = true;
       const from = opts?.fromRevision ?? this.lastRevision ?? undefined;
-      try {
-        await this.sendSubscribe(from);
-      } catch (err) {
-        this.listeners.delete(listener);
-        this.subscribed = false;
-        throw err;
-      }
+      await this.sendSubscribe(from);
     }
-    return () => {
-      this.listeners.delete(listener);
-      if (this.listeners.size === 0 && this.subToken !== null) {
-        const token = this.subToken;
-        this.subToken = null;
-        this.subscribed = false;
-        void this.request({ id: this.nextId(), op: "unlisten", token }).catch(
-          () => {},
-        );
-      }
-    };
+  }
+
+  /** 订阅失败：摘除该监听者并复位 subscribed 位（下次 events 重试订阅） */
+  protected override onSubscribeFailed(listener: (e: TopoEvent) => void): void {
+    this.listeners.delete(listener);
+    this.subscribed = false;
+  }
+
+  /** 最后一个监听者退订：退订 token + 复位 subscribed 位 */
+  protected override teardownSubscription(): void {
+    if (this.subToken !== null) {
+      this.sendUnlisten();
+      this.subscribed = false;
+    }
+  }
+
+  /** 带修订号的结果推进本地基准（I3 缺口检测基准；单调取大） */
+  protected override absorbRevision(res: { revision: number }): void {
+    this.lastRevision = Math.max(this.lastRevision ?? 0, res.revision);
   }
 
   private async sendSubscribe(from?: number): Promise<void> {
     this.subscribing = true;
     this.subscribingWithFrom = from !== undefined;
     try {
-      const res = (await this.request({
+      const res = await this.request({
         id: this.nextId(),
         op: "events",
         ...(from !== undefined ? { fromRevision: from } : {}),
-      })) as { token: string };
+      });
       this.subToken = res.token;
     } finally {
       this.subscribing = false;
@@ -592,10 +470,6 @@ export class WsSession implements Session {
     } finally {
       this.resyncing = false;
     }
-  }
-
-  private absorb(revision: number): void {
-    this.lastRevision = Math.max(this.lastRevision ?? 0, revision);
   }
 
   async close(): Promise<void> {

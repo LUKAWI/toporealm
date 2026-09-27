@@ -11,20 +11,11 @@ import {
   createLineDecoder,
   encodeLine,
   TopoError,
-  type Catalog,
-  type CommandRunResult,
-  type CommitInput,
-  type CommitResult,
   type DaemonClient,
-  type GraphSummary,
   type IpcMessage,
   type IpcRequest,
-  type LogEntry,
-  type ReadQuery,
-  type ReadResult,
+  type IpcResponse,
   type Session,
-  type TopoEvent,
-  type Unsubscribe,
 } from "@lukawi/toporealm-protocol";
 import {
   clearEndpoint,
@@ -32,6 +23,7 @@ import {
   readEndpoint,
   waitForPidExit,
 } from "@lukawi/toporealm-daemon-core";
+import { PendingEntry, SessionTransport } from "./transport.js";
 import { resolveTarget, type ResolveOptions, type ResolvedTarget } from "./workspace.js";
 
 const sleep = (ms: number): Promise<void> =>
@@ -248,21 +240,20 @@ export class IpcClient implements DaemonClient {
   }
 }
 
-class IpcSession implements Session {
+/**
+ * IPC 会话 = 共享传输基座（transport.ts）+ IPC 传输策略（D40）：
+ * 10 个 Session 方法与 pending/超时/failAll/扇出管道都在基座，这里只保留
+ * 「字节怎么发（NDJSON 行帧）、连接怎么断（drop 作废会话）、instanceId 指纹、
+ * 订阅 token 获取」的 adapter 个性。
+ */
+class IpcSession extends SessionTransport implements Session {
   graphId = "";
   instanceId = "";
-  private next = 1;
-  private readonly pending = new Map<
-    string,
-    { resolve: (v: unknown) => void; reject: (e: unknown) => void }
-  >();
-  private readonly listeners = new Set<(e: TopoEvent) => void>();
-  private subToken: string | null = null;
-  private dead = false;
 
   constructor(private readonly socket: net.Socket) {
+    super();
     socket.setEncoding("utf8");
-    const decode = createLineDecoder((m: IpcMessage) => this.onMessage(m));
+    const decode = createLineDecoder((m: IpcMessage) => this.onWireMessage(m));
     socket.on("data", (chunk: string) => decode.push(chunk));
     const drop = (): void => {
       this.dead = true;
@@ -278,23 +269,18 @@ class IpcSession implements Session {
     socket.on("error", drop);
   }
 
-  private onMessage(m: IpcMessage): void {
-    if ("event" in m) {
-      for (const l of [...this.listeners]) {
-        try {
-          l(m.event);
-        } catch {
-          /* 监听器异常不阻断广播 */
-        }
-      }
-      return;
-    }
-    const p = this.pending.get(m.id);
-    if (!p) return;
-    this.pending.delete(m.id);
+  /** 字节策略：NDJSON 行帧（encodeLine = JSON + "\n"）写 socket */
+  protected override sendRequest(req: IpcRequest): void {
+    this.socket.write(encodeLine(req));
+  }
+
+  /** instanceId 指纹：首响固定；连接存活期变化 = daemon 重启 → 会话作废 + reset 广播（blueprint §5） */
+  protected override adoptInstance(m: IpcResponse, p: PendingEntry): boolean {
     if (this.instanceId === "") {
       this.instanceId = m.instanceId;
-    } else if (m.instanceId !== this.instanceId) {
+      return false;
+    }
+    if (m.instanceId !== this.instanceId) {
       // 会话指纹变化：daemon 重启 → 作废目录缓存、全量重拉（blueprint §5）
       this.dead = true;
       this.failAll(
@@ -304,174 +290,42 @@ class IpcSession implements Session {
           fix: "重新 connect",
         }),
       );
-      for (const l of this.listeners) {
-        try {
-          l({ type: "reset", reason: "daemon-restarted" });
-        } catch {
-          /* 忽略 */
-        }
-      }
+      this.emit({ type: "reset", reason: "daemon-restarted" });
       p.reject(
         new TopoError({ code: "SESSION_STALE", message: "daemon 已重启（instanceId 变化）" }),
       );
-      return;
+      return true;
     }
-    if (m.ok) p.resolve(m.result);
-    else p.reject(TopoError.fromJSON(m.error));
+    return false;
   }
 
-  private failAll(err: TopoError): void {
-    for (const [, p] of [...this.pending]) p.reject(err);
-    this.pending.clear();
-  }
-
-  private nextId(): string {
-    return String(this.next++);
-  }
-
-  private request(req: IpcRequest): Promise<unknown> {
-    if (this.dead) {
-      return Promise.reject(
-        new TopoError({ code: "SESSION_STALE", message: "会话已失效", fix: "重新 connect" }),
-      );
-    }
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        if (this.pending.delete(req.id)) {
-          reject(
-            new TopoError({ code: "DAEMON_UNREACHABLE", message: "daemon 响应超时" }),
-          );
-        }
-      }, 30_000);
-      this.pending.set(req.id, {
-        resolve: (v) => {
-          clearTimeout(timer);
-          resolve(v);
-        },
-        reject: (e) => {
-          clearTimeout(timer);
-          reject(e);
-        },
-      });
-      try {
-        this.socket.write(encodeLine(req));
-      } catch (err) {
-        clearTimeout(timer);
-        this.pending.delete(req.id);
-        reject(err);
-      }
-    });
-  }
-
-  async handshake(target: ResolvedTarget): Promise<void> {
-    const res = (await this.request({
-      id: this.nextId(),
-      op: "hello",
-      root: target.root,
-      graph: target.graphId,
-    })) as { graphId: string; revision: number };
-    this.graphId = res.graphId;
-  }
-
-  async status(): Promise<GraphSummary> {
-    return (await this.request({ id: this.nextId(), op: "status" })) as GraphSummary;
-  }
-
-  async read(query?: ReadQuery): Promise<ReadResult> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "read",
-      ...(query !== undefined ? { query } : {}),
-    })) as ReadResult;
-  }
-
-  async log(opts?: { limit?: number }): Promise<readonly LogEntry[]> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "log",
-      ...(opts?.limit !== undefined ? { limit: opts.limit } : {}),
-    })) as readonly LogEntry[];
-  }
-
-  async commit(input: CommitInput): Promise<CommitResult> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "commit",
-      input,
-    })) as CommitResult;
-  }
-
-  async undo(steps?: number): Promise<CommitResult> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "undo",
-      ...(steps !== undefined ? { steps } : {}),
-    })) as CommitResult;
-  }
-
-  async redo(steps?: number): Promise<CommitResult> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "redo",
-      ...(steps !== undefined ? { steps } : {}),
-    })) as CommitResult;
-  }
-
-  async catalog(module?: string): Promise<Catalog> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "catalog",
-      ...(module !== undefined ? { module } : {}),
-    })) as Catalog;
-  }
-
-  async run(
-    commandId: string,
-    opts?: { target?: string; input?: unknown },
-  ): Promise<CommandRunResult> {
-    return (await this.request({
-      id: this.nextId(),
-      op: "run",
-      commandId,
-      ...(opts !== undefined ? { opts } : {}),
-    })) as CommandRunResult;
-  }
-
-  async events(
-    listener: (e: TopoEvent) => void,
+  protected override async ensureSubscribed(
     opts?: { fromRevision?: number },
-  ): Promise<Unsubscribe> {
-    this.listeners.add(listener);
+  ): Promise<void> {
     if (this.subToken === null) {
-      const res = (await this.request({
+      const res = await this.request({
         id: this.nextId(),
         op: "events",
         ...(opts?.fromRevision !== undefined
           ? { fromRevision: opts.fromRevision }
           : {}),
-      })) as { token: string };
+      });
       this.subToken = res.token;
     }
-    return () => {
-      this.listeners.delete(listener);
-      if (this.listeners.size === 0 && this.subToken !== null) {
-        const token = this.subToken;
-        this.subToken = null;
-        void this.request({ id: this.nextId(), op: "unlisten", token }).catch(
-          () => {},
-        );
-      }
-    };
+  }
+
+  async handshake(target: ResolvedTarget): Promise<void> {
+    const res = await this.request({
+      id: this.nextId(),
+      op: "hello",
+      root: target.root,
+      graph: target.graphId,
+    });
+    this.graphId = res.graphId;
   }
 
   async close(): Promise<void> {
-    if (this.subToken !== null) {
-      const token = this.subToken;
-      this.subToken = null;
-      void this.request({ id: this.nextId(), op: "unlisten", token }).catch(
-        () => {},
-      );
-    }
+    this.sendUnlisten();
     this.socket.end();
   }
 }

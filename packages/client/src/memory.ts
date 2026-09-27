@@ -1,20 +1,16 @@
-import type {
-  Catalog,
-  CommandRunResult,
-  CommitInput,
-  CommitResult,
-  DaemonClient,
-  GraphSummary,
-  LogEntry,
-  Origin,
-  ReadQuery,
-  ReadResult,
-  Session,
-  TopoEvent,
-  Unsubscribe,
+import {
+  TopoError,
+  type DaemonClient,
+  type IpcRequest,
+  type IpcResultMap,
+  type Origin,
+  type Session,
+  type TopoEvent,
+  type Unsubscribe,
 } from "@lukawi/toporealm-protocol";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { ModuleHost } from "@lukawi/toporealm-module-host";
+import { SessionTransport, type SessionOp } from "./transport.js";
 import { resolveTarget, type ResolveOptions } from "./workspace.js";
 
 // ---------- MemoryClient：进程内完整 daemon 语义（测试主缝 / 嵌入式集成，blueprint §8） ----------
@@ -42,12 +38,20 @@ export class MemoryClient implements DaemonClient {
   }
 }
 
-export class MemorySession implements Session {
+/**
+ * memory 会话 = 共享传输基座（transport.ts）+ 进程内直连策略（D40）：
+ * 10 个 Session 方法骨架在基座，这里的传输策略是把 op 直呼到 DaemonCore/ModuleHost
+ * （不走 wire 管道：无 pending/超时/重连；TopoError 原生抛出，无 fromJSON 重建）。
+ * 返回类型仍被 IpcResultMap 脊柱钉住——与 daemon wire 结果形状漂移即编译失败。
+ */
+export class MemorySession extends SessionTransport implements Session {
   constructor(
     private readonly core: DaemonCore,
     private readonly host: ModuleHost,
     private readonly origin: Origin,
-  ) {}
+  ) {
+    super();
+  }
 
   get graphId(): string {
     return this.core.graphId;
@@ -57,50 +61,59 @@ export class MemorySession implements Session {
     return this.core.instanceId;
   }
 
-  async status(): Promise<GraphSummary> {
-    return this.core.status();
+  /** 传输策略：op → 进程内直调（core/host 同步入口经 Promise.resolve 对齐骨架的异步缝）。
+   *  参数缺省（log limit 50 / undo·redo steps 1）是 memory 语义，保留。 */
+  protected override dispatch<O extends SessionOp>(
+    req: IpcRequest & { op: O },
+  ): Promise<IpcResultMap[O]> {
+    const wire = req as IpcRequest; // 全 union 视图：switch 按 op 字面量收窄取载荷
+    switch (wire.op) {
+      case "status":
+        return Promise.resolve(this.core.status()) as Promise<IpcResultMap[O]>;
+      case "read":
+        return Promise.resolve(this.core.read(wire.query)) as Promise<IpcResultMap[O]>;
+      case "log":
+        // readonly LogEntry[]（wire 脊柱）← LogEntry[]（core.tailLog）：经 unknown 对齐只读性
+        return Promise.resolve(
+          this.core.tailLog(wire.limit ?? 50),
+        ) as unknown as Promise<IpcResultMap[O]>;
+      case "commit":
+        return this.core.commit(wire.input, this.origin) as Promise<IpcResultMap[O]>;
+      case "undo":
+        return this.core.undo(wire.steps ?? 1, this.origin) as Promise<IpcResultMap[O]>;
+      case "redo":
+        return this.core.redo(wire.steps ?? 1, this.origin) as Promise<IpcResultMap[O]>;
+      case "catalog":
+        return Promise.resolve(this.host.catalog(wire.module)) as Promise<IpcResultMap[O]>;
+      case "run":
+        return this.host.run(wire.commandId, wire.opts) as Promise<IpcResultMap[O]>;
+      default:
+        // hello/events/unlisten 等握手与订阅 op 不经 dispatch（events 已整法覆写）
+        throw new TopoError({
+          code: "INVALID_INPUT",
+          message: `MemorySession 直连不支持 wire op：${String(wire.op)}`,
+        });
+    }
   }
 
-  async read(query?: ReadQuery): Promise<ReadResult> {
-    return this.core.read(query);
-  }
-
-  async log(opts?: { limit?: number }): Promise<readonly LogEntry[]> {
-    return this.core.tailLog(opts?.limit ?? 50);
-  }
-
-  async commit(input: CommitInput): Promise<CommitResult> {
-    return this.core.commit(input, this.origin);
-  }
-
-  async undo(steps?: number): Promise<CommitResult> {
-    return this.core.undo(steps ?? 1, this.origin);
-  }
-
-  async redo(steps?: number): Promise<CommitResult> {
-    return this.core.redo(steps ?? 1, this.origin);
-  }
-
-  async catalog(module?: string): Promise<Catalog> {
-    return this.host.catalog(module);
-  }
-
-  async run(
-    commandId: string,
-    opts?: { target?: string; input?: unknown },
-  ): Promise<CommandRunResult> {
-    return this.host.run(commandId, opts);
-  }
-
-  async events(
+  /** 事件策略：订阅面整体委托 DaemonCore（core.events 自带扇出与退订；同步返回退订函数） */
+  override async events(
     listener: (e: TopoEvent) => void,
     opts?: { fromRevision?: number },
   ): Promise<Unsubscribe> {
     return this.core.events(listener, opts);
   }
 
-  async close(): Promise<void> {
+  override async close(): Promise<void> {
     this.core.dispose();
+  }
+
+  /** 字节策略不适用：直连无 wire；防御性抛错（dispatch 已覆写，永不触达） */
+  protected override sendRequest(_req: IpcRequest): never {
+    throw new TopoError({
+      code: "INVALID_INPUT",
+      message: "MemorySession 直连不经过 wire 管道",
+    });
   }
 
   /** 测试辅助：确定性触发外部编辑吸收（IPC adapter 用真实 fs.watch） */

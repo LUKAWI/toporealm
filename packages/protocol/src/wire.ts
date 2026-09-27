@@ -35,6 +35,9 @@ export type IpcPush = { event: TopoEvent };
 
 export type IpcMessage = IpcResponse | IpcPush;
 
+/** op→result 类型脊柱（D40 转正，原为零使用死代码）：client 的 SessionTransport 基座
+ *  按此泛型解析 request 返回值（SessionOp/TypedRequest 的依据），三 adapter（ipc/ws/memory）
+ *  共享同一映射；daemon 侧响应结果形状漂移在此编译期暴露。 */
 export type IpcResultMap = {
   hello: { graphId: string; revision: number };
   status: GraphSummary;
