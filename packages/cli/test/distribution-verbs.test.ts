@@ -112,6 +112,18 @@ describe("M4 分发动词：module / migrate", () => {
     });
     expect(code2).toBe(0);
     expect((JSON.parse(collected.out) as { data: { dryRun: boolean } }).data.dryRun).toBe(true);
+
+    // G2-5：人类模式明细指向真实信封位置 data.conflicts/...（此前误写 error.conflicts）
+    const human = { out: "", err: "" };
+    await run(["migrate", legacyDir, "--dry-run"], {
+      cwd: root2,
+      env: {},
+      out: (s: string) => (human.out += s),
+      err: (s: string) => (human.err += s),
+    });
+    expect(human.out).toContain("data.conflicts");
+    expect(human.out).not.toContain("error.conflicts");
+
     await fsp.rm(root2, { recursive: true, force: true }).catch(() => {});
   });
 

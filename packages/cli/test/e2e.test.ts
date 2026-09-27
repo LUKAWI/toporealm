@@ -81,8 +81,9 @@ it(
       }
     }
     // 终态：undo+redo 抵消 → 两个任务俱在，t-1 status=doing
+    //（G2-2 收口后 --fields 为可重复单值 flag，多字段走 §4 契约的逗号拼写）
     const st = await cli(
-      ["--json", "read", "--kind", "wf.task", "--fields", "id", "payload.status"],
+      ["--json", "read", "--kind", "wf.task", "--fields", "id,status"],
       ws,
     );
     expect(st.code).toBe(0);

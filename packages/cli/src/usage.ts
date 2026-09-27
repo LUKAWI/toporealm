@@ -52,15 +52,17 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
 图事实面（经单属主 daemon）：
   status                        当前图 revision/kind 计数/undo redo 可用性
   read [id] [--kind K]... [--where k=v]... [--fields id,status] [--limit N]
-                                全图 / 单点邻域 / 过滤 + 投影（裸键 = payload.<键>；逗号或重复 flag）
-  find <k=v>... [--kind K]      read --where 的糖（agent 发现动词）
+                                全图 / 过滤 + 投影（裸键 = payload.<键>；逗号或重复 flag）
+                                单点邻域（read <id>）不接受过滤旗标（互斥，exit 2）
+  find <k=v>... [--kind K]      read --where 的糖（agent 发现动词；--kind 每次出现取一个值）
   add <kind> [--id X] [--payload '<json>']      新建对象，created id 回显
   set <id> [k=v]... [--payload '<json>'] [--replace]
                                 改状态 = daemon 端浅合并；k=null 删键
   link <src> <tgt> [--kind ns.rel] [--id X]     建关系；仅一种关系类型时可省 --kind
   rm <id>                       删除（悬空边拦截时点名 + fix）
-  undo [N] / redo [N]           撤销/重做 N 步
-  log [-n N]                    提交日志尾读
+  undo [N] / redo [N]           撤销/重做 N 步（超出可撤/可重做步数时钳位并报实际步数）
+  log [-n N]                    提交日志尾读（显示 undo 游标之前的已生效提交；
+                                被撤销段不重复显示——undo 后 log 变短是预期语义）
   cmds [--module ns]            命令目录自省（did-you-mean 的真相源）
   serve [--port P] [--no-open]  WebUI：确保 daemon 在跑（自动拉起带 web 伺服）→ 开浏览器
                                 （daemon detached 常驻，命令即退；D22）
@@ -68,7 +70,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
 模块与分发（工作区文件层冷路径，不触 daemon；改动经 daemon 模块集摘要检测在下次触达生效）：
   module add <npm|路径>         安装模块（npm 来源走 npm pack --ignore-scripts）→ 落位
                                 .toporealm/modules/<id>/ 并绑定；重复安装报 ID_EXISTS
-  module rm <id>                卸载（只删带安装器所有权标记的目录 + 绑定）
+  module rm <id> [--force]      卸载（只删带安装器所有权标记的目录 + 绑定）；
+                                --force 仅用于清理清单不可读的损坏模块（自愈，D42）
   module list                   分段列出 path 绑定/项目池/全局池（含遮蔽与损坏标注，D27）
   migrate <旧图目录> [--dry-run]
                                 0.x v1 图 → 机械迁移 + 迁移报告；新图写入 .toporealm/graphs/ 并选中
@@ -123,21 +126,25 @@ export class Argv {
     return undefined;
   }
 
+  /**
+   * 可重复单值 flag（G2-2）：`--kind A --kind B` 与 `--fields id --fields status` 每次
+   * 出现只取紧跟的一个值。旧实现「收集到下一个 --flag 才停」会把后续位置参数吞进值段
+   * （`read --kind X <id>` 把 id 当 kind 静默返回整类数据；`find --kind X k=v` 报用法错误）。
+   * 多值写法用逗号（--fields id,status）或重复 flag。
+   */
   values(name: string): string[] {
-    // 可变长：--fields id payload.status / 重复 --kind A --kind B 两种写法都支持；
-    // 遇到下一个 --flag 即停
     const out: string[] = [];
     for (;;) {
       const i = this.rest.indexOf(name);
       if (i < 0) break;
-      this.rest.splice(i, 1);
-      while (
-        i < this.rest.length &&
-        !(this.rest[i] as string).startsWith("--")
-      ) {
-        out.push(this.rest[i] as string);
+      const v = this.rest[i + 1] as string | undefined;
+      // 值缺失或下一个 token 又是 flag → 此出现不消费值（不吞 flag）
+      if (v === undefined || v.startsWith("--")) {
         this.rest.splice(i, 1);
+        continue;
       }
+      out.push(v);
+      this.rest.splice(i, 2);
     }
     return out;
   }
@@ -155,9 +162,8 @@ export class Argv {
   /**
    * 剩余位置参数。
    * F1（语义收紧）：过滤未消费的 `--` 开头 token——flag 查询漏吃（未知 flag / 顺序
-   * 颠倒）时不再把 flag 误当位置参数（id/kind/target）。书写纪律仍是「flag 先于
-   * 位置参数」（见 help 各动词用法行）；find 的 --kind 可变长值段会吞掉后续 k=v，
-   * 属波3 G2，另行处理。
+   * 颠倒）时不再把 flag 误当位置参数（id/kind/target）。
+   * G2-2：--kind 等可重复单值 flag 不再吞后续位置参数，k=v / id 落回此处。
    */
   positionals(): string[] {
     return this.rest.filter((t) => !t.startsWith("--"));
@@ -241,4 +247,36 @@ export function parseJsonObject(
 export function unknownVerbSuggestion(verb: string): string {
   const s = suggestClosest(verb, CORE_VERBS, 2);
   return s.length > 0 ? `；最接近的核心动词：${s.join(", ")}` : "";
+}
+
+/**
+ * G2-10⑤：help <核心动词> 的 per-verb 用法行——从静态帮助文本提取（单一真相，
+ * 不另维护动词用法表）。undo/redo 共用一行，两个词都命中；提取不到返回 undefined。
+ */
+export function perVerbHelp(verb: string): string | undefined {
+  const lines = helpText().split("\n");
+  const isEntry = (l: string): boolean => /^(?: {2})?\S/.test(l);
+  const firstToken = (l: string): string => l.trim().split(/\s+/)[0] ?? "";
+  const matches = (l: string): boolean => {
+    const t = firstToken(l);
+    if (t === verb) return true;
+    // undo/redo 共行：「undo [N] / redo [N]」
+    return (
+      (verb === "undo" || verb === "redo") &&
+      (t === "undo" || t === "redo") &&
+      l.includes(verb)
+    );
+  };
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] as string;
+    if (!isEntry(line) || !matches(line)) continue;
+    out.push(line.trimEnd());
+    // 续行（深缩进）归属本条目：遇到下一条目（≤2 空格缩进）/空行/节头即止
+    for (let j = i + 1; j < lines.length && (lines[j] as string).startsWith("    "); j++) {
+      out.push((lines[j] as string).trimEnd());
+    }
+  }
+  if (out.length === 0) return undefined;
+  return `用法：toporealm ${verb}\n` + out.join("\n");
 }

@@ -47,6 +47,7 @@ import {
   parseFields,
   parseJsonObject,
   parseKvPairs,
+  perVerbHelp,
   unknownVerbSuggestion,
 } from "./usage.js";
 
@@ -241,6 +242,17 @@ async function dispatch(
         "toporealm help",
       );
     }
+    // G2-10⑤：help <核心动词> → 打印该动词用法行（从静态帮助提取，单一真相），
+    // 不再甩整篇帮助
+    if (helpTarget !== undefined && (CORE_VERBS as readonly string[]).includes(helpTarget)) {
+      const usage = perVerbHelp(helpTarget);
+      if (usage !== undefined) {
+        return {
+          envelope: { ok: true, data: { verb: helpTarget, usage } },
+          human: usage,
+        };
+      }
+    }
     const root = g.root ?? defaultRoot(deps);
     const cat = await fetchCatalog(deps, root, g.graph);
     const commands = cat?.commands ?? [];
@@ -285,14 +297,14 @@ async function dispatch(
       };
     });
   }
-  if (!verb.includes("-")) {
-    // 未知核心动词 → 用法错误（did-you-mean）
-    if (!(CORE_VERBS as readonly string[]).includes(verb)) {
-      throw new UsageError(
-        `未知命令 "${verb}"${unknownVerbSuggestion(verb)}`,
-        "toporealm help",
-      );
-    }
+  // 未知核心动词 → 用法错误（did-you-mean）。G2-10①：删除「含 - 的动词跳过检查」
+  // 的死分支——错拼如 create-graph 此前绕过这里落 switch default，路径冗余且行为
+  // 依赖 default 兜底；统一在进 switch 前拦截。
+  if (!(CORE_VERBS as readonly string[]).includes(verb)) {
+    throw new UsageError(
+      `未知命令 "${verb}"${unknownVerbSuggestion(verb)}`,
+      "toporealm help",
+    );
   }
 
   switch (verb) {
@@ -403,6 +415,14 @@ ${agentSnippet()}`),
       const limit = a.numberValue("--limit");
       const pos = a.positionals();
       const id = pos[0];
+      // G2-2 协同：单点 read 曾静默丢弃过滤旗标（read --kind X <id> 修 Argv 后
+      // id 不再被吞，但旗标仍会被无视）——显式互斥，绝不静默拿错数据
+      if (id !== undefined && (kinds.length > 0 || wheres.length > 0 || fields.length > 0 || limit !== undefined)) {
+        throw new UsageError(
+          "过滤旗标（--kind/--where/--fields/--limit）与单点 read（read <id>）互斥；要按 kind 过滤请用 find，或去掉 <id> 做全图过滤",
+          "toporealm read --kind <K>  或  toporealm read <id>",
+        );
+      }
       const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
         if (id !== undefined) {
@@ -740,7 +760,14 @@ ${agentSnippet()}`),
           });
         }
         await guardStatic(ep0);
-        return announce({ webPort: ep0.webPort, pid: ep0.pid, graphId: ep0.graphId });
+        const reused = announce({ webPort: ep0.webPort, pid: ep0.pid, graphId: ep0.graphId });
+        // G2-4：复用运行中 daemon 时 --port 无法生效——明示，不静默吞掉
+        if (port !== undefined) {
+          reused.human +=
+            `\n  注意：--port ${port} 未生效——daemon 已在运行（pid ${ep0.pid}，web 端口 ${ep0.webPort}）；` +
+            `--port 仅在拉起新 daemon 时生效（先停 daemon 再 serve 可指定端口）`;
+        }
+        return reused;
       }
       // 无 daemon（或陈旧 endpoint）：清掉重拉，拉起时传递端口诉求
       if (ep0 !== null) await clearEndpoint(root).catch(() => {});
@@ -783,11 +810,24 @@ ${agentSnippet()}`),
       }
       const root = g.root ?? defaultRoot(deps);
       return withSession(deps, root, g.graph, async (s) => {
+        // G2-3：每次 undo/redo 转换 revision +1（游标移动也定版）→ 实际步数 =
+        // 响应 revision 与请求前 revision 的差值。钳位时不再谎报请求步数。
+        const before = (await s.status()).revision;
         const r =
           verb === "undo" ? await s.undo(steps) : await s.redo(steps);
+        const actual = Math.abs(r.revision - before);
+        const clamped = actual !== steps;
         return {
-          data: { revision: r.revision, canUndo: r.canUndo, canRedo: r.canRedo },
-          human: `[${s.graphId}] ${verb === "undo" ? "undid" : "redid"} ${steps} step(s) → revision ${r.revision} (undo ${r.canUndo ? "✓" : "✗"} / redo ${r.canRedo ? "✓" : "✗"})`,
+          data: {
+            revision: r.revision,
+            canUndo: r.canUndo,
+            canRedo: r.canRedo,
+            steps: actual,
+          },
+          human:
+            `[${s.graphId}] ${verb === "undo" ? "undid" : "redid"} ${actual} step(s)` +
+            (clamped ? `（请求 ${steps} 步超出，已钳位到实际可${verb === "undo" ? "撤" : "重做"}的 ${actual} 步）` : "") +
+            ` → revision ${r.revision} (undo ${r.canUndo ? "✓" : "✗"} / redo ${r.canRedo ? "✓" : "✗"})`,
           revision: r.revision,
         };
       });
@@ -810,9 +850,10 @@ ${agentSnippet()}`),
       }
       if (sub === "rm") {
         const global = a.flag("--global"); // 先吃 flag 再取位置参数
+        const force = a.flag("--force"); // G2-9：清单不可读的损坏模块自愈通道
         const id = a.positionals()[0];
-        if (!id) throw new UsageError("用法：toporealm module rm [--global] <id>");
-        const r = await removeModule({ root, id, global });
+        if (!id) throw new UsageError("用法：toporealm module rm [--global] [--force] <id>");
+        const r = await removeModule({ root, id, global, force });
         return {
           envelope: { ok: true, data: r },
           human: `removed ${r.id}\n  ${r.note}`,
@@ -893,7 +934,7 @@ ${agentSnippet()}`),
           : "") +
         `\n  conflicts ${conflicts} · degradations ${report.degradations.length} · dangling ${report.dangling.length} · errors ${report.errors.length}` +
         (problems + conflicts > 0
-          ? `\n  （明细见 --json 信封：error.conflicts/degradations/dangling/errors）`
+          ? `\n  （明细见 --json 信封：data.conflicts/degradations/dangling/errors）`
           : "");
       return { envelope: { ok: true, data: report }, human };
     }
@@ -929,18 +970,24 @@ export async function run(argv: string[], deps: CliDeps = {}): Promise<number> {
   const out = deps.out ?? (() => {});
   const err = deps.err ?? (() => {});
   const env = deps.env ?? {};
-  // --version 旗标（1.1.0 D29）：version 子命令废除
-  if (argv.includes("--version")) {
-    const req = createRequire(import.meta.url);
-    const pkg = JSON.parse(
-      fs.readFileSync(req.resolve("@lukawi/toporealm-cli/package.json"), "utf8"),
-    ) as { version: string };
-    out(`toporealm ${pkg.version} (contract toporealm.graph/v3)
-`);
-    return 0;
-  }
   const g = extractGlobals(argv, env);
   try {
+    // --version 旗标（1.1.0 D29）：version 子命令废除。G2-10②：--version 是旗标
+    // 不是动词——仅无动词（纯查询）时生效；动词后出现不再劫持整个命令行，报用法错误
+    if (g.rest.includes("--version")) {
+      if (g.rest.length > 1) {
+        throw new UsageError(
+          "--version 是全局旗标，不能与动词连用（D29）；单独运行 toporealm --version 查看版本",
+          "toporealm --version",
+        );
+      }
+      const req = createRequire(import.meta.url);
+      const pkg = JSON.parse(
+        fs.readFileSync(req.resolve("@lukawi/toporealm-cli/package.json"), "utf8"),
+      ) as { version: string };
+      out(`toporealm ${pkg.version} (contract toporealm.graph/v3)\n`);
+      return 0;
+    }
     const result = await dispatch(g, deps);
     if (g.json) out(JSON.stringify(result.envelope) + "\n");
     else out(result.human.endsWith("\n") ? result.human : result.human + "\n");

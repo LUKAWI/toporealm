@@ -157,4 +157,29 @@ describe("serve 静态守卫（手写 endpoint，pid=本进程=存活；不开�
     expect(code).toBe(0);
     expect(opened).toEqual(["http://127.0.0.1:49999"]);
   });
+
+  it("G2-4：复用运行中 daemon 时 --port 不再静默忽略——明示仅在拉起新 daemon 时生效", async () => {
+    await writeEndpoint(root2, { ...baseEndpoint, webStatic: true });
+    const opened: string[] = [];
+    const outs: string[] = [];
+    const code = await run(["--root", root2, "serve", "--no-open", "--port", "12345"], {
+      env: {},
+      openBrowser: (url) => opened.push(url),
+      out: (s) => outs.push(s),
+    });
+    expect(code).toBe(0);
+    expect(opened).toEqual([]);
+    const human = outs.join("");
+    expect(human).toContain("--port 12345 未生效");
+    expect(human).toContain("仅在拉起新 daemon 时生效");
+    // 不带 --port 的复用不受影响
+    const outs2: string[] = [];
+    const code2 = await run(["--root", root2, "serve", "--no-open"], {
+      env: {},
+      openBrowser: () => {},
+      out: (s) => outs2.push(s),
+    });
+    expect(code2).toBe(0);
+    expect(outs2.join("")).not.toContain("未生效");
+  });
 });
