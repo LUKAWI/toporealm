@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 - 2026-09-28
 
 - **feat(base)**：模块模板与 module-creator 基座技能（blueprint §1.12 D43）——聚合包
   `files` 增 `template/modules-template`（覆盖声明层全部字段 + activate 全注册面
