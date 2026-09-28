@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **feat(base)**：模块模板与 module-creator 基座技能（blueprint §1.12 D43）——聚合包
+  `files` 增 `template/modules-template`（覆盖声明层全部字段 + activate 全注册面
+  （命令双形态/before-commit 门禁与 conversion 豁免/after-commit 排队追加/form）+
+  模块自带 skill + 自包含构建链的可构建脚手架）；基座技能
+  `skills/module-creator` 教授从模板创建模块全流程（复制→改名→词汇表→activate→
+  构建→安装→验证）；pi 扩展改为枚举 `skills/` 子目录（新增基座技能自动可见）；
+  claude 插件 skills/ 增同源副本。
+
 ## 1.2.0 - 2026-09-26
 
 主题：**修复与内部优化**（blueprint §1.11，D35–D42）。依据：架构评审 + 四路功能核验

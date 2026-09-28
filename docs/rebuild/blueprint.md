@@ -608,6 +608,18 @@ module.yaml schema、graph v3 格式（全部只增不改；不新增用户可�
   （跨平台，不依赖 shell 语义）；D29 残留文案（version 动词、`new` 指路）随
   1.2.0 文案批清理。
 
+### 1.12 规划期补遗（1.2.0 后增补：D43）
+
+- **D43（模块模板与 module-creator 基座技能）**：基座随发布物携带
+  `template/modules-template`（覆盖声明层全部字段 + activate 全注册面
+  （command 双形态/before-commit 领域门禁与 D24① conversion 豁免/after-commit
+  排队追加/form 投影）+ 模块自带 skills + 自包含构建链的完整可构建脚手架），
+  与基座技能 `skills/module-creator`（教授从模板起步创建模块的全流程与纪律）。
+  携带面：聚合包 `files` 增 `template`；pi 扩展按 `skills/` 子目录枚举贡献
+  （新增基座技能自动可见）；claude 插件 skills/ 增同源副本。模块模板是文档
+  资产不是 workspace 成员；创建模块 = 复制模板 → 改 id/namespace/词汇表 →
+  写 activate → 构建 → `module add`。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
