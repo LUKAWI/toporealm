@@ -4,7 +4,7 @@ import path from "node:path";
 import { DaemonCore } from "@lukawi/toporealm-daemon-core";
 import { MemoryClient } from "@lukawi/toporealm-client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Argv, perVerbHelp } from "../src/usage.js";
+import { Argv, CORE_VERBS, perVerbHelp } from "../src/usage.js";
 import { isolateGlobalHome } from "../../../tests/test-env.js";
 import { execGolden, jsonOf } from "./golden.js";
 
@@ -158,5 +158,18 @@ describe("G2-10 杂项", () => {
     expect(unknown.code).toBe(2);
     const helpText = await exec(["help"]);
     expect(helpText.out).toContain("模块命令");
+  });
+
+  it("⑥ discover：CORE_VERBS 收录 + 帮助段与 per-verb help 提取（D45）", async () => {
+    expect(CORE_VERBS).toContain("discover");
+    // help 全文图事实面段收录 discover
+    const full = await exec(["help"]);
+    expect(full.out).toContain("discover");
+    // help discover：单动词用法行（静态帮助单一真相提取，含续行说明）
+    const hv = await exec(["help", "discover"]);
+    expect(hv.code).toBe(0);
+    expect(hv.out).toContain("用法：toporealm discover");
+    expect(hv.out).toContain("status + 命令目录 + 技能索引");
+    expect(hv.out).toContain("{status, commands, skills, warnings}");
   });
 });

@@ -16,17 +16,21 @@ export interface CliRunResult {
 /**
  * 跑一条 CLI 命令并收集信封输出。缺省不注入 clientFactory（冷路径分发动词的
  * 形态，落回 run() 的 IpcClient 缺省）；golden 信封用例显式传 MemoryClient 工厂。
+ * opts.env 覆盖 deps.env（缺省 {}）：触达全局池读路径的动词（discover/skills index/
+ * module list）需传隔离 TOPOREALM_HOME——deps.env 是 CLI 全局路径解析的唯一出处
+ * （globalPaths 只看 deps.env），process.env 隔离只护住 ModuleHost 一侧。
  */
 export async function execGolden(
   args: string[],
   cwd: string,
   clientFactory?: () => DaemonClient,
+  opts?: { env?: NodeJS.ProcessEnv },
 ): Promise<CliRunResult> {
   const collected = { out: "", err: "" };
   const deps: CliDeps = {
     ...(clientFactory !== undefined ? { clientFactory } : {}),
     cwd,
-    env: {},
+    env: opts?.env ?? {},
     out: (s: string) => {
       collected.out += s;
     },

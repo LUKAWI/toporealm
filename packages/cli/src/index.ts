@@ -701,6 +701,43 @@ ${agentSnippet()}`),
         };
       });
     }
+    case "discover": {
+      // D45（blueprint §1.12）：agent 入场一命令——status + 命令目录 + 技能索引拼装。
+      // 拉 daemon 与 cmds 同语义（withSession，连不上即领域错误）；技能索引仍是
+      // 纯文件层读取（D28 硬约束不变）。内核 warning 上浮到 data.warnings 一处。
+      return withSession(deps, root, g.graph, async (s) => {
+        const st = await s.status();
+        const cat = await s.catalog();
+        const skills = await skillsIndex({ root, globalRoot: globalPaths(env).root });
+        const warnings = [...(st.warnings ?? [])];
+        const counts =
+          Object.entries(st.counts)
+            .map(([k, v]) => `${k}:${v}`)
+            .join(" ") || "(empty)";
+        const human = [
+          `${st.graphId} @ rev ${st.revision} · ${counts} · undo ${st.canUndo ? "✓" : "✗"} · redo ${st.canRedo ? "✓" : "✗"} · modules ${st.modules.length}`,
+          `commands (${cat.commands.length}):`,
+          cat.commands.length > 0
+            ? cat.commands
+                .map(
+                  (c) =>
+                    `  ${c.id}${c.target !== undefined ? ` [target: ${c.target}]` : ""}    ${c.title}`,
+                )
+                .join("\n")
+            : "  (no commands)",
+          `skills (${skills.length}):`,
+          skills.length > 0 ? formatSkillIndex(skills) : "  (no skills)",
+          ...(warnings.length > 0
+            ? ["warnings:", ...warnings.map((w) => `  · ${w}`)]
+            : []),
+        ].join("\n");
+        return {
+          data: { status: st, commands: cat.commands, skills, warnings },
+          human,
+          revision: st.revision,
+        };
+      });
+    }
     case "serve": {
       // serve [--port P] [--no-open]（blueprint §4 + D22）：确保带 web 伺服的 daemon
       // 在跑（必要时自动拉起 detached toporeald）→ 打开浏览器即退；daemon 常驻服务。
@@ -953,11 +990,11 @@ ${agentSnippet()}`),
 /** init 生成的 agent 提示（AGENTS.md 不存在时写入；存在时仅打印建议，永不改用户文件） */
 function agentSnippet(): string {
   return [
-    "<!-- toporealm init 生成（1.1.0 D26/D28） -->",
+    "<!-- toporealm init 生成（1.1.0 D26/D28；D45 discover 入场） -->",
     "",
     "## TopoRealm 图工作区",
     "",
-    "本仓库是 TopoRealm 工作区（图数据在 .toporealm/graphs/，模块在 .toporealm/modules/）。",
+    "本工作区是 toporealm 工作区（图数据在 .toporealm/graphs/，模块在 .toporealm/modules/）。agent 入场先跑 `toporealm discover`（status + 命令目录 + 技能索引一命令拼装；机器可读加 --json）。",
     "",
     "- agent 会话请在仓库根启动：CLI 按 cwd 解析工作区，子目录中工作区不可见。",
     "- CLI 用法：运行 `toporealm help`；模块命令目录：`toporealm cmds`。",

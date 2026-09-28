@@ -28,6 +28,7 @@ export const CORE_VERBS = [
   "undo",
   "redo",
   "cmds",
+  "discover",
   "serve",
   "module",
   "migrate",
@@ -64,6 +65,9 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   log [-n N]                    提交日志尾读（显示 undo 游标之前的已生效提交；
                                 被撤销段不重复显示——undo 后 log 变短是预期语义）
   cmds [--module ns]            命令目录自省（did-you-mean 的真相源）
+  discover                      agent 入场一命令：status + 命令目录 + 技能索引拼装
+                                （拉 daemon，与 cmds 同语义；--json data =
+                                {status, commands, skills, warnings}）
   serve [--port P] [--no-open]  WebUI：确保 daemon 在跑（自动拉起带 web 伺服）→ 开浏览器
                                 （daemon detached 常驻，命令即退；D22）
 

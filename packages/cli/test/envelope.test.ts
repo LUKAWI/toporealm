@@ -17,9 +17,13 @@ import { execGolden, jsonOf } from "./golden.js";
 
 let root: string;
 let restoreHome: (() => void) | undefined;
+/** isolateGlobalHome 的一次性全局根：golden 缝的 deps.env 注入用（见 golden.ts 注记） */
+let isoHome: string;
 
 beforeAll(async () => {
-  restoreHome = (await isolateGlobalHome()).restore;
+  const iso = await isolateGlobalHome();
+  restoreHome = iso.restore;
+  isoHome = iso.home;
   root = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-cli-"));
 });
 
@@ -28,7 +32,9 @@ afterAll(() => {
 });
 
 async function exec(args: string[], cwd = root) {
-  return execGolden(args, cwd, () => new MemoryClient());
+  return execGolden(args, cwd, () => new MemoryClient(), {
+    env: { TOPOREALM_HOME: isoHome },
+  });
 }
 
 describe("CLI --json 信封 + 退出码", () => {
@@ -298,6 +304,29 @@ describe("CLI --json 信封 + 退出码", () => {
     expect(r.data.graphs.map((g) => g.id)).toContain("flow");
     expect(r.data.graphs.find((g) => g.id === "flow")?.current).toBe(true);
   });
+
+  it("discover：空模块/空技能时的拼装形状（D45：data = {status, commands, skills, warnings}）", async () => {
+    const r = await exec(["--json", "discover"]);
+    expect(r.code).toBe(0);
+    const env = jsonOf(r) as {
+      data: {
+        status: { graphId: string; revision: number };
+        commands: unknown[];
+        skills: unknown[];
+        warnings: unknown[];
+      };
+    };
+    expect(env.data.status.graphId).toBe("flow");
+    expect(env.data.commands).toEqual([]);
+    expect(env.data.skills).toEqual([]);
+    expect(env.data.warnings).toEqual([]);
+    // 人类模式：紧凑分节（空节如实标注）
+    const human = await exec(["discover"]);
+    expect(human.code).toBe(0);
+    expect(human.out).toContain("flow @ rev");
+    expect(human.out).toContain("(no commands)");
+    expect(human.out).toContain("(no skills)");
+  });
 });
 
 // ---------- M2 CLI：cmds / 模块命令顶层路由 / help 目录聚合（golden 信封，MemoryClient 后端） ----------
@@ -392,6 +421,60 @@ describe("M2 CLI：模块命令面", () => {
     },
     60_000,
   );
+});
+
+// ---------- D45：discover 拼装面（agent 入场一命令：status + 命令目录 + 技能索引） ----------
+
+describe("discover 拼装面（D45）", () => {
+  // 独立工作区：装一个带 skills 的模块进项目池（复制 example 夹具 + 补技能目录），
+  // 不污染前文 describe 共享 root 的目录断言。env 注入隔离 TOPOREALM_HOME（exec 已带）。
+  it("模块装载后 commands 入拼装面；项目池技能入 skills；warnings 恒为数组", async () => {
+    const droot = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-cli-disc-"));
+    try {
+      expect((await exec(["--json", "creategraph", "dflow"], droot)).code).toBe(0);
+      const modDir = path.join(droot, "src-mod", "example");
+      await fsp.cp(path.join(fixturesDir, "example"), modDir, { recursive: true });
+      await fsp.mkdir(path.join(modDir, "skills", "demo-skill"), { recursive: true });
+      await fsp.writeFile(
+        path.join(modDir, "skills", "demo-skill", "SKILL.md"),
+        "---\nname: demo-skill\ndescription: discover 拼装面测试技能（example 模块随附）。\n---\n\n# demo\n",
+        "utf8",
+      );
+      const inst = await exec(["--json", "module", "add", modDir], droot);
+      expect(inst.code).toBe(0);
+
+      const disc = await exec(["--json", "discover"], droot);
+      expect(disc.code).toBe(0);
+      const env = jsonOf(disc) as {
+        revision: number;
+        instanceId: string;
+        data: {
+          status: { graphId: string; revision: number };
+          commands: { id: string }[];
+          skills: { name: string; module: string; pool: string }[];
+          warnings: unknown[];
+        };
+      };
+      expect(env.data.status.graphId).toBe("dflow");
+      expect(env.data.status.revision).toBe(env.revision);
+      expect(env.data.commands.map((c) => c.id)).toContain("example.create-card");
+      expect(env.data.skills).toContainEqual(
+        expect.objectContaining({ name: "demo-skill", module: "example", pool: "project" }),
+      );
+      expect(env.data.warnings).toEqual([]);
+      expect(env.instanceId).toBeTruthy();
+
+      // 人类模式：紧凑分节（状态行 + commands/skills 计数节；example 夹具 3 条命令）
+      const human = await exec(["discover"], droot);
+      expect(human.out).toContain("dflow @ rev");
+      expect(human.out).toContain("commands (3):");
+      expect(human.out).toContain("example.create-card");
+      expect(human.out).toContain("skills (1):");
+      expect(human.out).toContain("demo-skill（模块 example，project）");
+    } finally {
+      await fsp.rm(droot, { recursive: true, force: true }).catch(() => {});
+    }
+  });
 });
 
 // ---------- F1：Argv.positionals 过滤未消费的 flag token（语义收紧） ----------
