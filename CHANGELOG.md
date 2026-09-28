@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.1 - 2026-09-29
+
+- **fix(skills)**：1.3.0 两轮独立核验遗留 8 条 low 清扫——入口技能 find/add 示例去
+  模块词汇（task/bug/doing → 占位符，消除与「不硬编码模块能力」的自相矛盾）、补
+  未初始化目录预期（status/cmds 报 NO_WORKSPACE 可自愈，skills index 空输出
+  exit 0）、自动生成 id 描述对齐实现（`<主类型尾段>-<8位hex>`）；ops 技能
+  module list 标注对齐实际输出（半角括号）、迁入旧版「WebUI 其它图为只读静态
+  预览」条目；module-creator 技能 title/input 文档定位对齐 protocol 注释
+  （title = agent 的唯一文档，input = 强烈建议写的 JSON Schema 说明书）、files
+  清单补 README.md；claude 插件 skills/ 同源副本同步。
+- **fix(daemon-core)**：实体 id 非法错误文案对齐校验器（protocol id.ts）——内部
+  空格实际合法（仅拒 / \ : 与控制字符、. ..、首尾空白及 Windows 保留名），删
+  「禁空格」过度声明。
+- **chore(release)**：整仓版本 1.3.1（10 包 + web-ui 依赖 + 根 lockfile +
+  跨包精确依赖同步 + claude 插件 plugin.json/marketplace.json）。
+
 ## 1.3.0 - 2026-09-28
 
 - **feat(base)**：模块模板与 module-creator 基座技能（blueprint §1.12 D43）——聚合包

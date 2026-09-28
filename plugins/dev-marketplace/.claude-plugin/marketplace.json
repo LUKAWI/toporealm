@@ -7,8 +7,8 @@
     {
       "name": "toporealm",
       "source": "./toporealm",
-      "description": "TopoRealm graph workspace: agent skills and session hooks for the single-owner daemon graph (CLI-first).",
-      "version": "1.3.0"
+      "description": "TopoRealm graph workspace: agent skills for the single-owner daemon graph (CLI-first).",
+      "version": "1.3.1"
     }
   ]
 }

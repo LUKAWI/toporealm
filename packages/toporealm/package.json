@@ -1,6 +1,6 @@
 {
   "name": "@lukawi/toporealm",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "TopoRealm 1.0 — single-owner daemon graph workspace (aggregate: toporealm CLI + toporeald daemon). Minimal core, two-layer modules, one local graph shared by humans and agents.",
   "keywords": [
     "agents",
@@ -36,10 +36,10 @@
     "template"
   ],
   "dependencies": {
-    "@lukawi/toporealm-cli": "1.3.0",
-    "@lukawi/toporealm-client": "1.3.0",
-    "@lukawi/toporealm-daemon": "1.3.0",
-    "@lukawi/toporealm-distribution": "1.3.0"
+    "@lukawi/toporealm-cli": "1.3.1",
+    "@lukawi/toporealm-client": "1.3.1",
+    "@lukawi/toporealm-daemon": "1.3.1",
+    "@lukawi/toporealm-distribution": "1.3.1"
   },
   "publishConfig": {
     "access": "public"
