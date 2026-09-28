@@ -108,11 +108,11 @@ core 仅有的两条执法之二：关系的端点必须存在。
 
 ## 宿主适配（Host Integration）
 
-面向特定 agent 宿主（Claude Code、Pi）的接入方式：基座技能与入场钩子由基座发布物静态携带（claude 走 marketplace 插件，pi 走包内置扩展）；toporealm 不向宿主自有目录写入任何文件。
+面向特定 agent 宿主（Claude Code、Pi）的接入方式：基座技能由基座发布物静态携带（claude 走 marketplace 插件，pi 走包内置扩展）；入场被动感知由工作区 AGENTS.md 层 + 入口技能→`toporealm discover` 承接（D44 起 claude 侧不再有 SessionStart 注入钩子）；toporealm 不向宿主自有目录写入任何文件。
 
 ## 技能索引（Skills Index）
 
-基座在 agent 会话启动时提供的可用模块技能清单：技能名、所属模块、一句话描述、技能文件路径。claude 侧经 SessionStart 钩子注入上下文，agent 按需读取技能全文；pi 侧经扩展把技能目录贡献给宿主原生发现。技能文件始终只存在于池中，索引不复制内容。
+基座向 agent 提供的可用模块技能清单：技能名、所属模块、一句话描述、技能文件路径。claude 侧不再经 SessionStart 钩子注入（D44 移除）：被动感知由 AGENTS.md 工作区层 + 入口技能→`toporealm discover`（动态发现一命令拼装 status/命令目录/技能索引）承接，agent 按需读取技能全文；pi 侧经扩展把技能目录贡献给宿主原生发现。技能文件始终只存在于池中，索引不复制内容。
 
 ## 基座 Skill／模块 Skill
 

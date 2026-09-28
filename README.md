@@ -41,9 +41,10 @@ toporealm wf.create-task --input '{"id":"first-task","title":"首发任务"}'
 toporealm skills index                             # 模块技能索引（agent 按路径 Read 全文）
 ```
 
-模块技能不复制不投影：技能文件只存在池中——Claude Code 经 marketplace 插件的 SessionStart 钩子
-注入索引（`claude plugin marketplace add LUKAWI/toporealm` → `plugin install toporealm`）；
-Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
+模块技能不复制不投影：技能文件只存在池中——Claude Code 经 marketplace 插件获得基座技能与
+AGENTS.md 工作区指路（`claude plugin marketplace add LUKAWI/toporealm` → `plugin install toporealm`），
+入场跑 `toporealm discover` 动态发现（status+命令目录+技能索引一命令拼装，D44 起 SessionStart
+注入钩子已移除）；Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
 本地开发迭代插件时添加 `plugins/dev-marketplace/` 目录为 marketplace（不要添加开发仓库根——
 暂存整仓会连带 node_modules 的 junction，Windows 上无开发者模式必 EPERM）。
 
@@ -53,7 +54,7 @@ Pi 经主包内置扩展原生发现（`pi install npm:@lukawi/toporealm`）。
 
 - 所有命令恒定 `--json` 信封（成功含 `data/revision/instanceId`；失败含 `code/message/hint/fix`），退出码 `0/1/2`，错误自带可整句复制执行的修复命令，打错 id 给 did-you-mean。
 - agent 主干路径预算：`status → find → set → link → set → log` ≈ 6 条命令。
-- 模块技能索引：`toporealm skills index`（claude 侧由 SessionStart 钩子自动注入会话上下文）。
+- 模块技能索引：`toporealm discover`（一命令拼装 status+命令目录+技能索引）或 `toporealm skills index`。
 
 ## 架构与文档
 

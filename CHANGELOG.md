@@ -9,6 +9,27 @@
   `skills/module-creator` 教授从模板创建模块全流程（复制→改名→词汇表→activate→
   构建→安装→验证）；pi 扩展改为枚举 `skills/` 子目录（新增基座技能自动可见）；
   claude 插件 skills/ 增同源副本。
+- **feat(cli)**：新动词 `discover`（blueprint §1.12 D45）——agent 入场三件套一命令
+  拼装：status + 命令目录 + 技能索引（拉 daemon，与 cmds 同语义；技能索引仍纯
+  文件层不建第二存储）；`--json` data = `{status, commands, skills, warnings}`
+  （内核 warning 上浮一处），人类模式紧凑分节；CORE_VERBS/help/per-verb help
+  收录；golden 信封与 usage 用例补齐（envelope 共享 exec 注入隔离
+  `TOPOREALM_HOME`——deps.env 是 CLI 全局路径解析唯一出处，全局池读路径不再看
+  开发机真目录）。
+- **feat(toporealm)**：四基座技能定稿（D45）——`toporealm`（入口：CLI 动词手册 +
+  动态发现纪律，目录自 toporealm-cli 更名）、`toporealm-design`（机械建模原则）、
+  `toporealm-ops`（低频运维与 daemon 排障）与既有 `module-creator`；命名约定
+  `toporealm-*` 前缀（模块技能一律 `<模块id>-*`）；聚合包与 claude 插件 skills/
+  同源副本；资产防漂移用例随目录改名更新。
+- **feat(base)**：claude 插件删 SessionStart 钩子（D44）——`hooks/`（hooks.json +
+  skills-index.mjs）退役，插件载荷收敛为纯技能包（`.claude-plugin/plugin.json` +
+  `skills/`）；被动感知由 AGENTS.md 工作区层（init 提示补「本工作区是 toporealm
+  工作区，agent 入场先跑 discover」）+ 入口技能→discover 承接；ADR-0008 池即
+  唯一存储不变。
+- **feat(workflow)**：模块仓 `@lukawi/toporealm-workflow` 同升 1.0.2（独立仓提交）——
+  `workflow-design` 技能开头补「机械建模原则见基座 `toporealm-design` 技能」；
+  版本钉点同步（package.json/module.yaml/src 身份常量/模块仓测试），主仓
+  workflow 模块 e2e 版本断言随升 1.0.2。
 
 ## 1.2.0 - 2026-09-26
 

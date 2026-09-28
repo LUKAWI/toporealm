@@ -608,7 +608,7 @@ module.yaml schema、graph v3 格式（全部只增不改；不新增用户可�
   （跨平台，不依赖 shell 语义）；D29 残留文案（version 动词、`new` 指路）随
   1.2.0 文案批清理。
 
-### 1.12 规划期补遗（1.2.0 后增补：D43）
+### 1.12 规划期补遗（1.2.0 后增补：D43–D45）
 
 - **D43（模块模板与 module-creator 基座技能）**：基座随发布物携带
   `template/modules-template`（覆盖声明层全部字段 + activate 全注册面
@@ -619,6 +619,26 @@ module.yaml schema、graph v3 格式（全部只增不改；不新增用户可�
   （新增基座技能自动可见）；claude 插件 skills/ 增同源副本。模块模板是文档
   资产不是 workspace 成员；创建模块 = 复制模板 → 改 id/namespace/词汇表 →
   写 activate → 构建 → `module add`。
+- **D44（claude 插件 SessionStart 钩子移除）**：插件不再携带 hooks/
+  （hooks.json + skills-index.mjs 的会话启动注入退役，D28 Y4④ 的承载方式随之
+  终结），插件载荷收敛为纯技能包（`.claude-plugin/plugin.json` + `skills/`）。
+  被动感知改由两层承接：**AGENTS.md 工作区层**（init 生成的 agent 提示写明
+  「本工作区是 toporealm 工作区，agent 入场先跑 discover」）+ **入口技能→
+  discover**（toporealm 技能教的动态发现入口）。ADR-0008 池即唯一存储不变：
+  技能文件仍只存在于池中，discover / skills index 是读取面，不复制内容、
+  不建第二存储。
+- **D45（基座技能体系重组与 discover 动态发现）**：基座四技能定稿——
+  `toporealm`（入口：CLI 动词手册 + 动态发现纪律；目录自 toporealm-cli 更名）、
+  `toporealm-design`（机械建模原则：对象/关系取舍、kind 粒度、payload 形状、
+  id 策略、数据纪律）、`toporealm-ops`（低频运维与 daemon 排障）、
+  `module-creator`（D43）。命名约定：基座技能一律 `toporealm-*` 前缀（入口
+  技能即裸名 `toporealm`），模块技能一律 `<模块id>-*` 前缀——技能名自证来源，
+  索引与加载不靠目录猜。动态发现的 CLI 承载是新动词 **`discover`**（契约加法，
+  只增不改义）：一条命令拼装 status + 命令目录 + 技能索引——拉 daemon 与
+  cmds 同语义（withSession），技能索引仍是纯文件层（D28 硬约束不变）；
+  `--json` data = `{status, commands, skills, warnings}`（内核 warning 上浮
+  一处），人类模式紧凑分节。四技能随聚合包与 claude 插件 skills/ 同源分发
+  （pi 扩展枚举 skills/ 子目录自动可见）。
 
 ---
 
@@ -681,7 +701,7 @@ packages/
 1.1.0 动词面（D29，破坏性改齐；`--json` 信封与退出码 0/1/2 契约不变；`--version` 旗标）：
 
 - 图生命周期（文件层）：`init`、`creategraph <graph> [--label L]`、`use <graph>`、`graphs`
-- 图事实面（经 daemon）：`status`、`read`、`find`、`add`、`set`、`link`、`rm`、`undo/redo`、`log`、`cmds`
+- 图事实面（经 daemon）：`status`、`read`、`find`、`add`、`set`、`link`、`rm`、`undo/redo`、`log`、`cmds`、`discover`（D45：status + 命令目录 + 技能索引一命令拼装，`--json` data = `{status, commands, skills, warnings}`）
 - 模块与分发：`module add/rm [--global]`、`module list`（三段式：path/项目池/全局池）、`migrate`
 - 技能索引：`skills index`（纯文件层，绝不触 daemon；D28）
 - 写命令人类输出带 `[图名]` 前缀（D30 专注 UX）；完整语法以 `toporealm help` 为准（帮助即契约文本）。
