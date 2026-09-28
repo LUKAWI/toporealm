@@ -1,0 +1,43 @@
+# ---------- module.yaml：声明层（blueprint §1.3） ----------
+#
+# 声明层只管协调（身份/命名空间/词汇表/投影/入口）——不是执法依据；
+# 行为全部在 src/index.ts 的 activate 里注册（双层模块）。
+# 装载期按本文件严格校验：format/id/namespace/version/entry 必填，
+# requires 声明的模块缺失 = daemon 拒绝启动（大声失败）。
+
+format: toporealm.module/v2
+
+# 模块身份：全局唯一（kebab-case）。npm 包名可以不同（发布面用 @scope/xxx）。
+# 安装落位目录名 = id；与已装模块重名 = ID_EXISTS。
+id: my-module
+
+# 模块命名空间：所有权边界 + kind/命令前缀。
+# 全局唯一（同命名空间的两个模块不能同时装载）；短小写，别用连字符拼接过长。
+# 你能写图的 kind = `<namespace>.<主类型>` 或公共/无主 kind；别家命名空间 = 所有权法拦截。
+namespace: my
+
+version: "0.1.0"
+
+# 可选：依赖的其它模块 id。缺失/未装载 = 装载期大声失败；拓扑序由 requires 决定。
+# requires:
+#   modules: []
+
+# 主类型词汇表：你在图里使用的 kind 清单（所有权法与目录投影的依据）。
+# 实际 kind = namespace.主类型。词汇可在后续版本增加（M5 偏差只 warning），
+# 但删除已入图的 kind 会让既有数据成为孤儿——词汇只增不删。
+kinds:
+  objects:
+    - card
+  relations:
+    - links
+
+# 静态投影（core 不解释；WebUI 画布与 CLI 目录读取）。
+# titleKey：payload 中作显示名的键——1.x 目录投影不携带该字段，显示名约定 payload.title。
+ui:
+  color: "#8b5cf6" # 任意 CSS 颜色
+  icon: "tag" # 图标名（WebUI 投影）
+  # titleKey: title
+
+# 代码层入口：daemon 直接 import 的构建产物（相对本文件）。
+# 模块 dist 必须自包含——对平台/其它包零运行时依赖（模块 SDK 只做类型导入，emit 后擦除）。
+entry: ./dist/index.js

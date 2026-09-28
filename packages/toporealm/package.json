@@ -32,7 +32,8 @@
   "files": [
     "bin",
     "extensions",
-    "skills"
+    "skills",
+    "template"
   ],
   "dependencies": {
     "@lukawi/toporealm-cli": "1.2.0",

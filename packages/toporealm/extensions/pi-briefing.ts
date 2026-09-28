@@ -43,8 +43,24 @@ export default function (pi: {
     const cwd = (event as { cwd?: string }).cwd ?? process.cwd();
     const global = await poolSkillDirs(path.join(globalRoot(), "modules"));
     const project = await poolSkillDirs(path.join(cwd, ".toporealm", "modules"));
-    const own = path.join(import.meta.dirname ?? ".", "..", "skills", "toporealm-cli");
-    return { skillPaths: [...global, ...project, own] };
+    // 基座技能目录：skills/ 下每个子目录一个技能（D43 起多技能——toporealm-cli、
+    // module-creator……），枚举而非硬编码，新增基座技能自动可见。
+    const ownRoot = path.join(import.meta.dirname ?? ".", "..", "skills");
+    const own: string[] = [];
+    try {
+      const entries = await fsp.readdir(ownRoot);
+      for (const name of entries.sort()) {
+        const dir = path.join(ownRoot, name);
+        try {
+          if ((await fsp.stat(dir)).isDirectory()) own.push(dir);
+        } catch {
+          /* 竞态删除：跳过 */
+        }
+      }
+    } catch {
+      /* 无 skills 目录：跳过 */
+    }
+    return { skillPaths: [...global, ...project, ...own] };
   });
   pi.on("session_start", async (_event: unknown, ctx: unknown) => {
     try {

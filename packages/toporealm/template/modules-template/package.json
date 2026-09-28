@@ -1,0 +1,21 @@
+{
+  "name": "@scope/toporealm-my-module",
+  "version": "0.1.0",
+  "description": "TopoRealm module template — copy, rename (id/namespace), fill kinds vocabulary, write activate, build, install.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["toporealm", "toporealm-module"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/you/your-module.git"
+  },
+  "files": ["dist", "module.yaml", "skills", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@lukawi/toporealm-module-sdk": "^1.2.0",
+    "typescript": "^5.6.0"
+  }
+}
