@@ -21,8 +21,8 @@ description: TopoRealm 模块创建指南：从 modules-template 模板起步创
    `<namespace>.<主类型>`）。词汇**只增不删**（删除会让已入图数据成孤儿）。
 4. **写 activate**（`src/index.ts`）：按需注册——
    - `api.command({name,title,target?,input}, handler)`：命令（目录 id =
-     `<namespace>.<name>`；title 必填且要写明输入键；`input` JSON Schema 是 agent
-     唯一文档；`target` 绑定实体类型或全局）。
+     `<namespace>.<name>`；`title` 必填——agent 的唯一文档，要写明输入键；
+     `input` 是 JSON Schema 说明书，强烈建议写；`target` 绑定实体类型或全局）。
    - `api.hook("before-commit", fn)`：领域门禁——可 veto（返回 `{veto: 理由}`）；
      对一切来源生效；`conversion === "undo"|"redo"` 时豁免（撤销是用户的手）。
    - `api.hook("after-commit", fn)`：响应式追加，可 `api.commit`（排队，不嵌套）。
@@ -52,9 +52,9 @@ description: TopoRealm 模块创建指南：从 modules-template 模板起步创
 
 ## 发布（可选）
 
-`prepack` 已接 build；`files` 只带 `dist`/`module.yaml`/`skills`。包名可与模块 id
-不同；包根 `package.json` 可用 `"toporealm": "<清单相对路径>"` 重定向清单位置
-（缺省 = 包根 module.yaml）。发布后用户 `toporealm module add <npm 包名>` 即装。
+`prepack` 已接 build；`files` 只带 `dist`/`module.yaml`/`skills`/`README.md`。
+包名可与模块 id 不同；包根 `package.json` 可用 `"toporealm": "<清单相对路径>"`
+重定向清单位置（缺省 = 包根 module.yaml）。发布后用户 `toporealm module add <npm 包名>` 即装。
 
 ## 模板路径速查
 

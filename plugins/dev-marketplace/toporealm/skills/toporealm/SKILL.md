@@ -21,6 +21,10 @@ toporealm skills index  # 全池模块技能索引（任务匹配某技能描述
 
 据此决定接下来用哪些动词、是否需要加载某个模块技能；机器可读加 `--json`。
 
+未初始化目录（无 `.toporealm/`）不是故障：`status`/`cmds` 报 `NO_WORKSPACE`
+（exit 1，fix 即建图命令），`skills index` 空输出 exit 0；照 fix 跑
+`toporealm creategraph <名>` 即自愈。
+
 图生命周期子命令（工作区文件操作，不触 daemon）：
 
 - `toporealm init` — 初始化项目工作区（建 `.toporealm` + 全局目录 + AGENTS.md 提示）。
@@ -37,8 +41,8 @@ toporealm skills index  # 全池模块技能索引（任务匹配某技能描述
     （`--fields id,status`），裸键解析为 `payload.<键>`（写 `status` 即 `payload.status`）。
   - **互斥**：过滤旗标与单点 `read <id>` 不能同用（exit 2）——按 kind 过滤请用 find，或去掉 `<id>`。
 - `toporealm find <k=v>... [--kind K] [--fields f]` — `read --where` 的糖，发现动词：
-  - `toporealm find status=doing`；`--kind` 可重复，多 kind 取**并集**：
-    `toporealm find status=doing --kind task --kind bug`。
+  - `toporealm find status=active`；`--kind` 可重复，多 kind 取**并集**：
+    `toporealm find status=active --kind <K1> --kind <K2>`。
   - 0 命中不是错误。先 find 确认存在，再决定写什么。
 
 ## 写：四个动词，处处使用
@@ -46,7 +50,7 @@ toporealm skills index  # 全池模块技能索引（任务匹配某技能描述
 写命令作用于解析出的当前图（`--graph` 旗标 > `TOPOREALM_GRAPH` 环境变量 > `use` 选定图）。写动词（add/set/link/rm/undo/redo）与模块命令的人类输出带 `[图名]` 前缀——**先看图名再确认结果**，多图工作区防误伤（读侧 read/find/status/log/cmds 无此前缀）。
 
 - `toporealm add <kind> [--id X] [--payload '<json>']` — 新建对象，回显 created id；
-  不给 `--id` 时 daemon 生成（形如 `task-c716ec56`），一律以回显为准。
+  不给 `--id` 时 daemon 生成（`<主类型尾段>-<8位hex>` 形），一律以回显为准。
 - `toporealm set <id> [k=v]... [--payload '<json>'] [--replace]` — 浅合并载荷；
   `k=null` 删键；`--replace` 整体替换（需给完整载荷）。k=v 的值按 JSON 解析，非 JSON 按字符串。
 - `toporealm link <src> <tgt> [--kind ns.rel] [--id X]` — 建关系，端点必须存在

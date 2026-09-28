@@ -869,7 +869,7 @@ export class DaemonCore {
       if (!isValidEntityId(id)) {
         throw new TopoError({
           code: "INVALID_INPUT",
-          message: `实体 id 非法："${id}"（禁 / \\ : 空格与控制字符，且不得为 Windows 保留名）`,
+          message: `实体 id 非法："${id}"（禁 / \\ : 与控制字符及首尾空白，且不得为 Windows 保留名）`,
           details: { id, changeIndex: i },
         });
       }
