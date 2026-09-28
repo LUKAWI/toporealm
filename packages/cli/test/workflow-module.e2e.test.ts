@@ -76,7 +76,8 @@ it(
     const cmds = await cli(["--json", "cmds"]);
     expect(cmds.code).toBe(0);
     const cat = jsonOf(cmds) as { data: { modules: { id: string; namespace: string }[]; commands: { id: string }[] } };
-    expect(cat.data.modules).toEqual([{ id: "workflow", version: "1.0.1", namespace: "wf" }]);
+    // 版本钉点随模块仓发布同步（1.0.2：workflow-design 补基座指路，D45 批次）
+    expect(cat.data.modules).toEqual([{ id: "workflow", version: "1.0.2", namespace: "wf" }]);
     const cmdIds = cat.data.commands.map((c) => c.id);
     expect(cmdIds).toContain("wf.create-task");
     expect(cmdIds).toContain("wf.next-actions");

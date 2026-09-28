@@ -31,7 +31,7 @@ describe("modules-template 与基座技能资产（D43）", () => {
 
   it("基座与模板 SKILL.md 的 frontmatter 满足技能索引解析规则", () => {
     const skillFiles = [
-      path.join(pkgRoot, "skills", "toporealm-cli", "SKILL.md"),
+      path.join(pkgRoot, "skills", "toporealm", "SKILL.md"),
       path.join(pkgRoot, "skills", "module-creator", "SKILL.md"),
       path.join(pkgRoot, "template", "modules-template", "skills", "my-module", "SKILL.md"),
     ];
