@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeFitTransform, isUserViewportInput, seedGridLayout } from "./layout";
+import { computeFitTransform, isUserViewportInput, partitionLayoutEdges, seedGridLayout } from "./layout";
 
 describe("canvas layout", () => {
   it("seedGridLayout 对同一数量给出确定、有限、按行铺开的坐标", () => {
@@ -46,5 +46,30 @@ describe("canvas layout", () => {
     expect(isUserViewportInput({ type: "wheel", isTrusted: true })).toBe(true);
     expect(isUserViewportInput({ type: "dblclick", isTrusted: true })).toBe(true);
     expect(isUserViewportInput({ type: "touchstart", isTrusted: true })).toBe(true);
+  });
+
+  it("布局边保留 member_of→容器（聚拢成员的数据面）；可见边剔除它；缺端点两边都不进", () => {
+    const relations = [
+      { id: "dep-1", kind: "wf.depends_on", source: "a", target: "b" },
+      { id: "m-in", kind: "member_of", source: "a", target: "grp" },
+      { id: "m-out", kind: "member_of", source: "b", target: "plain" },
+      { id: "broken", kind: "related", source: "a", target: "missing" },
+    ];
+    const { layoutEdges, visibleEdges } = partitionLayoutEdges(
+      relations,
+      new Set(["a", "b", "grp", "plain"]),
+      new Set(["grp"]),
+    );
+    // 布局边：缺端点的关系剔除；member_of→容器保留，力导向把成员聚拢到容器附近
+    expect(layoutEdges.map((edge) => edge.id)).toEqual(["dep-1", "m-in", "m-out"]);
+    // 可见边：member_of→声明容器不画线（分区已表达归属）；member_of→普通对象照常画线
+    expect(visibleEdges.map((edge) => edge.id)).toEqual(["dep-1", "m-out"]);
+  });
+
+  it("partitionLayoutEdges 返回浅拷贝（forceLink 改写端点不污染输入）", () => {
+    const relations = [{ id: "r", kind: "member_of", source: "a", target: "grp" }];
+    const { layoutEdges } = partitionLayoutEdges(relations, new Set(["a", "grp"]), new Set(["grp"]));
+    layoutEdges[0]!.source = "mutated";
+    expect(relations[0]!.source).toBe("a");
   });
 });

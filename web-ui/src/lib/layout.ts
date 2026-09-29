@@ -33,6 +33,26 @@ export function seedGridLayout(count: number, columnGap = 96, rowGap = 76): Layo
   }));
 }
 
+/**
+ * 布局边 / 可见边分流（纯函数，画布全量渲染与增量同步共用同一口径）：
+ * 布局边 = 两端都在布局层的关系——member_of→容器 保留，力导向把成员聚拢到容器附近
+ * （标注边因一端不入布局层而自然剔除）；可见边再剔除 member_of→声明容器
+ * （成员归属已由容器分区表达，不画线）。返回边为浅拷贝，调用方（forceLink）可安全改写端点。
+ */
+export function partitionLayoutEdges<R extends { source: string; target: string; kind: string }>(
+  relations: readonly R[],
+  nodeIds: ReadonlySet<string>,
+  containerIds: ReadonlySet<string>,
+): { layoutEdges: R[]; visibleEdges: R[] } {
+  const layoutEdges = relations
+    .filter((relation) => nodeIds.has(relation.source) && nodeIds.has(relation.target))
+    .map((relation) => ({ ...relation }));
+  const visibleEdges = layoutEdges.filter(
+    (relation) => !(relation.kind === "member_of" && containerIds.has(relation.target)),
+  );
+  return { layoutEdges, visibleEdges };
+}
+
 export function computeFitTransform(
   points: LayoutPoint[],
   width: number,

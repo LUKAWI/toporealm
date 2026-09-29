@@ -1,7 +1,8 @@
 import { mount, tick, unmount } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import GraphCanvas from "./GraphCanvas.svelte";
 import { store } from "./store.svelte";
+import { seedGridLayout } from "./layout";
 import type { Catalog, GraphSnapshot } from "./protocol";
 import { obj, rel } from "./test-support";
 
@@ -165,20 +166,22 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     loadSnapshot(layeredSnapshot);
     const { target, done } = await mountCanvas();
 
-    // 容器：独立分区层，不进星体层
+    // 容器：底板层（g.container-group）+ 头部条层（g.container-header），不进星体层
     const containers = target.querySelectorAll("g.container-group");
+    const headers = target.querySelectorAll("g.container-header");
     expect(containers.length).toBe(1);
-    expect(labelsOf(target, "g.container-group")[0]).toContain("容器一");
+    expect(headers.length).toBe(1);
+    expect(labelsOf(target, "g.container-header")[0]).toContain("容器一");
     expect(labelsOf(target, "g.node").join("\n")).not.toContain("容器一");
     // 普通星体 = 4（t-1/t-2/plain-1/plain-2）；标注与容器不画星体
     expect(target.querySelectorAll("g.node").length).toBe(4);
 
     // 标题 = displayOf(object)；默认折叠 + 成员计数徽章（t-1/t-2/rep-4 共 3 个成员）
-    expect(containers[0].querySelector(".container-title")?.textContent).toBe("容器一");
+    expect(headers[0].querySelector(".container-title")?.textContent).toBe("容器一");
     expect(containers[0].classList.contains("collapsed")).toBe(true);
-    expect(containers[0].classList.contains("expanded")).toBe(false);
-    expect(containers[0].getAttribute("aria-expanded")).toBe("false");
-    expect(containers[0].querySelector(".container-count")?.textContent).toBe("3");
+    expect(headers[0].classList.contains("collapsed")).toBe(true);
+    expect(headers[0].getAttribute("aria-expanded")).toBe("false");
+    expect(headers[0].querySelector(".container-count")?.textContent).toBe("3");
 
     // member_of 不画线（容器已表达）；标注参与的 report_of 也不画（标注不是星体）；
     // 普通星体关系照常画线（dep-1 一条）
@@ -186,7 +189,158 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     done();
   });
 
-  it("点击容器条展开/收起（aria-expanded 同步）", async () => {
+  it("点击容器条展开/收起（底板与头部条 aria/类同步）", async () => {
+    store.catalog = layeredCatalog;
+    loadSnapshot(layeredSnapshot);
+    const { target, done } = await mountCanvas();
+
+    const container = target.querySelector("g.container-group") as SVGGElement;
+    const header = target.querySelector("g.container-header") as SVGGElement;
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+    expect(header.classList.contains("expanded")).toBe(true);
+    expect(header.getAttribute("aria-expanded")).toBe("true");
+
+    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("collapsed")).toBe(true);
+    expect(header.classList.contains("collapsed")).toBe(true);
+    expect(header.getAttribute("aria-expanded")).toBe("false");
+    done();
+  });
+
+  it("展开分区几何以容器局部坐标包围成员星体（底板不叠加容器自身位移），收起再展开可靠", async () => {
+    store.catalog = layeredCatalog;
+    loadSnapshot(layeredSnapshot);
+    const { target, done } = await mountCanvas();
+
+    const container = target.querySelector("g.container-group") as SVGGElement;
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+
+    // 断言前只有微任务（模拟尚未起跑）→ 成员坐标 = seedGridLayout 种子。
+    // 布局层顺序 = objects 剔除 annotation：grp-1, t-1, t-2, plain-1, plain-2。
+    // 底板几何 = 成员坐标换算到容器局部系后的包围盒（容器自身为种子）+ 内边距。
+    const seed = seedGridLayout(5);
+    const [grp, t1, t2] = seed;
+    const locals = [t1!, t2!].map((point) => ({ x: point.x - grp!.x, y: point.y - grp!.y })); // 容器成员 t-1/t-2
+    const minX = Math.min(0, ...locals.map((point) => point.x));
+    const minY = Math.min(0, ...locals.map((point) => point.y));
+    const maxX = Math.max(0, ...locals.map((point) => point.x));
+    const maxY = Math.max(0, ...locals.map((point) => point.y));
+    const body = () => container.querySelector(".container-body") as SVGRectElement;
+
+    expect(Number(body().getAttribute("x"))).toBe(minX - 20);
+    expect(Number(body().getAttribute("y"))).toBe(minY - 46);
+    expect(Number(body().getAttribute("width"))).toBe(Math.max(132, maxX - minX + 40));
+    expect(Number(body().getAttribute("height"))).toBe(Math.max(36, maxY - minY + 66));
+
+    // 头部条（顶层）：标题行随框顶行展开，命中区覆盖框顶行（角标与标题同点时点击优先头部条）
+    const header = () => target.querySelector("g.container-header") as SVGGElement;
+    expect(Number(header().querySelector(".container-title")!.getAttribute("x"))).toBe(minX - 20 + 26);
+    expect(Number(header().querySelector(".container-title")!.getAttribute("y"))).toBe(minY - 46 + 19);
+    const hit = () => header().querySelector(".container-header-hit") as SVGRectElement;
+    expect(Number(hit().getAttribute("x"))).toBe(minX - 20);
+    expect(Number(hit().getAttribute("y"))).toBe(minY - 46);
+    expect(Number(hit().getAttribute("height"))).toBe(38);
+
+    // 收起恢复折叠条；再次展开几何一致（不残留上次的展开偏移）
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("collapsed")).toBe(true);
+    expect(Number(body().getAttribute("width"))).toBe(132); // 折叠条宽度 = barWidth
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+    expect(Number(body().getAttribute("x"))).toBe(minX - 20);
+    expect(Number(body().getAttribute("y"))).toBe(minY - 46);
+    done();
+  });
+
+  it("缺陷①回归：展开态头部条渲染于成员角标之上（zoomGroup 末层），点标题条/命中区/Enter 可靠收起", async () => {
+    store.catalog = layeredCatalog;
+    loadSnapshot(layeredSnapshot);
+    const { target, done } = await mountCanvas();
+
+    // SVG 无 z-index：文档顺序 = 视觉/命中最上层。头部条层必须在 .nodes 之后，
+    // 否则成员星体的附属角标（g.affiliated-badge，画在 .nodes 层）会盖住容器标题并吞掉点击。
+    const zoomGroup = target.querySelector("g.zoom-group") as SVGGElement;
+    const layerNames = [...zoomGroup.children].map((element) => element.getAttribute("class") ?? "");
+    expect(layerNames.indexOf("container-headers")).toBeGreaterThan(layerNames.indexOf("nodes"));
+    expect(layerNames[layerNames.length - 1]).toBe("container-headers");
+
+    const header = target.querySelector("g.container-header") as SVGGElement;
+    const container = target.querySelector("g.container-group") as SVGGElement;
+    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+
+    // 展开态命中区覆盖框顶行：成员角标与标题同点时命中头部条 → 可靠收起
+    const hit = header.querySelector(".container-header-hit") as SVGRectElement;
+    expect(Number(hit.getAttribute("width"))).toBeGreaterThan(0);
+    hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("collapsed")).toBe(true);
+
+    // 键盘路径不回归：Enter 仍可在头部条上切换展开
+    header.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+    done();
+  });
+
+  it("缺陷②回归：Esc 逐层消费——收起聚焦容器时拦截外壳梯（选中保持），再按一次才落到外壳", async () => {
+    store.catalog = layeredCatalog;
+    loadSnapshot(layeredSnapshot);
+    const { target, done } = await mountCanvas();
+
+    // 模拟外壳 Esc 梯（App 的 svelte:window 为 bubble 监听，注册在画布 capture 监听之后）
+    const shellLadder = vi.fn();
+    window.addEventListener("keydown", shellLadder);
+
+    store.select({ type: "object", id: "t-1" }); // 详情抽屉打开态
+    const header = target.querySelector("g.container-header") as SVGGElement;
+    const container = target.querySelector("g.container-group") as SVGGElement;
+    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+
+    // 第一次 Esc（聚焦容器上）：画布层只收容器并拦截外壳梯 → 抽屉/选中保持
+    header.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await tick();
+    expect(container.classList.contains("collapsed")).toBe(true);
+    expect(store.selection).toEqual({ type: "object", id: "t-1" });
+    expect(shellLadder).not.toHaveBeenCalled();
+
+    // 第二次 Esc（画布层无层可吃）：事件放行，外壳梯恢复运行
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await tick();
+    expect(shellLadder).toHaveBeenCalledTimes(1);
+    window.removeEventListener("keydown", shellLadder);
+    done();
+  });
+
+  it("点击容器展开/收起不清空已有选中（空白清除不误伤容器）", async () => {
+    store.catalog = layeredCatalog;
+    loadSnapshot(layeredSnapshot);
+    const { target, done } = await mountCanvas();
+
+    store.select({ type: "object", id: "t-1" });
+    await tick();
+    const container = target.querySelector("g.container-group") as SVGGElement;
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+    expect(store.selection).toEqual({ type: "object", id: "t-1" });
+
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(store.selection).toEqual({ type: "object", id: "t-1" });
+    done();
+  });
+
+  it("Esc 命中聚焦容器时收起展开分区；Esc 不聚焦容器时不动展开状态", async () => {
     store.catalog = layeredCatalog;
     loadSnapshot(layeredSnapshot);
     const { target, done } = await mountCanvas();
@@ -195,12 +349,18 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("expanded")).toBe(true);
-    expect(container.getAttribute("aria-expanded")).toBe("true");
 
-    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // Esc 在别处按下（target 非容器条）→ 不收起
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await tick();
+    expect(container.classList.contains("expanded")).toBe(true);
+
+    // Esc 命中容器条（聚焦态按键的 target 即容器）→ 收起
+    container.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await tick();
     expect(container.classList.contains("collapsed")).toBe(true);
-    expect(container.getAttribute("aria-expanded")).toBe("false");
+    const header = target.querySelector("g.container-header") as SVGGElement;
+    expect(header.getAttribute("aria-expanded")).toBe("false");
     done();
   });
 
@@ -261,11 +421,11 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     loadSnapshot(layeredSnapshot);
     const { target, done } = await mountCanvas();
 
-    const container = target.querySelector("g.container-group") as SVGGElement;
     store.kindFilter = "wf.task";
     await tick();
     // 成员被过滤时容器计数同步：3 个成员只剩 t-1/t-2（rep-4 是 wf.report）
-    expect(container.querySelector(".container-count")?.textContent).toBe("2");
+    const header = target.querySelector("g.container-header") as SVGGElement;
+    expect(header.querySelector(".container-count")?.textContent).toBe("2");
 
     store.kindFilter = "";
     store.searchQuery = "报告二";

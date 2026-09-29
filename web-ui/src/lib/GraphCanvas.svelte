@@ -5,7 +5,7 @@
   import { onDestroy, onMount } from "svelte";
   import * as d3 from "d3";
   import { store } from "./store.svelte";
-  import { computeFitTransform, isUserViewportInput, seedGridLayout } from "./layout";
+  import { computeFitTransform, isUserViewportInput, partitionLayoutEdges, seedGridLayout } from "./layout";
   import { kindColorOf, projectModuleKind, type KindRepresent } from "./moduleProjection";
   import { displayOf, titleOf, type Entity, type RelationEntity } from "./protocol";
 
@@ -156,6 +156,7 @@
     if (dx === 0 && dy === 0) return;
     // 程序化 transform 没有 sourceEvent；显式记录用户已接管视角，fit 不再抢取景
     userMovedView = true;
+    badgePopup = null; // 平移后宿主屏幕锚点失效，附属浮层收起
     const current = d3.zoomTransform(svgEl);
     const next = d3.zoomIdentity.translate(current.x + dx, current.y + dy).scale(current.k);
     d3.select(svgEl).call(zoomBehavior.transform, next);
@@ -178,6 +179,10 @@
   let fitDone = false;
   let fitFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   let userMovedView = false;
+  // 渲染后布局被用户交互（拖拽星体/容器）重热过 → 模拟收敛时不再自动抢取景。
+  // 缺陷③根因：拖拽重热的模拟 ~4.5s 后触发 end 事件 → autoFit 缓动，与用户随后的
+  // 空白点击撞车，观感为「点空白引发视图缩放/平移动画」（节点图形坐标并未变化）。
+  let touchedLayout = false;
   let lastRenderSignature: string | null = null;
 
   let currentNodes: SimNode[] = [];
@@ -243,10 +248,9 @@
       .classed("dimmed", (edge) => !relationMatchesFilters(edge))
       .classed("is-selected", (edge) => store.selection?.type === "relation" && store.selection.id === edge.id);
     // 容器计数徽章随过滤同步；容器本体不淡化（结构层），计数即过滤真相
-    zoomGroup.selectAll<SVGGElement, SimNode>(".containers > g.container-group")
-      .each(function (this: SVGGElement, node: SimNode) {
-        applyContainerGeometry(d3.select(this));
-      });
+    zoomGroup.selectAll<SVGGElement, SimNode>(".containers > g.container-group").each((node) => {
+      applyContainerGeometry(node);
+    });
   }
 
   // ── 附属标注角标浮层（视图状态，浏览器本地）──
@@ -272,6 +276,15 @@
   $effect(() => {
     // 快照/关系变化后宿主不再有挂靠标注 → 浮层自动收起
     if (badgePopup && badgePopupItems.length === 0) badgePopup = null;
+  });
+
+  // 选中对象变化 = 用户已在别处交互，浮层锚定的是旧宿主屏幕坐标 → 随选择变化收起。
+  // 只跟踪 selection（不读 badgePopup），弹开浮层本身不会触发本 effect。
+  let lastSelectionKey: string | null = null;
+  $effect(() => {
+    const key = stableKey(store.selection);
+    if (lastSelectionKey !== null && key !== lastSelectionKey) badgePopup = null;
+    lastSelectionKey = key;
   });
 
   function openBadgePopup(host: SimNode): void {
@@ -528,23 +541,33 @@
       });
   }
 
-  /** 星体/容器条共用的拖拽行为（位置写入缓存；视图状态，不触发 Core 写入） */
+  /**
+   * 星体/容器条共用的拖拽行为（位置写入缓存；视图状态，不触发 Core 写入）。
+   * 点击/拖拽解耦：d3-drag 在 mousedown 即派发 start（此时无位移信息），若在 start 里
+   * 钉住 fx/fy 并重启模拟，纯点击也会扰动整个布局。因此首帧实际位移（drag 事件）才
+   * 钉住并唤醒模拟；down→up 之间有任何位移时，d3-drag 默认 clickDistance(0) 会吞掉
+   * 后续 click——拖拽不误触点击、点击不扰动布局，两者互不误伤。
+   */
   function nodeDragBehavior(): d3.DragBehavior<SVGGElement, SimNode, SimNode | d3.SubjectPosition> {
+    // 同一行为实例被整层共享，移动标记按节点记（并发多手势互不串扰）
+    const movedNodes = new WeakSet<SimNode>();
     return d3.drag<SVGGElement, SimNode>()
-      .on("start", function (this: SVGGElement, event, node) {
-        if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
-        node.fx = node.x;
-        node.fy = node.y;
-        currentPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
-        d3.select(this).classed("is-dragging", true);
-      })
-      .on("drag", (_event, node) => {
-        node.fx = _event.x;
-        node.fy = _event.y;
-        currentPositions.set(node.id, { x: _event.x, y: _event.y });
+      .on("drag", function (this: SVGGElement, event, node) {
+        if (!movedNodes.has(node)) {
+          movedNodes.add(node);
+          // drag 事件的 active 含当前手势：≤1 说明没有并发其他手势，由本手势唤醒模拟
+          if (event.active <= 1 && simulation) simulation.alphaTarget(0.3).restart();
+          touchedLayout = true; // 布局被交互重热，收敛后不再自动抢取景（缺陷③）
+          if (badgePopup?.hostId === node.id) badgePopup = null; // 宿主位移后浮层锚点失效
+          d3.select(this).classed("is-dragging", true);
+        }
+        node.fx = event.x;
+        node.fy = event.y;
+        currentPositions.set(node.id, { x: event.x, y: event.y });
       })
       .on("end", function (this: SVGGElement, event, node) {
-        if (!event.active && simulation) simulation.alphaTarget(0);
+        // 只在本手势真的拖动过时收尾模拟（纯点击不碰模拟状态）；active 不含已结束的本手势
+        if (movedNodes.delete(node) && !event.active && simulation) simulation.alphaTarget(0);
         node.fx = null;
         node.fy = null;
         currentPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
@@ -552,40 +575,65 @@
       });
   }
 
-  // ── 容器层（D46 container）：玻璃分区 + 标题 + 成员计数徽章；默认折叠 ──
-  function applyContainerGeometry(group: d3.Selection<SVGGElement, SimNode, any, any>): void {
-    const node = group.datum();
+  // ── 容器层（D46 container）：玻璃分区底板 + 顶层头部条；默认折叠 ──
+  // 底板层（.containers，zoomGroup 首层）只承载框体矩形；头部条层（.container-headers，
+  // zoomGroup 末层）承载 dot + 标题 + 计数徽章并承担键盘/焦点交互。拆两层是因为成员星体
+  // 与其附属角标画在容器层之上：头部条若留在底板层，展开态成员角标会盖住标题并吞掉点击
+  // （1.4.1 实测缺陷①）。SVG 无 z-index、文档顺序 = 视觉/命中最上层，分组内提升无效，
+  // 头部条必须是独立末层。
+  function applyContainerGeometry(node: SimNode): void {
+    if (!zoomGroup) return;
     const expanded = expandedContainers.get(node.id) ?? false;
-    group.classed("expanded", expanded).classed("collapsed", !expanded).attr("aria-expanded", expanded);
+    const group = zoomGroup
+      .selectAll<SVGGElement, SimNode>(".containers > g.container-group")
+      .filter((item) => item.id === node.id);
+    const header = zoomGroup
+      .selectAll<SVGGElement, SimNode>(".container-headers > g.container-header")
+      .filter((item) => item.id === node.id);
+    group.classed("expanded", expanded).classed("collapsed", !expanded);
+    header
+      .classed("expanded", expanded)
+      .classed("collapsed", !expanded)
+      .attr("aria-expanded", expanded);
     const title = displayOf(node);
     const count = memberCountOf(node.id);
-    group.select<SVGTextElement>(".container-title").text(title);
-    group.select<SVGTextElement>(".container-count").text(String(count));
-    group.select<SVGGElement>(".container-badge").classed("empty", count === 0);
+    header.select<SVGTextElement>(".container-title").text(title);
+    header.select<SVGTextElement>(".container-count").text(String(count));
+    header.select<SVGGElement>(".container-badge").classed("empty", count === 0);
     const barWidth = Math.max(132, title.length * 7 + 66);
     if (!expanded) {
       group.select<SVGRectElement>(".container-body")
         .attr("x", -barWidth / 2).attr("y", -18).attr("width", barWidth).attr("height", 36).attr("rx", 12);
-      group.select("circle.container-dot").attr("cx", -barWidth / 2 + 16).attr("cy", 0).attr("r", 4);
-      group.select<SVGTextElement>(".container-title").attr("x", -barWidth / 2 + 26).attr("y", 0);
-      group.select<SVGGElement>(".container-badge").attr("transform", `translate(${barWidth / 2 - 16},0)`);
+      header.select("circle.container-dot").attr("cx", -barWidth / 2 + 16).attr("cy", 0).attr("r", 4);
+      header.select<SVGTextElement>(".container-title").attr("x", -barWidth / 2 + 26).attr("y", 0);
+      header.select<SVGGElement>(".container-badge").attr("transform", `translate(${barWidth / 2 - 16},0)`);
+      // 命中区几何同步（展开态才由 CSS 放开 display）：折叠态不抢成员星体的点击
+      header.select<SVGRectElement>(".container-header-hit")
+        .attr("x", -barWidth / 2).attr("y", -18).attr("width", barWidth).attr("height", 36).attr("rx", 12);
       return;
     }
-    // 展开分区：包围成员星体当前位置（标注成员不入模拟，仅由计数徽章表达）
+    // 展开分区：包围成员星体当前位置（标注成员不入模拟，仅由计数徽章表达）。
+    // 组元素已平移到容器星位（tick 的 transform），成员模拟坐标必须先转到容器局部系
+    // 再求包围盒——直接用绝对坐标会把底板平移两次，画到成员簇之外的空白处
+    // （1.4.0「展开后框内没有成员」缺陷根因）。容器自身位置作种子留在盒内，锚点不跳。
     const padX = 20;
     const padTop = 46;
     const padBottom = 20;
-    let minX = node.x ?? 0;
-    let minY = node.y ?? 0;
-    let maxX = node.x ?? 0;
-    let maxY = node.y ?? 0;
+    const originX = node.x ?? 0;
+    const originY = node.y ?? 0;
+    let minX = 0;
+    let minY = 0;
+    let maxX = 0;
+    let maxY = 0;
     for (const member of layered.membersOf.get(node.id) ?? []) {
       const m = currentNodes.find((candidate) => candidate.id === member.id);
       if (!m || !Number.isFinite(m.x) || !Number.isFinite(m.y)) continue;
-      minX = Math.min(minX, m.x!);
-      minY = Math.min(minY, m.y!);
-      maxX = Math.max(maxX, m.x!);
-      maxY = Math.max(maxY, m.y!);
+      const localX = m.x! - originX;
+      const localY = m.y! - originY;
+      minX = Math.min(minX, localX);
+      minY = Math.min(minY, localY);
+      maxX = Math.max(maxX, localX);
+      maxY = Math.max(maxY, localY);
     }
     const x = minX - padX;
     const y = minY - padTop;
@@ -593,21 +641,24 @@
     const h = Math.max(36, maxY - minY + padTop + padBottom);
     group.select<SVGRectElement>(".container-body")
       .attr("x", x).attr("y", y).attr("width", w).attr("height", h).attr("rx", 14);
-    group.select("circle.container-dot").attr("cx", x + 16).attr("cy", y + 19).attr("r", 4);
-    group.select<SVGTextElement>(".container-title").attr("x", x + 26).attr("y", y + 19);
-    group.select<SVGGElement>(".container-badge").attr("transform", `translate(${x + w - 18},${y + 19})`);
+    header.select("circle.container-dot").attr("cx", x + 16).attr("cy", y + 19).attr("r", 4);
+    header.select<SVGTextElement>(".container-title").attr("x", x + 26).attr("y", y + 19);
+    header.select<SVGGElement>(".container-badge").attr("transform", `translate(${x + w - 18},${y + 19})`);
+    // 展开态命中区 = 框顶行全宽：成员星体/角标与标题重叠时，头部条点击优先（可靠收起）
+    header.select<SVGRectElement>(".container-header-hit")
+      .attr("x", x).attr("y", y).attr("width", w).attr("height", 38).attr("rx", 14);
   }
 
-  function toggleContainer(node: SimNode, group: SVGGElement): void {
+  function toggleContainer(node: SimNode): void {
     expandedContainers.set(node.id, !(expandedContainers.get(node.id) ?? false));
-    applyContainerGeometry(d3.select(group));
+    applyContainerGeometry(node);
   }
 
+  /** 底板层（.containers，首层）：只承载框体矩形，点击/拖拽照常（玻璃底板语义）。 */
   function renderContainerLayer(
     parent: d3.Selection<SVGGElement, unknown, null, undefined>,
     containers: SimNode[],
   ): void {
-    // 分区在边层/星体层之下（先插入，玻璃底板语义）
     let group = parent.select<SVGGElement>(".containers");
     if (group.empty()) group = parent.insert("g", ":first-child").attr("class", "containers");
 
@@ -619,10 +670,41 @@
 
     const enter = container.enter().append("g")
       .attr("class", "container-group")
-      .style("cursor", "pointer")
-      .attr("tabindex", 0)
-      .attr("role", "button");
+      .style("cursor", "pointer");
     enter.append("rect").attr("class", "container-body");
+
+    enter.merge(container)
+      .on("click", (event: MouseEvent, node: SimNode) => {
+        event.stopPropagation();
+        toggleContainer(node);
+      })
+      .call(nodeDragBehavior());
+  }
+
+  /**
+   * 头部条层（.container-headers，zoomGroup 末层）：dot + 标题 + 计数徽章 + 键盘/焦点交互。
+   * 必须在星体层之后渲染（文档顺序 = 视觉/命中最上层），展开态压过成员星体的附属角标。
+   * 命中区 rect 只在展开态放开（CSS display）：覆盖框顶行，标题与角标重叠时点击优先落头部条。
+   */
+  function renderContainerHeaderLayer(
+    parent: d3.Selection<SVGGElement, unknown, null, undefined>,
+    containers: SimNode[],
+  ): void {
+    let layer = parent.select<SVGGElement>(".container-headers");
+    if (layer.empty()) layer = parent.append("g").attr("class", "container-headers");
+
+    const header = layer
+      .selectAll<SVGGElement, SimNode>("g.container-header")
+      .data(containers, (item) => item.id);
+
+    header.exit().remove();
+
+    const enter = header.enter().append("g")
+      .attr("class", "container-header")
+      .attr("tabindex", 0)
+      .attr("role", "button")
+      .style("cursor", "pointer");
+    enter.append("rect").attr("class", "container-header-hit");
     enter.append("circle").attr("class", "container-dot");
     enter.append("text").attr("class", "container-title");
     const badge = enter.append("g").attr("class", "container-badge");
@@ -630,11 +712,11 @@
     badge.append("text").attr("class", "container-count")
       .attr("text-anchor", "middle").attr("dominant-baseline", "central");
 
-    const all = enter.merge(container);
+    const all = enter.merge(header);
     all
       .attr("aria-label", (node) => `${displayOf(node)}（${node.kind}）容器，${memberCountOf(node.id)} 个成员`)
-      .each(function (this: SVGGElement, node: SimNode) {
-        applyContainerGeometry(d3.select(this));
+      .each((node) => {
+        applyContainerGeometry(node);
       });
     all.select("circle.container-dot").attr("fill", (node) => kindColorFor(node.kind));
     all.select<SVGRectElement>(".container-badge-bg").attr("x", -13).attr("y", -9).attr("width", 26).attr("height", 18);
@@ -647,23 +729,30 @@
       .style("user-select", "none");
 
     all
-      .on("keydown", function (this: SVGGElement, event: KeyboardEvent, node: SimNode) {
+      .on("keydown", (event: KeyboardEvent, node: SimNode) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          toggleContainer(node, this);
+          toggleContainer(node);
         }
       })
-      .on("focus", function (this: SVGGElement) {
-        d3.select(this).classed("is-focused", true);
-      })
-      .on("blur", function (this: SVGGElement) {
-        d3.select(this).classed("is-focused", false);
-      })
+      .on("focus", (_event: FocusEvent, node: SimNode) => syncContainerFocus(node.id, true))
+      .on("blur", (_event: FocusEvent, node: SimNode) => syncContainerFocus(node.id, false))
       .on("click", (event: MouseEvent, node: SimNode) => {
         event.stopPropagation();
-        toggleContainer(node, event.currentTarget as SVGGElement);
+        toggleContainer(node);
       })
       .call(nodeDragBehavior());
+  }
+
+  /** 焦点态跨层同步：键盘聚焦头部条时，底板框体同步 is-focused 提亮描边 */
+  function syncContainerFocus(id: string, focused: boolean): void {
+    if (!zoomGroup) return;
+    for (const selector of [".containers > g.container-group", ".container-headers > g.container-header"]) {
+      zoomGroup
+        .selectAll<SVGGElement, SimNode>(selector)
+        .filter((item) => item.id === id)
+        .classed("is-focused", focused);
+    }
   }
 
   // ── 节点层 ──
@@ -852,11 +941,13 @@
 
   function zoomIn(): void {
     if (!svgEl || !zoomBehavior) return;
+    userMovedView = true; // 工具轨/键盘缩放同属用户手动视角移动，布局收敛后不再抢取景
     d3.select(svgEl).transition().duration(300).call(zoomBehavior.scaleBy, 1.3);
   }
 
   function zoomOut(): void {
     if (!svgEl || !zoomBehavior) return;
+    userMovedView = true;
     d3.select(svgEl).transition().duration(300).call(zoomBehavior.scaleBy, 0.7);
   }
 
@@ -924,7 +1015,10 @@
         .filter((event: Event) => event.type === "wheel" || event.type === "dblclick" || event.type === "touchstart")
         .on("zoom", (event) => {
           if (zoomGroup) zoomGroup.attr("transform", event.transform);
-          if (isUserViewportInput(event.sourceEvent as Event | undefined)) userMovedView = true;
+          if (isUserViewportInput(event.sourceEvent as Event | undefined)) {
+            userMovedView = true;
+            badgePopup = null; // 视口手势后宿主屏幕锚点失效，附属浮层收起
+          }
           const gridOpacity = Math.min(1, event.transform.k * 1.5);
           svg.select(".grid-bg").attr("opacity", gridOpacity);
           syncEdgeZoomWidth(event.transform.k);
@@ -961,14 +1055,9 @@
       return { ...object, x: base.x, y: base.y };
     });
     const nodeIds = new Set(nodes.map((node) => node.id));
-    // 布局边 = 两端都在布局层的关系（member_of→容器 保留以聚拢成员；标注边两端不全在 → 自然剔除）
-    const layoutEdges = snapshot.relations
-      .filter((relation) => nodeIds.has(relation.source) && nodeIds.has(relation.target))
-      .map((relation) => ({ ...relation })) as SimEdge[];
+    // 布局边 = 两端都在布局层的关系（member_of→容器 保留以聚拢成员；标注边两端不全在 → 自然剔除）；
     // 可见边 = 布局边去掉 member_of→声明容器（容器分区已表达成员归属，不画线）
-    const visibleEdges = layoutEdges.filter(
-      (edge) => !(edge.kind === "member_of" && layered.containerIds.has(edgeEndId(edge.target))),
-    );
+    const { layoutEdges, visibleEdges } = partitionLayoutEdges(snapshot.relations, nodeIds, layered.containerIds);
 
     currentNodes = nodes;
     currentEdges = visibleEdges;
@@ -984,6 +1073,8 @@
     renderContainerLayer(zoomGroup, nodes.filter((node) => layered.containerIds.has(node.id)));
     renderEdgeLayer(zoomGroup, visibleEdges);
     renderNodeLayer(zoomGroup, nodes.filter((node) => !layered.containerIds.has(node.id)));
+    // 头部条层最后渲染：压过成员星体与其附属角标（缺陷①：展开态标题点被角标吞点击）
+    renderContainerHeaderLayer(zoomGroup, nodes.filter((node) => layered.containerIds.has(node.id)));
     applyFiltersAndSelection();
     syncEdgeZoomWidth((svgEl as SVGSVGElement & { __zoom?: d3.ZoomTransform }).__zoom?.k ?? 1);
 
@@ -999,6 +1090,7 @@
     const edgeSel = zoomGroup.selectAll<SVGGElement, SimEdge>(".edges .edge-group");
     const nodeSel = zoomGroup.selectAll<SVGGElement, SimNode>(".nodes > g.node");
     const containerSel = zoomGroup.selectAll<SVGGElement, SimNode>(".containers > g.container-group");
+    const headerSel = zoomGroup.selectAll<SVGGElement, SimNode>(".container-headers > g.container-header");
     const updateRender = () => {
       edgeSel.each(function (this: SVGGElement, edge: SimEdge) {
         const group = d3.select(this);
@@ -1021,11 +1113,12 @@
         }
       });
       nodeSel.attr("transform", (node) => `translate(${node.x ?? 0},${node.y ?? 0})`);
-      containerSel
+      containerSel.attr("transform", (node) => `translate(${node.x ?? 0},${node.y ?? 0})`);
+      headerSel
         .attr("transform", (node) => `translate(${node.x ?? 0},${node.y ?? 0})`)
-        .each(function (this: SVGGElement, node: SimNode) {
+        .each((node) => {
           // 展开分区逐帧包围成员当前位置；折叠条几何固定（仅位移）
-          if (expandedContainers.get(node.id)) applyContainerGeometry(d3.select(this));
+          if (expandedContainers.get(node.id)) applyContainerGeometry(node);
         });
 
       if (!fitDone && simulation && simulation.alpha() <= 0.3) {
@@ -1038,11 +1131,13 @@
       for (const node of nodes) {
         if (node.x !== undefined && node.y !== undefined) positions.set(node.id, { x: node.x, y: node.y });
       }
-      if (!userMovedView) autoFit();
+      // 仅「无交互的初始布局收敛」才补一次取景；用户拖拽过布局或动过视角都不再抢（缺陷③）
+      if (!userMovedView && !touchedLayout) autoFit();
     });
 
     if (fitFallbackTimer) clearTimeout(fitFallbackTimer);
     fitDone = false;
+    touchedLayout = false;
     if (nodes.length > 0) {
       fitFallbackTimer = setTimeout(() => {
         if (!fitDone) {
@@ -1073,12 +1168,7 @@
       return;
     }
     const nodeIds = new Set(currentNodes.map((node) => node.id));
-    const layoutEdges = snapshot.relations
-      .filter((relation) => nodeIds.has(relation.source) && nodeIds.has(relation.target))
-      .map((relation) => ({ ...relation })) as SimEdge[];
-    const visibleEdges = layoutEdges.filter(
-      (edge) => !(edge.kind === "member_of" && layered.containerIds.has(edgeEndId(edge.target))),
-    );
+    const { layoutEdges, visibleEdges } = partitionLayoutEdges(snapshot.relations, nodeIds, layered.containerIds);
     currentEdges = visibleEdges;
     renderEdgeLayer(zoomGroup, visibleEdges);
     simulation.force("link", d3.forceLink<SimNode, SimEdge>(layoutEdges).id((node) => node.id).distance(160));
@@ -1163,6 +1253,7 @@
     if (!request || !svgEl || !zoomBehavior) return;
     const node = currentNodes.find((candidate) => candidate.id === request.nodeId);
     if (!node || node.x === undefined || node.y === undefined) return;
+    userMovedView = true; // 定位是用户主动的视角移动，布局收敛后不再抢取景
     const { w, h } = getContainerSize();
     const k = (svgEl as SVGSVGElement & { __zoom?: d3.ZoomTransform }).__zoom?.k ?? 1;
     d3.select(svgEl)
@@ -1170,14 +1261,14 @@
       .call(zoomBehavior.transform, d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-node.x, -node.y));
   });
 
-  // Tab 分组循环：焦点只在可见星体与容器条之间循环
+  // Tab 分组循环：焦点只在可见星体与容器头部条之间循环
   function canvasKeydown(event: KeyboardEvent): void {
     if (event.key !== "Tab") return;
     const active = document.activeElement as HTMLElement | null;
-    if (!active?.classList.contains("node") && !active?.classList.contains("container-group")) return;
+    if (!active?.classList.contains("node") && !active?.classList.contains("container-header")) return;
     event.preventDefault();
     const group = Array.from(
-      wrapperEl?.querySelectorAll<HTMLElement>("g.node:not(.dimmed), g.container-group") ?? [],
+      wrapperEl?.querySelectorAll<HTMLElement>("g.node:not(.dimmed), g.container-header") ?? [],
     );
     if (group.length === 0) return;
     const index = group.indexOf(active);
@@ -1230,15 +1321,40 @@
         event.preventDefault();
         autoFit();
       } else if (event.key === "Escape") {
-        badgePopup = null; // 附属浮层属画布层；选中/过滤的退出层级由外壳处理
+        // 逐层消费（缺陷②）：画布层只吃自己的一层——附属浮层 → 聚焦容器；吃到就拦截
+        // 外壳 Esc 梯（编辑器→选中→浮层→过滤），保证一次 Esc 只消费一层。
+        // 监听挂在 capture 相位：无论外壳 svelte:window 的注册先后，画布层都先执行。
+        let consumed = false;
+        if (badgePopup) {
+          badgePopup = null;
+          consumed = true;
+        } else {
+          const target = event.target;
+          if (
+            target instanceof Element
+            && (target.classList.contains("container-header") || target.classList.contains("container-group"))
+          ) {
+            const node = d3.select(target).datum() as SimNode | undefined;
+            if (node && expandedContainers.get(node.id)) {
+              expandedContainers.set(node.id, false);
+              applyContainerGeometry(node);
+            }
+            (target as SVGGElement).blur?.();
+            consumed = true; // 聚焦容器本身就是一层（未展开也退出聚焦）
+          }
+        }
+        if (consumed) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
       }
     };
-    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("keydown", handleKeydown, true);
     const handlePointerEnd = (event: PointerEvent) => endMiddlePan(event.pointerId);
     window.addEventListener("pointerup", handlePointerEnd);
     window.addEventListener("pointercancel", handlePointerEnd);
     return () => {
-      window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("keydown", handleKeydown, true);
       window.removeEventListener("pointerup", handlePointerEnd);
       window.removeEventListener("pointercancel", handlePointerEnd);
     };
@@ -1494,11 +1610,12 @@
 
   /* 键盘焦点：SVG g 不支持 outline，视觉由 JS 焦点环承担 */
   .graph-canvas :global(g.node:focus),
-  .graph-canvas :global(g.container-group:focus) {
+  .graph-canvas :global(g.container-group:focus),
+  .graph-canvas :global(g.container-header:focus) {
     outline: none;
   }
 
-  /* ── 容器分区（D46 container）：玻璃底板 + 标题 + 成员计数徽章（d3 生成 DOM → :global）── */
+  /* ── 容器分区（D46 container）：玻璃底板 + 顶层头部条（d3 生成 DOM → :global）── */
   :global {
     .containers g.container-group .container-body {
       fill: var(--glass);
@@ -1514,7 +1631,20 @@
     .containers g.container-group.expanded .container-body {
       fill: rgba(13, 15, 20, 0.55);
     }
-    .containers g.container-group .container-title {
+    .containers g.container-group.is-dragging {
+      cursor: grabbing;
+    }
+
+    /* 头部条（dot + 标题 + 计数徽章）：独立末层，展开态命中优先于成员星体/角标 */
+    .container-headers g.container-header .container-header-hit {
+      fill: transparent;
+      pointer-events: all;
+      display: none;
+    }
+    .container-headers g.container-header.expanded .container-header-hit {
+      display: block;
+    }
+    .container-headers g.container-header .container-title {
       fill: var(--ink);
       letter-spacing: 0.02em;
       paint-order: stroke;
@@ -1524,21 +1654,21 @@
       pointer-events: none;
       user-select: none;
     }
-    .containers g.container-group .container-badge-bg {
+    .container-headers g.container-header .container-badge-bg {
       fill: var(--wash-2);
       stroke: var(--glass-line);
     }
-    .containers g.container-group .container-badge.empty {
+    .container-headers g.container-header .container-badge.empty {
       opacity: 0.45;
     }
-    .containers g.container-group .container-count {
+    .container-headers g.container-header .container-count {
       fill: var(--ink-muted);
       font-family: var(--font-mono);
       font-size: 10px;
       font-variant-numeric: tabular-nums;
       pointer-events: none;
     }
-    .containers g.container-group.is-dragging {
+    .container-headers g.container-header.is-dragging {
       cursor: grabbing;
     }
 
