@@ -3,8 +3,22 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import GraphCanvas from "./GraphCanvas.svelte";
 import { store } from "./store.svelte";
 import { seedGridLayout } from "./layout";
+import { fallbackKindColor } from "./moduleProjection";
 import type { Catalog, GraphSnapshot } from "./protocol";
 import { obj, rel } from "./test-support";
+
+// jsdom 未实现 SVGSVGElement.viewBox（d3-zoom 的 extent 计算依赖它）→ 测试环境补齐，
+// 让看板定位触发的 d3 视图过渡可以安全跑完（否则定时器 flush 时抛未捕获异常污染套件）。
+Object.defineProperty(SVGSVGElement.prototype, "viewBox", {
+  configurable: true,
+  get(this: SVGSVGElement) {
+    const [x = 0, y = 0, width = 0, height = 0] = (this.getAttribute("viewBox") ?? "")
+      .split(/[\s,]+/)
+      .filter((part) => part !== "")
+      .map(Number);
+    return { baseVal: { x, y, width, height } };
+  },
+});
 
 const snapshot: GraphSnapshot = {
   graphId: "demo",
@@ -85,6 +99,7 @@ describe("GraphCanvas", () => {
   afterEach(() => {
     store.snapshot = null;
     store.selection = null;
+    store.selectedContainerId = null;
     store.searchQuery = "";
     store.kindFilter = "";
     store.catalog = null;
@@ -156,6 +171,7 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
   afterEach(() => {
     store.snapshot = null;
     store.selection = null;
+    store.selectedContainerId = null;
     store.searchQuery = "";
     store.kindFilter = "";
     store.catalog = null;
@@ -189,24 +205,33 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     done();
   });
 
-  it("点击容器条展开/收起（底板与头部条 aria/类同步）", async () => {
+  it("折叠条点击仅选中（R5）；展开/收起走看板按钮，底板与头部条 aria/类同步", async () => {
     store.catalog = layeredCatalog;
     loadSnapshot(layeredSnapshot);
     const { target, done } = await mountCanvas();
 
     const container = target.querySelector("g.container-group") as SVGGElement;
     const header = target.querySelector("g.container-header") as SVGGElement;
+    // 折叠条点击 = 仅选中该类，不再展开
     container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
+    expect(container.classList.contains("collapsed")).toBe(true);
+    expect(store.selectedContainerId).toBe("grp-1");
+
+    // 展开入口只在看板：按钮展开 → 头部条/框体点击收起
+    const toggle = target.querySelector(".row-toggle") as HTMLButtonElement;
+    expect(toggle.textContent?.trim()).toBe("展开");
+    toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
     expect(container.classList.contains("expanded")).toBe(true);
-    expect(header.classList.contains("expanded")).toBe(true);
     expect(header.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.textContent?.trim()).toBe("收起");
 
     header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("collapsed")).toBe(true);
-    expect(header.classList.contains("collapsed")).toBe(true);
     expect(header.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.textContent?.trim()).toBe("展开");
     done();
   });
 
@@ -216,7 +241,8 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     const { target, done } = await mountCanvas();
 
     const container = target.querySelector("g.container-group") as SVGGElement;
-    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // 展开入口只在看板（R5）：经看板按钮展开后断言几何
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
 
     // 断言前只有微任务（模拟尚未起跑）→ 成员坐标 = seedGridLayout 种子。
@@ -246,11 +272,11 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     expect(Number(hit().getAttribute("height"))).toBe(38);
 
     // 收起恢复折叠条；再次展开几何一致（不残留上次的展开偏移）
-    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("collapsed")).toBe(true);
     expect(Number(body().getAttribute("width"))).toBe(132); // 折叠条宽度 = barWidth
-    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("expanded")).toBe(true);
     expect(Number(body().getAttribute("x"))).toBe(minX - 20);
@@ -272,7 +298,8 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
 
     const header = target.querySelector("g.container-header") as SVGGElement;
     const container = target.querySelector("g.container-group") as SVGGElement;
-    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // 展开入口只在看板（R5）：看板按钮展开后验证头部条命中区
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("expanded")).toBe(true);
 
@@ -282,11 +309,6 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("collapsed")).toBe(true);
-
-    // 键盘路径不回归：Enter 仍可在头部条上切换展开
-    header.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-    await tick();
-    expect(container.classList.contains("expanded")).toBe(true);
     done();
   });
 
@@ -302,7 +324,8 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     store.select({ type: "object", id: "t-1" }); // 详情抽屉打开态
     const header = target.querySelector("g.container-header") as SVGGElement;
     const container = target.querySelector("g.container-group") as SVGGElement;
-    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // 展开入口只在看板（R5）：看板按钮展开后测 Esc 逐层
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("expanded")).toBe(true);
 
@@ -321,7 +344,7 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     done();
   });
 
-  it("点击容器展开/收起不清空已有选中（空白清除不误伤容器）", async () => {
+  it("折叠条点击选中该类并清节点选中（类选中独占，R4）；空白点击全清", async () => {
     store.catalog = layeredCatalog;
     loadSnapshot(layeredSnapshot);
     const { target, done } = await mountCanvas();
@@ -331,12 +354,24 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     const container = target.querySelector("g.container-group") as SVGGElement;
     container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
-    expect(container.classList.contains("expanded")).toBe(true);
-    expect(store.selection).toEqual({ type: "object", id: "t-1" });
-
-    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(store.selectedContainerId).toBe("grp-1");
+    expect(store.selection).toBeNull(); // 类选中独占：清节点选中
+    // 选中类成员光晕（R4b）：实例色 drop-shadow（样式变量下放）
+    const glowing = [...target.querySelectorAll<SVGGElement>("g.node.is-class-glow")];
+    expect(glowing.length).toBe(2); // t-1/t-2（rep-4 标注成员不入模拟、不发光）
+    expect(glowing.every((node) => (node.getAttribute("style") ?? "").includes(fallbackKindColor("grp-1")))).toBe(true);
+    // 展开框描边走实例色 CSS 变量（R1a）
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
-    expect(store.selection).toEqual({ type: "object", id: "t-1" });
+    expect((container.getAttribute("style") ?? "")).toContain("--container-stroke");
+    expect((container.getAttribute("style") ?? "")).toContain(fallbackKindColor("grp-1"));
+
+    // 空白点击全清（类选中一并清除）
+    const svg = target.querySelector("svg.graph-canvas") as SVGSVGElement;
+    svg.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(store.selectedContainerId).toBeNull();
+    expect(target.querySelectorAll("g.node.is-class-glow").length).toBe(0);
     done();
   });
 
@@ -346,7 +381,8 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     const { target, done } = await mountCanvas();
 
     const container = target.querySelector("g.container-group") as SVGGElement;
-    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // 展开入口只在看板（R5）：看板按钮展开后测 Esc 逐层
+    (target.querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await tick();
     expect(container.classList.contains("expanded")).toBe(true);
 
@@ -451,6 +487,166 @@ describe("GraphCanvas 语义分层渲染（D46 represent）", () => {
     expect(target.querySelectorAll("g.node").length).toBe(9); // 全部对象都是星体
     expect(target.querySelectorAll("g.affiliated-badge").length).toBe(0);
     expect(target.querySelector("aside.affiliated-aside")).toBeNull();
+    done();
+  });
+});
+
+// 1.4.2 容器看板/实例色/选中类：同 kind 多容器实例的区分度与互斥选中
+const boardCatalog: Catalog = {
+  modules: [{ id: "wf", namespace: "wf", version: "1.0.0" }],
+  kinds: [
+    { kind: "wf.domain", owner: "wf", represent: "container" },
+    { kind: "wf.task", owner: "wf" },
+  ],
+  commands: [],
+};
+
+const boardSnapshot: GraphSnapshot = {
+  graphId: "multi",
+  revision: 1,
+  objects: [
+    obj("demo-domain", "wf.domain", "演示域"),
+    obj("domain-alpha", "wf.domain", "域Alpha"),
+    obj("domain-beta", "wf.domain", "域Beta"),
+    obj("t-1", "wf.task", "任务一"),
+    obj("t-2", "wf.task", "任务二"),
+    obj("t-3", "wf.task", "任务三"),
+    obj("t-4", "wf.task", "任务四"),
+    obj("t-5", "wf.task", "任务五"),
+    obj("t-6", "wf.task", "任务六"),
+  ],
+  relations: [
+    rel("m-1", "member_of", "t-1", "demo-domain"),
+    rel("m-2", "member_of", "t-2", "demo-domain"),
+    rel("m-3", "member_of", "t-3", "domain-alpha"),
+    rel("m-4", "member_of", "t-4", "domain-alpha"),
+    rel("m-5", "member_of", "t-5", "domain-beta"),
+    rel("m-6", "member_of", "t-6", "domain-beta"),
+  ],
+};
+
+describe("GraphCanvas 容器看板/实例色/选中类（1.4.2）", () => {
+  afterEach(() => {
+    store.snapshot = null;
+    store.selection = null;
+    store.selectedContainerId = null;
+    store.searchQuery = "";
+    store.kindFilter = "";
+    store.catalog = null;
+  });
+
+  it("实例色（R1）：同 kind 多容器的色点按容器 id 确定性哈希配色且互不相同", async () => {
+    store.catalog = boardCatalog;
+    loadSnapshot(boardSnapshot);
+    const { target, done } = await mountCanvas();
+
+    const dots = [...target.querySelectorAll<SVGCircleElement>("g.container-header circle.container-dot")];
+    expect(dots.length).toBe(3);
+    // 确定性：与 moduleProjection 的哈希回退色一致（DOM 顺序 = objects 顺序）
+    const fills = dots.map((dot) => dot.getAttribute("fill"));
+    expect(fills).toEqual(["demo-domain", "domain-alpha", "domain-beta"].map((id) => fallbackKindColor(id)));
+    // 区分度：同 kind 三个实例三色
+    expect(new Set(fills).size).toBe(3);
+    done();
+  });
+
+  it("看板投影（R2）：3 容器 → 3 行（实例色点/标题/计数/折叠态/按钮），色点与画布 dot 同色", async () => {
+    store.catalog = boardCatalog;
+    loadSnapshot(boardSnapshot);
+    const { target, done } = await mountCanvas();
+
+    const board = target.querySelector("section.container-board");
+    expect(board).not.toBeNull();
+    const rows = [...target.querySelectorAll<HTMLElement>(".container-row")];
+    expect(rows.length).toBe(3);
+    // 行序 = 容器 id 字典序：demo-domain / domain-alpha / domain-beta
+    expect(rows.map((row) => row.querySelector(".row-title")?.textContent)).toEqual(["演示域", "域Alpha", "域Beta"]);
+    // 实例色点与画布 dot 同源（containerColorOf）；jsdom 把 style 里的 hex 规范化为 rgb()
+    const hexToRgb = (hex: string): string => {
+      const value = hex.replace("#", "");
+      return `rgb(${parseInt(value.slice(0, 2), 16)}, ${parseInt(value.slice(2, 4), 16)}, ${parseInt(value.slice(4, 6), 16)})`;
+    };
+    const canvasDots = [...target.querySelectorAll<SVGCircleElement>("g.container-header circle.container-dot")].map(
+      (dot) => dot.getAttribute("fill"),
+    );
+    rows.forEach((row, index) => {
+      expect(row.querySelector(".row-dot")?.getAttribute("style")).toContain(hexToRgb(canvasDots[index]!));
+    });
+    expect(rows.every((row) => row.querySelector(".row-count")?.textContent === "2")).toBe(true);
+    expect(rows.every((row) => row.querySelector(".row-state")?.textContent === "折叠")).toBe(true);
+    expect(rows.every((row) => row.querySelector(".row-toggle")?.textContent?.trim() === "展开")).toBe(true);
+    done();
+  });
+
+  it("看板行点击（R3/R4）：选中该类 + 定位请求带锚点偏移；成员光晕随选中类；选类清节点选中", async () => {
+    store.catalog = boardCatalog;
+    loadSnapshot(boardSnapshot);
+    const { target, done } = await mountCanvas();
+
+    const rows = [...target.querySelectorAll<HTMLElement>(".container-row")];
+    (rows[0].querySelector(".container-row-main") as HTMLButtonElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+    await tick();
+    expect(store.selectedContainerId).toBe("demo-domain");
+    expect(store.selection).toBeNull(); // 选类清节点选中
+    expect(store.locateRequest?.nodeId).toBe("demo-domain");
+    expect(typeof store.locateRequest?.offsetX).toBe("number"); // 局部锚点偏移（折叠条中心 = 0 偏移）
+    // 类成员光晕（R4b）：2 个成员加实例色样式变量
+    const glowing = [...target.querySelectorAll<SVGGElement>("g.node.is-class-glow")];
+    expect(glowing.length).toBe(2);
+    expect(glowing.every((node) => (node.getAttribute("style") ?? "").includes(fallbackKindColor("demo-domain")))).toBe(true);
+
+    // 展开后行点击 → 偏移 = 框中心（数值随成员位置变化，这里只断言已携带）
+    (rows[0].querySelector(".row-toggle") as HTMLButtonElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    (rows[0].querySelector(".container-row-main") as HTMLButtonElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+    await tick();
+    expect(typeof store.locateRequest?.offsetX).toBe("number");
+    expect(typeof store.locateRequest?.offsetY).toBe("number");
+
+    // 选中互斥：点节点清类选中（store.select 中枢）
+    const node = target.querySelector("g.node") as SVGGElement;
+    (node.querySelector(".node-hit-area") as SVGRectElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(store.selectedContainerId).toBeNull();
+    expect(store.selection).toEqual({ type: "object", id: "t-1" }); // 节点层首个星体 = t-1
+    expect(target.querySelectorAll("g.node.is-class-glow").length).toBe(0);
+    done();
+  });
+
+  it("抽屉打开时看板整栈让位（回归）：selection 翻转让位类，行点击在让位态仍命中，关抽屉回位", async () => {
+    store.catalog = boardCatalog;
+    loadSnapshot(boardSnapshot);
+    const { target, done } = await mountCanvas();
+
+    const stack = target.querySelector(".right-stack") as HTMLElement;
+    // 抽屉关闭：不让位
+    expect(stack.classList.contains("drawer-shifted")).toBe(false);
+
+    // 选中节点（App 外壳据此打开右缘详情抽屉）→ 整栈左移让位
+    const node = target.querySelector("g.node") as SVGGElement;
+    (node.querySelector(".node-hit-area") as SVGRectElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(store.selection).toEqual({ type: "object", id: "t-1" });
+    expect(stack.classList.contains("drawer-shifted")).toBe(true);
+
+    // 让位态下看板行仍可命中：点行 = 选类（互斥清节点选中）+ 定位请求
+    const rows = [...target.querySelectorAll<HTMLElement>(".container-row")];
+    (rows[1].querySelector(".container-row-main") as HTMLButtonElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+    await tick();
+    expect(store.selectedContainerId).toBe("domain-alpha");
+    expect(store.locateRequest?.nodeId).toBe("domain-alpha");
+
+    // 关抽屉（清选中）→ 回位
+    store.select(null);
+    await tick();
+    expect(store.selection).toBeNull();
+    expect(stack.classList.contains("drawer-shifted")).toBe(false);
     done();
   });
 });

@@ -278,3 +278,99 @@ describe("App 静态预览整链（1.2.0 G1 mount 级 DOM 断言）", () => {
     target.remove();
   });
 });
+
+describe("App Esc 逐层梯（1.4.2 选中类层）", () => {
+  afterEach(() => {
+    store.dispose();
+    store.recovery = null;
+    store.snapshot = null;
+    store.catalog = null;
+    store.loading = true;
+    store.error = "";
+    store.readOnly = false;
+    store.selectedContainerId = null;
+    store.selection = null;
+  });
+
+  it("Esc 先清选中类（一次一层），再按才清节点/关系选中", async () => {
+    const session = makeFakeSession(freshState());
+    // 注入一个容器类：selectedContainerId 必须在画布语义里真实存在，
+    // 否则画布的失效自愈 effect 会在 Esc 之前先把它清掉（无法观察梯子顺序）。
+    // 注意 catalog() 返回闭包变量，必须原位 mutate（kinds 声明为只读数组，测试内收窄后 push）。
+    session.state.objects.push(obj("demo-domain", "wf.domain", "演示域"));
+    (session.catalogData.kinds as Array<{ kind: string; owner: string; represent: "container" }>).push({
+      kind: "wf.domain",
+      owner: "wf",
+      represent: "container",
+    });
+    const { component, target } = await mountLoadedApp(session);
+    store.selectedContainerId = "demo-domain";
+    store.selection = { type: "object", id: "q-1" };
+    await tick();
+
+    // 第一次 Esc：外壳梯的消费层 = 选中类（画布 capture 层无浮层/聚焦容器可吃 → 放行到外壳）
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await tick();
+    expect(store.selectedContainerId).toBeNull();
+    expect(store.selection).toEqual({ type: "object", id: "q-1" });
+
+    // 第二次 Esc：清节点/关系选中
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await tick();
+    expect(store.selection).toBeNull();
+    unmount(component);
+    target.remove();
+  });
+});
+
+describe("App 详情抽屉与容器看板让位（1.4.2 回归）", () => {
+  afterEach(() => {
+    store.dispose();
+    store.recovery = null;
+    store.snapshot = null;
+    store.catalog = null;
+    store.loading = true;
+    store.error = "";
+    store.readOnly = false;
+    store.selectedContainerId = null;
+    store.selection = null;
+  });
+
+  it("抽屉打开（真实 DetailDrawer 在场）→ 看板整栈让位且行仍可命中，选类后抽屉关闭回位", async () => {
+    const session = makeFakeSession(freshState());
+    // 注入容器类（catalog() 返回闭包变量 → 原位 mutate）
+    session.state.objects.push(obj("demo-domain", "wf.domain", "演示域"));
+    (session.catalogData.kinds as Array<{ kind: string; owner: string; represent: "container" }>).push({
+      kind: "wf.domain",
+      owner: "wf",
+      represent: "container",
+    });
+    const { component, target } = await mountLoadedApp(session);
+
+    // 抽屉打开：真实 .drawer.visible 在场，看板整栈左移让位
+    const nodeHit = target.querySelector("g.node .node-hit-area") as SVGRectElement;
+    nodeHit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    await vi.waitFor(() => {
+      if (!target.querySelector(".drawer.visible")) throw new Error("详情抽屉未打开");
+    }, { timeout: 2000 });
+    const stack = target.querySelector(".right-stack") as HTMLElement;
+    expect(stack).not.toBeNull();
+    expect(stack.classList.contains("drawer-shifted")).toBe(true);
+
+    // 让位态下看板行仍可命中：点行 = 选类（互斥清节点选中）+ 定位请求
+    const rowMain = target.querySelector(".container-row .container-row-main") as HTMLButtonElement;
+    rowMain.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await tick();
+    expect(store.selectedContainerId).toBe("demo-domain");
+    expect(store.selection).toBeNull();
+
+    // 选类清节点选中 → 抽屉关闭，让位回位
+    await vi.waitFor(() => {
+      if (target.querySelector(".drawer.visible")) throw new Error("详情抽屉未关闭");
+    }, { timeout: 2000 });
+    expect(stack.classList.contains("drawer-shifted")).toBe(false);
+    unmount(component);
+    target.remove();
+  });
+});

@@ -61,8 +61,11 @@
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
-      // 逐层退出：编辑器 → 选中 → 浮层 → 过滤（与参考一致）
+      // 外壳梯（Esc 事件序的第二相）：编辑器 → 选中类 → 选中 → 浮层 → 过滤。
+      // 第一相在 GraphCanvas 的 capture 监听：附属浮层 → 聚焦容器（收起/失焦），吃到即拦截本梯。
+      // 选中类与 selection 互斥（store.select 中枢清写），同一时刻至多一层非空。
       if (store.editor) store.closeEditor();
+      else if (store.selectedContainerId) store.selectedContainerId = null;
       else if (store.selection) store.select(null);
       else if (openFlyout) openFlyout = null;
       else if (store.searchQuery || store.kindFilter) store.clearFilters();

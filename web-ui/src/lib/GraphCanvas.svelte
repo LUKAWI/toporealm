@@ -6,7 +6,7 @@
   import * as d3 from "d3";
   import { store } from "./store.svelte";
   import { computeFitTransform, isUserViewportInput, partitionLayoutEdges, seedGridLayout } from "./layout";
-  import { kindColorOf, projectModuleKind, type KindRepresent } from "./moduleProjection";
+  import { fallbackKindColor, kindColorOf, projectModuleKind, type KindRepresent } from "./moduleProjection";
   import { displayOf, titleOf, type Entity, type RelationEntity } from "./protocol";
 
   type SimNode = Entity & d3.SimulationNodeDatum;
@@ -239,6 +239,20 @@
     return `${relation.id} ${relation.kind} ${titleOf(relation)} ${relation.source} ${relation.target}`.toLowerCase().includes(query);
   }
 
+  /** 选中类成员光晕（R4）：实例色 drop-shadow 克制脉动（CSS）；reduced-motion 静态化。 */
+  function applyContainerClassGlow(): void {
+    if (!zoomGroup) return;
+    const selectedId = store.selectedContainerId;
+    const members = selectedId
+      ? new Set((layered.membersOf.get(selectedId) ?? []).map((member) => member.id))
+      : new Set<string>();
+    const color = selectedId ? containerColorOf(selectedId) : null;
+    zoomGroup
+      .selectAll<SVGGElement, SimNode>(".nodes > g.node")
+      .classed("is-class-glow", (node) => members.has(node.id))
+      .style("--class-glow-color", (node) => (members.has(node.id) ? color : null));
+  }
+
   function applyFiltersAndSelection(): void {
     if (!zoomGroup) return;
     zoomGroup.selectAll<SVGGElement, SimNode>(".nodes > g.node")
@@ -251,6 +265,7 @@
     zoomGroup.selectAll<SVGGElement, SimNode>(".containers > g.container-group").each((node) => {
       applyContainerGeometry(node);
     });
+    applyContainerClassGlow();
   }
 
   // ── 附属标注角标浮层（视图状态，浏览器本地）──
@@ -287,6 +302,13 @@
     lastSelectionKey = key;
   });
 
+  $effect(() => {
+    // 选中容器被删除/切图后失效 → 自动清空（与附属浮层同模式的失效自愈）
+    if (store.selectedContainerId && !(reactiveSemantics?.containerIds.has(store.selectedContainerId) ?? false)) {
+      store.selectedContainerId = null;
+    }
+  });
+
   function openBadgePopup(host: SimNode): void {
     if (!svgEl) return;
     const transform = d3.zoomTransform(svgEl);
@@ -302,8 +324,20 @@
     store.select({ type: "object", id }); // 复用 ObjectDetail 详情抽屉
   }
 
-  // 容器展开/收起（视图状态：默认折叠；浏览器本地，不写 Core）
-  const expandedContainers = new Map<string, boolean>();
+  // 容器展开/收起与选中类（视图状态：默认折叠；浏览器本地，不写 Core）。
+  // $state 记录：右上角看板（R2）要响应式读取展开态/选中态，d3 渲染与 HTML 看板共用同一真相。
+  let expandedContainers = $state<Record<string, boolean>>({});
+
+  /** 容器实例色（R1）：复用确定性哈希回退色（8 色板）——同 kind 不同实例不同色，kind 色继续归普通星体。 */
+  function containerColorOf(containerId: string): string {
+    return fallbackKindColor(containerId);
+  }
+
+  /** hex → rgba（展开框描边半透明用；回退色板与目录声明色均为 hex）。 */
+  function hexAlpha(hex: string, alpha: number): string {
+    const value = hex.replace("#", "");
+    return `rgba(${parseInt(value.slice(0, 2), 16)}, ${parseInt(value.slice(2, 4), 16)}, ${parseInt(value.slice(4, 6), 16)}, ${alpha})`;
+  }
 
   // ── 星体视觉（V4 棱星正本）：halo 贴芒 + 八向星芒 + 红蓝残像 + 白炽核 ──
   const STAR_SPEC: Record<string, { spike: number; glow: number; core: number }> = {
@@ -581,41 +615,15 @@
   // 与其附属角标画在容器层之上：头部条若留在底板层，展开态成员角标会盖住标题并吞掉点击
   // （1.4.1 实测缺陷①）。SVG 无 z-index、文档顺序 = 视觉/命中最上层，分组内提升无效，
   // 头部条必须是独立末层。
-  function applyContainerGeometry(node: SimNode): void {
-    if (!zoomGroup) return;
-    const expanded = expandedContainers.get(node.id) ?? false;
-    const group = zoomGroup
-      .selectAll<SVGGElement, SimNode>(".containers > g.container-group")
-      .filter((item) => item.id === node.id);
-    const header = zoomGroup
-      .selectAll<SVGGElement, SimNode>(".container-headers > g.container-header")
-      .filter((item) => item.id === node.id);
-    group.classed("expanded", expanded).classed("collapsed", !expanded);
-    header
-      .classed("expanded", expanded)
-      .classed("collapsed", !expanded)
-      .attr("aria-expanded", expanded);
-    const title = displayOf(node);
-    const count = memberCountOf(node.id);
-    header.select<SVGTextElement>(".container-title").text(title);
-    header.select<SVGTextElement>(".container-count").text(String(count));
-    header.select<SVGGElement>(".container-badge").classed("empty", count === 0);
-    const barWidth = Math.max(132, title.length * 7 + 66);
-    if (!expanded) {
-      group.select<SVGRectElement>(".container-body")
-        .attr("x", -barWidth / 2).attr("y", -18).attr("width", barWidth).attr("height", 36).attr("rx", 12);
-      header.select("circle.container-dot").attr("cx", -barWidth / 2 + 16).attr("cy", 0).attr("r", 4);
-      header.select<SVGTextElement>(".container-title").attr("x", -barWidth / 2 + 26).attr("y", 0);
-      header.select<SVGGElement>(".container-badge").attr("transform", `translate(${barWidth / 2 - 16},0)`);
-      // 命中区几何同步（展开态才由 CSS 放开 display）：折叠态不抢成员星体的点击
-      header.select<SVGRectElement>(".container-header-hit")
-        .attr("x", -barWidth / 2).attr("y", -18).attr("width", barWidth).attr("height", 36).attr("rx", 12);
-      return;
+  /** 容器局部系几何：折叠 = 固定条；展开 = 成员包围盒 + 内边距（标注成员不入模拟，仅由计数徽章表达）。
+   * 组元素已平移到容器星位（tick 的 transform），成员模拟坐标先转到容器局部系再求包围盒——
+   * 直接用绝对坐标会把底板平移两次，画到成员簇之外的空白处（1.4.0「框内没有成员」缺陷根因）。
+   * 容器自身位置作种子留在盒内，锚点不跳。看板定位（R3）复用同一几何。 */
+  function containerBoxOf(node: SimNode): { x: number; y: number; w: number; h: number; barWidth: number } {
+    const barWidth = Math.max(132, displayOf(node).length * 7 + 66);
+    if (!(expandedContainers[node.id] ?? false)) {
+      return { x: -barWidth / 2, y: -18, w: barWidth, h: 36, barWidth };
     }
-    // 展开分区：包围成员星体当前位置（标注成员不入模拟，仅由计数徽章表达）。
-    // 组元素已平移到容器星位（tick 的 transform），成员模拟坐标必须先转到容器局部系
-    // 再求包围盒——直接用绝对坐标会把底板平移两次，画到成员簇之外的空白处
-    // （1.4.0「展开后框内没有成员」缺陷根因）。容器自身位置作种子留在盒内，锚点不跳。
     const padX = 20;
     const padTop = 46;
     const padBottom = 20;
@@ -635,23 +643,136 @@
       maxX = Math.max(maxX, localX);
       maxY = Math.max(maxY, localY);
     }
-    const x = minX - padX;
-    const y = minY - padTop;
-    const w = Math.max(barWidth, maxX - minX + padX * 2);
-    const h = Math.max(36, maxY - minY + padTop + padBottom);
+    return {
+      x: minX - padX,
+      y: minY - padTop,
+      w: Math.max(barWidth, maxX - minX + padX * 2),
+      h: Math.max(36, maxY - minY + padTop + padBottom),
+      barWidth,
+    };
+  }
+
+  function applyContainerGeometry(node: SimNode): void {
+    if (!zoomGroup) return;
+    const expanded = expandedContainers[node.id] ?? false;
+    const selected = store.selectedContainerId === node.id;
+    const instanceColor = containerColorOf(node.id);
+    const group = zoomGroup
+      .selectAll<SVGGElement, SimNode>(".containers > g.container-group")
+      .filter((item) => item.id === node.id);
+    const header = zoomGroup
+      .selectAll<SVGGElement, SimNode>(".container-headers > g.container-header")
+      .filter((item) => item.id === node.id);
+    group.classed("expanded", expanded).classed("collapsed", !expanded).classed("is-selected", selected);
+    header
+      .classed("expanded", expanded)
+      .classed("collapsed", !expanded)
+      .classed("is-selected", selected)
+      .attr("aria-expanded", expanded);
+    // 实例色（R1）经 CSS 变量下放：展开框描边半透明实例色；选中态提亮 + 加粗（CSS 消费）
+    if (expanded) group.style("--container-stroke", hexAlpha(instanceColor, 0.55));
+    else group.style("--container-stroke", null);
+    group.style("--container-stroke-selected", instanceColor);
+    const title = displayOf(node);
+    const count = memberCountOf(node.id);
+    header.select<SVGTextElement>(".container-title").text(title);
+    header.select<SVGTextElement>(".container-count").text(String(count));
+    header.select<SVGGElement>(".container-badge").classed("empty", count === 0);
+    const box = containerBoxOf(node);
+    if (!expanded) {
+      group.select<SVGRectElement>(".container-body")
+        .attr("x", box.x).attr("y", box.y).attr("width", box.w).attr("height", box.h).attr("rx", 12);
+      header.select("circle.container-dot").attr("cx", box.x + 16).attr("cy", 0).attr("r", 4);
+      header.select<SVGTextElement>(".container-title").attr("x", box.x + 26).attr("y", 0);
+      header.select<SVGGElement>(".container-badge").attr("transform", `translate(${box.w / 2 - 16},0)`);
+      // 命中区几何同步（展开态才由 CSS 放开 display）：折叠态不抢成员星体的点击
+      header.select<SVGRectElement>(".container-header-hit")
+        .attr("x", box.x).attr("y", box.y).attr("width", box.w).attr("height", box.h).attr("rx", 12);
+      return;
+    }
     group.select<SVGRectElement>(".container-body")
-      .attr("x", x).attr("y", y).attr("width", w).attr("height", h).attr("rx", 14);
-    header.select("circle.container-dot").attr("cx", x + 16).attr("cy", y + 19).attr("r", 4);
-    header.select<SVGTextElement>(".container-title").attr("x", x + 26).attr("y", y + 19);
-    header.select<SVGGElement>(".container-badge").attr("transform", `translate(${x + w - 18},${y + 19})`);
+      .attr("x", box.x).attr("y", box.y).attr("width", box.w).attr("height", box.h).attr("rx", 14);
+    header.select("circle.container-dot").attr("cx", box.x + 16).attr("cy", box.y + 19).attr("r", 4);
+    header.select<SVGTextElement>(".container-title").attr("x", box.x + 26).attr("y", box.y + 19);
+    header.select<SVGGElement>(".container-badge").attr("transform", `translate(${box.x + box.w - 18},${box.y + 19})`);
     // 展开态命中区 = 框顶行全宽：成员星体/角标与标题重叠时，头部条点击优先（可靠收起）
     header.select<SVGRectElement>(".container-header-hit")
-      .attr("x", x).attr("y", y).attr("width", w).attr("height", 38).attr("rx", 14);
+      .attr("x", box.x).attr("y", box.y).attr("width", box.w).attr("height", 38).attr("rx", 14);
+  }
+
+  // 容器交互原语（R4/R5）：选中类独占（清节点选中走 store.select 互斥中枢）；
+  // 展开入口只在看板——画布折叠条点击仅选中，展开态头部条/框体点击收起。
+  function selectContainer(id: string): void {
+    store.select(null);
+    store.selectedContainerId = id;
+  }
+
+  function expandContainer(node: SimNode): void {
+    expandedContainers[node.id] = true;
+    applyContainerGeometry(node);
+  }
+
+  function collapseContainer(node: SimNode): void {
+    expandedContainers[node.id] = false;
+    applyContainerGeometry(node);
   }
 
   function toggleContainer(node: SimNode): void {
-    expandedContainers.set(node.id, !(expandedContainers.get(node.id) ?? false));
-    applyContainerGeometry(node);
+    if (expandedContainers[node.id] ?? false) collapseContainer(node);
+    else expandContainer(node);
+  }
+
+  /** 画布侧容器点击（折叠条/展开框体共用）：折叠 = 仅选中（不展开，R5）；展开 = 收起。 */
+  function onContainerClick(node: SimNode): void {
+    if (expandedContainers[node.id] ?? false) collapseContainer(node);
+    else selectContainer(node.id);
+  }
+
+  // ── 右上角容器看板（R2/R3/R5）：实例色行 + 计数 + 折叠态 + 展开入口 ──
+  // 窄屏（≤768px）收纳为可展开（boardOpen）；宽屏 CSS 强制显示行区。
+  let boardOpen = $state(false);
+
+  // 右缘详情抽屉（对象/关系/编辑器共用 DetailDrawer 壳）打开时整栈左移让位，
+  // 看板行不再被抽屉盖住（1.4.2 实测缺陷①）；抽屉关闭时回位。
+  const drawerOpen = $derived(store.selection !== null || store.editor !== null);
+
+  /** 看板行数据投影：与画布共用 reactiveSemantics/过滤语义/展开态/选中态的同一真相。 */
+  const containerRows = $derived.by(() => {
+    const semantics = reactiveSemantics;
+    const snapshot = store.snapshot;
+    if (!semantics || !snapshot) return [];
+    const rows = snapshot.objects
+      .filter((object) => semantics.containerIds.has(object.id))
+      .map((object) => ({
+        id: object.id,
+        title: displayOf(object),
+        kind: object.kind,
+        color: containerColorOf(object.id),
+        count: (semantics.membersOf.get(object.id) ?? []).filter((member) => nodeMatchesFilters(member)).length,
+        expanded: expandedContainers[object.id] ?? false,
+        selected: store.selectedContainerId === object.id,
+      }));
+    rows.sort((a, b) => a.id.localeCompare(b.id));
+    return rows;
+  });
+
+  /** 看板行点击：选中该类（store.select 中枢互斥清节点选中）+ 平移居中（展开=框中心，折叠=条位置）。 */
+  function locateContainerFromBoard(id: string): void {
+    store.select(null);
+    store.selectedContainerId = id;
+    const node = currentNodes.find((candidate) => candidate.id === id);
+    if (!node) {
+      store.locateNode(id);
+      return;
+    }
+    const box = containerBoxOf(node);
+    store.locateNode(id, { x: box.x + box.w / 2, y: box.y + box.h / 2 });
+  }
+
+  /** 看板行按钮：折叠类的唯一展开入口 / 展开类收起（与画布头部条共享状态）。 */
+  function toggleContainerFromBoard(id: string): void {
+    const node = currentNodes.find((candidate) => candidate.id === id);
+    if (node) toggleContainer(node);
   }
 
   /** 底板层（.containers，首层）：只承载框体矩形，点击/拖拽照常（玻璃底板语义）。 */
@@ -676,7 +797,7 @@
     enter.merge(container)
       .on("click", (event: MouseEvent, node: SimNode) => {
         event.stopPropagation();
-        toggleContainer(node);
+        onContainerClick(node);
       })
       .call(nodeDragBehavior());
   }
@@ -718,7 +839,7 @@
       .each((node) => {
         applyContainerGeometry(node);
       });
-    all.select("circle.container-dot").attr("fill", (node) => kindColorFor(node.kind));
+    all.select("circle.container-dot").attr("fill", (node) => containerColorOf(node.id));
     all.select<SVGRectElement>(".container-badge-bg").attr("x", -13).attr("y", -9).attr("width", 26).attr("height", 18);
     all.select<SVGTextElement>(".container-title")
       .attr("dominant-baseline", "central")
@@ -732,14 +853,14 @@
       .on("keydown", (event: KeyboardEvent, node: SimNode) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          toggleContainer(node);
+          onContainerClick(node);
         }
       })
       .on("focus", (_event: FocusEvent, node: SimNode) => syncContainerFocus(node.id, true))
       .on("blur", (_event: FocusEvent, node: SimNode) => syncContainerFocus(node.id, false))
       .on("click", (event: MouseEvent, node: SimNode) => {
         event.stopPropagation();
-        toggleContainer(node);
+        onContainerClick(node);
       })
       .call(nodeDragBehavior());
   }
@@ -966,7 +1087,7 @@
     const svg = d3.select(svgEl);
     const previousTransform = (svgEl as SVGSVGElement & { __zoom?: d3.ZoomTransform }).__zoom;
     if (isGraphSwitch) {
-      expandedContainers.clear();
+      expandedContainers = {};
       badgePopup = null;
     }
     svg.selectAll("*").remove();
@@ -1118,7 +1239,7 @@
         .attr("transform", (node) => `translate(${node.x ?? 0},${node.y ?? 0})`)
         .each((node) => {
           // 展开分区逐帧包围成员当前位置；折叠条几何固定（仅位移）
-          if (expandedContainers.get(node.id)) applyContainerGeometry(node);
+          if (expandedContainers[node.id]) applyContainerGeometry(node);
         });
 
       if (!fitDone && simulation && simulation.alpha() <= 0.3) {
@@ -1230,9 +1351,10 @@
     applyEdgeVisual(zoomGroup.selectAll<SVGGElement, SimEdge>(".edges .edge-group"));
   });
 
-  // 选择与过滤变化 → 增量着色
+  // 选择/过滤/容器类选中变化 → 增量着色
   $effect(() => {
     void store.selection;
+    void store.selectedContainerId;
     void store.searchQuery;
     void store.kindFilter;
     applyFiltersAndSelection();
@@ -1247,7 +1369,7 @@
     else if (request.kind === "fit") autoFit();
   });
 
-  // 定位请求（搜索 Enter 等）：平移居中到目标节点
+  // 定位请求（搜索 Enter、看板行点击）：平移居中到目标（+局部锚点偏移；容器展开态=框中心）
   $effect(() => {
     const request = store.locateRequest;
     if (!request || !svgEl || !zoomBehavior) return;
@@ -1256,9 +1378,11 @@
     userMovedView = true; // 定位是用户主动的视角移动，布局收敛后不再抢取景
     const { w, h } = getContainerSize();
     const k = (svgEl as SVGSVGElement & { __zoom?: d3.ZoomTransform }).__zoom?.k ?? 1;
+    const offsetX = request.offsetX ?? 0;
+    const offsetY = request.offsetY ?? 0;
     d3.select(svgEl)
-      .transition().duration(prefersReducedMotion ? 0 : 450).ease(d3.easeCubicOut)
-      .call(zoomBehavior.transform, d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-node.x, -node.y));
+      .transition().duration(prefersReducedMotion ? 0 : 300).ease(d3.easeCubicOut)
+      .call(zoomBehavior.transform, d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(node.x + offsetX), -(node.y + offsetY)));
   });
 
   // Tab 分组循环：焦点只在可见星体与容器头部条之间循环
@@ -1335,10 +1459,7 @@
             && (target.classList.contains("container-header") || target.classList.contains("container-group"))
           ) {
             const node = d3.select(target).datum() as SimNode | undefined;
-            if (node && expandedContainers.get(node.id)) {
-              expandedContainers.set(node.id, false);
-              applyContainerGeometry(node);
-            }
+            if (node && (expandedContainers[node.id] ?? false)) collapseContainer(node);
             (target as SVGGElement).blur?.();
             consumed = true; // 聚焦容器本身就是一层（未展开也退出聚焦）
           }
@@ -1363,6 +1484,7 @@
   onDestroy(() => {
     endMiddlePan();
     simulation?.stop();
+    if (svgEl) d3.select(svgEl).interrupt(); // 取消在途视图过渡（fit/缩放/定位），卸载后不再被定时器队列回调
     resizeObserver?.disconnect();
     if (fitFallbackTimer) clearTimeout(fitFallbackTimer);
     if (resizeFitTimer) clearTimeout(resizeFitTimer);
@@ -1393,23 +1515,64 @@
     </div>
   {/if}
 
-  <!-- 附属侧栏（零/多宿主标注兜底；风格对齐 App.svelte 静态预览列表） -->
-  {#if affiliatedGroups.length > 0}
-    <aside class="affiliated-aside" aria-label="附属对象列表">
-      {#each affiliatedGroups as [kind, items] (kind)}
-        <section class="affiliated-kind-group">
-          <h4 class="affiliated-kind-title">{kind} <span class="affiliated-kind-n">{items.length}</span></h4>
-          <div class="affiliated-list">
-            {#each items as annotation (annotation.id)}
-              <button class="affiliated-item" onclick={() => selectAffiliated(annotation.id)}>
-                <code class="affiliated-id">{annotation.id}</code>
-                {#if titleOf(annotation)}<span class="affiliated-label">{titleOf(annotation)}</span>{/if}
-              </button>
+  <!-- 右缘堆叠：容器看板（R2，右上角）+ 附属侧栏兜底；同栈互不重叠 -->
+  {#if containerRows.length > 0 || affiliatedGroups.length > 0}
+    <div class="right-stack" class:drawer-shifted={drawerOpen}>
+      {#if containerRows.length > 0}
+        <section class="container-board" data-open={boardOpen} aria-label="容器看板">
+          <div class="container-board-head">
+            <span class="container-board-title">容器 · {containerRows.length}</span>
+            <button
+              class="board-collapse-btn"
+              type="button"
+              onclick={() => (boardOpen = !boardOpen)}
+              aria-expanded={boardOpen}
+            >
+              {boardOpen ? "收起看板" : "展开看板"}
+            </button>
+          </div>
+          <div class="container-board-rows" role="list">
+            {#each containerRows as row (row.id)}
+              <div class="container-row" class:active={row.selected} role="listitem">
+                <button
+                  class="container-row-main"
+                  type="button"
+                  onclick={() => locateContainerFromBoard(row.id)}
+                  title="{row.title}（{row.kind}）"
+                  aria-pressed={row.selected}
+                  aria-label="定位并选中容器 {row.title}，{row.count} 个成员"
+                >
+                  <span class="row-dot" style="background: {row.color}"></span>
+                  <span class="row-title">{row.title}</span>
+                  <span class="row-count">{row.count}</span>
+                  <span class="row-state">{row.expanded ? "展开" : "折叠"}</span>
+                </button>
+                <button class="row-toggle" type="button" onclick={() => toggleContainerFromBoard(row.id)}>
+                  {row.expanded ? "收起" : "展开"}
+                </button>
+              </div>
             {/each}
           </div>
         </section>
-      {/each}
-    </aside>
+      {/if}
+      {#if affiliatedGroups.length > 0}
+        <aside class="affiliated-aside" aria-label="附属对象列表">
+          {#each affiliatedGroups as [kind, items] (kind)}
+            <section class="affiliated-kind-group">
+              <h4 class="affiliated-kind-title">{kind} <span class="affiliated-kind-n">{items.length}</span></h4>
+              <div class="affiliated-list">
+                {#each items as annotation (annotation.id)}
+                  <button class="affiliated-item" onclick={() => selectAffiliated(annotation.id)}>
+                    <code class="affiliated-id">{annotation.id}</code>
+                    {#if titleOf(annotation)}<span class="affiliated-label">{titleOf(annotation)}</span>{/if}
+                  </button>
+                {/each}
+              </div>
+            </section>
+          {/each}
+        </aside>
+      {/if}
+    </div>
   {/if}
 
   <div class="zoom-hint">
@@ -1585,6 +1748,15 @@
       transform-box: fill-box;
     }
 
+    /* 选中类成员光晕（R4）：实例色 drop-shadow 克制脉动（颜色变量按节点下放） */
+    .nodes g.node.is-class-glow .star-sky {
+      animation: class-glow-pulse 2.6s ease-in-out infinite;
+    }
+    @keyframes class-glow-pulse {
+      0%, 100% { filter: drop-shadow(0 0 2px var(--class-glow-color)) drop-shadow(0 0 5px var(--class-glow-color)); }
+      50% { filter: drop-shadow(0 0 4px var(--class-glow-color)) drop-shadow(0 0 9px var(--class-glow-color)); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .nodes g.node .star-halo,
       .nodes g.node .star-spikes,
@@ -1592,6 +1764,11 @@
       .nodes g.node .prism-r,
       .nodes g.node .prism-b {
         animation: none;
+      }
+      /* 选中类光晕（R4）：reduced-motion 下静态无动画 */
+      .nodes g.node.is-class-glow .star-sky {
+        animation: none;
+        filter: drop-shadow(0 0 3px var(--class-glow-color));
       }
       .nodes g.node:hover .hover-ring,
       .nodes g.node.is-focused .hover-ring,
@@ -1630,6 +1807,13 @@
     }
     .containers g.container-group.expanded .container-body {
       fill: rgba(13, 15, 20, 0.55);
+      /* 实例色（R1）：半透明哈希色描边，变量由 applyContainerGeometry 按容器 id 下放 */
+      stroke: var(--container-stroke, var(--glass-line));
+    }
+    .containers g.container-group.is-selected .container-body {
+      /* 选中类（R4）：实例色提亮 + 线宽加粗 */
+      stroke: var(--container-stroke-selected, var(--line-strong));
+      stroke-width: 2;
     }
     .containers g.container-group.is-dragging {
       cursor: grabbing;
@@ -1787,13 +1971,203 @@
     padding: 0 var(--sp-1) var(--sp-1);
   }
 
-  /* ── 附属侧栏（零/多宿主标注兜底；风格对齐 App.svelte 静态预览列表）── */
-  .affiliated-aside {
+  /* ── 右缘堆叠：容器看板（R2，右上角）+ 附属侧栏兜底；同栈互不重叠 ── */
+  .right-stack {
     position: absolute;
     right: 12px;
     top: 12px;
     bottom: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--sp-3);
+    pointer-events: none;
+    z-index: var(--z-overlay);
+    /* 让位回位与抽屉滑入同节奏（DetailDrawer 0.22s ease-out-quint） */
+    transition: transform 0.22s var(--ease-out-quint);
+  }
+
+  /* 抽屉打开：整栈左移让位（抽屉最宽 400px + 右缘 12px + 呼吸 12px），关阔回位 */
+  .right-stack.drawer-shifted {
+    transform: translateX(-424px);
+  }
+
+  @media (max-width: 768px) {
+    /* 窄屏抽屉全宽弹出，让位无意义 */
+    .right-stack.drawer-shifted {
+      transform: none;
+    }
+  }
+
+  .right-stack > * {
+    pointer-events: auto;
+  }
+
+  /* 容器看板（R2）：每行 = 实例色点 + 标题 + 计数 + 折叠态 + 展开/收起按钮 */
+  .container-board {
+    width: 272px;
+    max-width: calc(100vw - 96px);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-2);
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: var(--blur-panel);
+    backdrop-filter: var(--blur-panel);
+    border: 1px solid var(--glass-line, var(--line));
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-float), inset 0 1px 0 var(--hi-line);
+  }
+
+  .container-board-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    padding: 0 var(--sp-1) var(--sp-1);
+  }
+
+  .container-board-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    font-weight: 650;
+    color: var(--ink-faint);
+    letter-spacing: 0.02em;
+  }
+
+  /* 看板收纳入口：默认可见（活代码），仅宽屏隐藏——收纳是窄屏（≤768px）专属语义 */
+  .board-collapse-btn {
+    display: inline-block;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    color: var(--ink-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    padding: 1px var(--sp-2);
+    cursor: pointer;
+  }
+
+  .container-board-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .container-row {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .container-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 3px var(--sp-2);
+    background: var(--wash-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.13s var(--ease-out-quart), border-color 0.13s var(--ease-out-quart);
+  }
+
+  .container-row-main:hover {
+    background: var(--wash-2);
+    border-color: var(--line-strong);
+  }
+
+  .container-row.active .container-row-main {
+    background: var(--wash-3);
+    border-color: var(--line-strong);
+  }
+
+  .row-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .row-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .row-state {
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    color: var(--ink-faint);
+    flex-shrink: 0;
+  }
+
+  .row-toggle {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-sm);
+    color: var(--ink-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    padding: 1px var(--sp-2);
+    cursor: pointer;
+    transition: color 0.13s var(--ease-out-quart), border-color 0.13s var(--ease-out-quart);
+  }
+
+  .row-toggle:hover {
+    color: var(--ink);
+    border-color: var(--ink-faint);
+  }
+
+  .container-row-main:focus-visible,
+  .row-toggle:focus-visible,
+  .board-collapse-btn:focus-visible {
+    outline: 2px solid var(--interactive);
+    outline-offset: 1px;
+  }
+
+  /* 宽屏（≥769px）：行区常开、收纳入口隐藏 */
+  @media (min-width: 769px) {
+    .board-collapse-btn { display: none; }
+  }
+
+  /* 窄屏（≤768px）：看板收纳为可展开，行区默认隐藏，由收纳入口展开 */
+  @media (max-width: 768px) {
+    .container-board-rows { display: none; }
+    .container-board[data-open="true"] .container-board-rows { display: flex; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .container-row-main,
+    .row-toggle {
+      transition: none;
+    }
+    .right-stack {
+      transition: none; /* 让位回位随之静态化 */
+    }
+  }
+
+  /* ── 附属侧栏（零/多宿主标注兜底；风格对齐 App.svelte 静态预览列表；置于右缘堆叠栈内）── */
+  .affiliated-aside {
     width: 232px;
+    max-height: 100%;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1805,7 +2179,6 @@
     border: 1px solid var(--glass-line, var(--line));
     border-radius: var(--r-lg);
     box-shadow: var(--shadow-float), inset 0 1px 0 var(--hi-line);
-    z-index: var(--z-overlay);
   }
 
   .affiliated-kind-group {

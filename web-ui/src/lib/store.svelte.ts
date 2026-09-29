@@ -54,6 +54,8 @@ export class WebGraphStore {
   actionMessage = $state("");
   readOnly = $state(false);
   selection = $state<CanvasSelection | null>(null);
+  /** 选中容器类（1.4.2 画布视图状态）：与 selection 互斥的独占层——选类清节点、点节点清类 */
+  selectedContainerId = $state<string | null>(null);
   searchQuery = $state("");
   kindFilter = $state("");
 
@@ -62,8 +64,8 @@ export class WebGraphStore {
 
   /** 视图命令：工具轨缩放按钮 → 画布执行（画布不存在时为 no-op）。 */
   zoomRequest = $state<{ kind: "in" | "out" | "fit"; seq: number } | null>(null);
-  /** 视图命令：搜索/图例跳转 → 画布平移居中到目标节点。 */
-  locateRequest = $state<{ nodeId: string; seq: number } | null>(null);
+  /** 视图命令：搜索/图例跳转 → 画布平移居中到目标节点；offset = 目标局部锚点偏移（容器展开态=框中心）。 */
+  locateRequest = $state<{ nodeId: string; seq: number; offsetX?: number; offsetY?: number } | null>(null);
   private commandSeq = 0;
 
   /** 编辑器状态：null = 关闭；mode 决定表单形态，targetId 预填编辑目标或连接 source。 */
@@ -85,8 +87,8 @@ export class WebGraphStore {
     this.zoomRequest = { kind, seq: ++this.commandSeq };
   }
 
-  locateNode(nodeId: string): void {
-    this.locateRequest = { nodeId, seq: ++this.commandSeq };
+  locateNode(nodeId: string, offset?: { x: number; y: number }): void {
+    this.locateRequest = { nodeId, seq: ++this.commandSeq, offsetX: offset?.x, offsetY: offset?.y };
   }
 
   private graphState: WebGraphState | null = null;
@@ -135,6 +137,8 @@ export class WebGraphStore {
   }
 
   select(next: CanvasSelection | null): void {
+    // 互斥中枢：任何对象/关系选中写入都清掉容器类选中（选类清节点由看板行入口负责）
+    this.selectedContainerId = null;
     this.selection = next;
   }
 
