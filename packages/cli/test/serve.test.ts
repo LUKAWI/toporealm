@@ -58,6 +58,8 @@ describe("serve 动词", () => {
     expect(code).toBe(0);
     const ep = await readEndpoint(root);
     expect(ep?.webPort).toBeGreaterThan(0);
+    // serve 拉起的 daemon 常驻（--idle-ms 0 透传，endpoint 如实记录）
+    expect(ep?.idleMs).toBe(0);
     expect(opened).toEqual([`http://127.0.0.1:${ep?.webPort}`]);
     // HTTP 静态产物可访问（web-ui 构建产物伺服）
     const res = await fetch(`http://127.0.0.1:${ep?.webPort}/`);

@@ -755,7 +755,7 @@ packages/
   ⑤ 失败：新图装载失败 → 错误如实上抛，**旧图继续服务**（禁止 SESSION_STALE——客户端会等一个
      永不退出的 pid，R2）；旧 core dispose 只清监视器/定时器/监听器，endpoint 文件不动；
   ⑥ 通知：换载成功向全部连接推送 `reset(graph-switched, graphId)`，订阅迁移到新 core 重放；
-  ⑦ instanceId 为 runtime 级稳定标识（换载延续实例；仅 daemon 重启才变化）。web 伺服（HTTP 静态产物 + `/ws`）随 daemon 常开，端口/重连/发现语义见 D22；`toporealm serve [--port P] [--no-open]` = 确保 daemon 在跑（自动拉起带 `--web-port`）→ 打开浏览器即退（daemon detached 常驻）。
+  ⑦ instanceId 为 runtime 级稳定标识（换载延续实例；仅 daemon 重启才变化）。web 伺服（HTTP 静态产物 + `/ws`）随 daemon 常开，端口/重连/发现语义见 D22；`toporealm serve [--port P] [--no-open]` = 确保 daemon 在跑（自动拉起带 `--web-port` 与 `--idle-ms 0`）→ 打开浏览器即退（daemon detached 常驻——serve 场景不空闲退出；普通 CLI 命令拉起的 daemon 保持空闲回收）。
 
 ## 6. 迁移 CLI（`toporealm migrate`）
 

@@ -99,6 +99,7 @@ async function main(): Promise<number> {
     instanceId: running.instanceId,
     graphId: running.graphId,
     startedAt: new Date().toISOString(),
+    idleMs,
     ...(running.web !== null
       ? { webPort: running.web.port, webStatic: staticDir !== undefined }
       : {}),

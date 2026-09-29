@@ -18,6 +18,8 @@ export interface DaemonEndpointInfo {
   webPort?: number;
   /** web 是否带静态产物（D34：false = 纯 WS 模式，serve 据此拒绝开浏览器；缺省 = 老 daemon 未知，由 serve 探测） */
   webStatic?: boolean;
+  /** 空闲退出毫秒（0 = 永不；缺省 = 老 daemon 未知）。serve 拉起的 daemon 写 0（常驻语义，blueprint §5） */
+  idleMs?: number;
 }
 
 export function endpointFile(root: string): string {

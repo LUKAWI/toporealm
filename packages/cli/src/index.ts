@@ -813,11 +813,13 @@ ${agentSnippet()}`),
         }
         return reused;
       }
-      // 无 daemon（或陈旧 endpoint）：清掉重拉，拉起时传递端口诉求
+      // 无 daemon（或陈旧 endpoint）：清掉重拉，拉起时传递端口诉求；
+      // serve 拉起的 daemon 常驻（--idle-ms 0，蓝图 §5「detached 常驻」语义对齐）——
+      // 用户看完关掉浏览器后 daemon 由 shutdown/手动管理，不再 30 秒空闲自旋退出。
       if (ep0 !== null) await clearEndpoint(root).catch(() => {});
       spawnDaemonDetached(
         { root: target.root, graphId: target.graphId },
-        port !== undefined ? ["--web-port", String(port)] : [],
+        ["--idle-ms", "0", ...(port !== undefined ? ["--web-port", String(port)] : [])],
         deps.daemonCommand,
       );
       const deadline = Date.now() + 20_000;

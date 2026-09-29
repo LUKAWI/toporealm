@@ -71,7 +71,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
                                 （拉 daemon，与 cmds 同语义；--json data =
                                 {status, commands, skills, warnings}）
   serve [--port P] [--no-open]  WebUI：确保 daemon 在跑（自动拉起带 web 伺服）→ 开浏览器
-                                （daemon detached 常驻，命令即退；D22）
+                                （daemon detached 常驻，命令即退；serve 拉起的 daemon
+                                不空闲退出；D22）
 
 模块与分发（工作区文件层冷路径，不触 daemon；改动经 daemon 模块集摘要检测在下次触达生效）：
   module add <npm|路径>         安装模块（npm 来源走 npm pack --ignore-scripts）→ 落位
