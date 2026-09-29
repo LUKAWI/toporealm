@@ -388,7 +388,11 @@ export class ModuleHost {
       if (scope && !scope.has(m.id)) continue;
       const ui = m.manifest.ui;
       for (const kind of m.declaredKinds) {
-        const represent = ui?.kinds?.[kind]?.represent;
+        // ui.kinds 键按 module.yaml 惯例与 kinds.objects 列表一致用裸名（domain），
+        // declaredKinds 是全名（wf.domain）——全名查裸名键恒 miss（1.4.0 验收发现）；
+        // 全名查不到时以裸名兜底，两种写法都兼容。
+        const bare = kind.startsWith(`${m.namespace}.`) ? kind.slice(m.namespace.length + 1) : kind;
+        const represent = ui?.kinds?.[kind]?.represent ?? ui?.kinds?.[bare]?.represent;
         kinds.set(kind, {
           kind,
           owner: m.namespace,

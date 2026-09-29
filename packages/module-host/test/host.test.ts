@@ -111,8 +111,9 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
     core.dispose();
   });
 
-  it("D46：ui.kinds represent 声明投影进 catalog kinds[]（合法值携带、非法值/异形静默忽略）", async () => {
-    // 复制 example fixture 后重写 module.yaml：三个声明 kind + 混合合法/非法 represent
+  it("D46：ui.kinds represent 声明投影进 catalog kinds[]（裸名键 = 真实惯例、全名键兼容、非法值/异形静默忽略）", async () => {
+    // 复制 example fixture 后重写 module.yaml：三个声明 kind + 混合合法/非法 represent。
+    // 键写法对齐真实模块（kinds.objects 用裸名）：card 用裸名键，note 用全名键——两者都必须命中。
     const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-mh-uikinds-"));
     await fsp.cp(fixturePath("example"), dir, { recursive: true });
     await fsp.writeFile(
@@ -129,7 +130,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
         '  icon: "card"',
         "  titleKey: title",
         "  kinds:",
-        "    example.card:",
+        "    card:",
         "      represent: container",
         "    example.note:",
         "      represent: annotation",
@@ -143,7 +144,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
     const root = await tmpWorkspace({ example: dir });
     const { core, host } = await openWithModules(root);
     const kinds = Object.fromEntries(host.catalog().kinds.map((k) => [k.kind, k]));
-    // 合法声明逐 kind 投影（per-kind，非模块级 ui 抄送）
+    // 裸名键（真实模块惯例：ui.kinds 键与 kinds.objects 列表一致）→ 投影命中
     expect(kinds["example.card"]).toEqual({
       kind: "example.card",
       owner: "example",
@@ -151,6 +152,7 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
       icon: "card",
       represent: "container",
     });
+    // 全名键兼容保留
     expect(kinds["example.note"]).toMatchObject({
       owner: "example",
       represent: "annotation",
