@@ -49,8 +49,9 @@ module/migrate 是工作区文件层冷路径（不触 daemon），改动由 dae
 ## 三、WebUI（serve）
 
 - `toporealm serve [--port P] [--no-open]`：确保带 web 伺服的 daemon 在跑
-  （必要时自动拉起 detached `toporeald`）→ 打开浏览器即退。daemon 常驻，
-  命令退出/Ctrl+C 都不影响它。
+  （必要时自动拉起 detached `toporeald`，**透传 `--idle-ms 0`——serve 拉起的
+  daemon 常驻，不空闲退出**，浏览器开着/关掉都不会 30 秒自旋消失）→ 打开
+  浏览器即退。daemon 常驻，命令退出/Ctrl+C 都不影响它。
 - 已有 daemon 在跑则**直接复用**，此时 `--port` 不生效（会明确提示，不静默吞）；
   要固定端口先停 daemon 再 `serve --port P`。`--no-open` 只打印 URL 不开浏览器。
 - **`WEB_STATIC_MISSING`**（daemon 无 WebUI 静态产物 = 纯 WS 模式，打开只会白屏，
@@ -93,10 +94,12 @@ module/migrate 是工作区文件层冷路径（不触 daemon），改动由 dae
 
 - **生命周期一句话**：daemon 由客户端按需自动拉起（detached 常驻，脱离拉起者
   独立存活），**空闲自动退出**（缺省 30 秒无连接且无请求；打开中的 WS/IPC 连接
-  算活动——"开着页面盯图"不会退出），下次命令再自动拉起（冷启动约 1–2 秒）。
+  算活动——"开着页面盯图"不会退出；**`serve` 拉起的 daemon 例外：透传
+  `--idle-ms 0` 常驻不退**；全局禁用空闲回收设 `TOPOREALM_IDLE_MS=0`），
+  下次命令再自动拉起（冷启动约 1–2 秒）。
   **daemon 不在跑不是故障，不需要手工守护。**
 - **端点事实**：`.toporealm/daemon/endpoint.json` 记录
-  transport / address / pid / instanceId / graphId / webPort / webStatic。
+  transport / address / pid / instanceId / graphId / webPort / webStatic / idleMs。
   - 传输按平台：**Windows = 命名管道**（`\\.\pipe\toporealm-<root哈希>`），
     **POSIX = tmpdir 下 unix socket**（限属主读写；监听前自动清理崩溃残留的
     陈旧 socket 文件）。

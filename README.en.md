@@ -30,7 +30,7 @@ toporealm serve                        # open the WebUI: live sync, no refresh
 toporealm undo                         # everything is undoable (external edits included)
 ```
 
-The daemon is transparently spawned on first contact and exits when idle; browsers and multiple terminal sessions on the same graph stay in sync in real time.
+The daemon is transparently spawned on first contact; daemons spawned by regular commands exit when idle, while the one spawned by `serve` stays resident (no idle exit). Browsers and multiple terminal sessions on the same graph stay in sync in real time.
 
 ## Install a domain module, get commands
 

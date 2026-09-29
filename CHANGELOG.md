@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **feat(cli)**：`serve` 拉起的 daemon 常驻——spawn 透传 `--idle-ms 0`（蓝图 §5
+  「detached 常驻」语义对齐；此前实现漏传空闲参数，serve 场景 daemon 30 秒空闲
+  自旋退出、web 端口轮换）。`endpoint.json` 新增 `idleMs` 字段如实记录空闲配置。
+  普通 CLI 命令拉起的 daemon 保持空闲回收；全局禁用仍走 `--idle-ms 0` /
+  `TOPOREALM_IDLE_MS=0`。README（中/英）、toporealm-ops 技能（serve 与生命周期
+  段）同步。
+
 ## 1.5.0 - 2026-09-29
 
 主题：**容器多实例增强与展开渲染根修**。1.4.0 独立验收发现的两处容器渲染根因
