@@ -76,12 +76,12 @@ it(
     const cmds = await cli(["--json", "cmds"]);
     expect(cmds.code).toBe(0);
     const cat = jsonOf(cmds) as { data: { modules: { id: string; namespace: string }[]; commands: { id: string }[] } };
-    // 版本钉点随模块仓发布同步（1.0.2：workflow-design 补基座指路，D45 批次）
-    expect(cat.data.modules).toEqual([{ id: "workflow", version: "1.0.2", namespace: "wf" }]);
+    // 版本钉点随模块仓发布同步（1.1.0：证据挂靠拓扑 wf.report_of 双写 + assign-domain 容器活样板，D46 首发兑现）
+    expect(cat.data.modules).toEqual([{ id: "workflow", version: "1.1.0", namespace: "wf" }]);
     const cmdIds = cat.data.commands.map((c) => c.id);
     expect(cmdIds).toContain("wf.create-task");
     expect(cmdIds).toContain("wf.next-actions");
-    expect(cmdIds.filter((id) => id.startsWith("wf."))).toHaveLength(12);
+    expect(cmdIds.filter((id) => id.startsWith("wf."))).toHaveLength(13);
 
     // ③ run 端到端：create → transition ready → claim → next-actions（调度前沿可见）
     const create = await cli(["--json", "wf.create-task", "--input", JSON.stringify({ id: "t1", label: "写作" })]);

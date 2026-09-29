@@ -40,6 +40,16 @@ description: TopoRealm 模块创建指南：从 modules-template 模板起步创
      index`（技能可见）→ 跑一条命令 → 故意触发一次 veto（确认门禁与
      `details.vetoes[].module`）→ `toporealm undo`（确认豁免）→ WebUI 看画布颜色/图标。
 
+## 呈现声明：ui.kinds.represent
+
+module.yaml 的 `ui` 段支持 per-kind 呈现声明 `ui.kinds: { <kind>: { represent: ... } }`，
+告诉 WebUI 怎么渲染你的 kind（core 不解释 represent，只影响投影渲染，不影响图事实）：
+
+- `represent: "container"` — 该 kind 渲染为**容器分区**（组织性类目）；成员 = 指向它的
+  公共归属边 `member_of`（方向恒为 成员 → 类）。
+- `represent: "annotation"` — 渲染为**宿主角标或附属侧栏**（备注类对象）。
+- 不声明 = 普通节点渲染（向后兼容，既有模块无需改动）。
+
 ## 纪律红线（装载与执法边界）
 
 - 双层：module.yaml 只管协调，**不是执法依据**；行为全在 activate；注册面 activate

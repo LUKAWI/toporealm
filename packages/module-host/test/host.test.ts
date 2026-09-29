@@ -111,6 +111,75 @@ describe("S2 装载：发现/声明解析/拓扑排序/activate 恰好一次", (
     core.dispose();
   });
 
+  it("D46：ui.kinds represent 声明投影进 catalog kinds[]（合法值携带、非法值/异形静默忽略）", async () => {
+    // 复制 example fixture 后重写 module.yaml：三个声明 kind + 混合合法/非法 represent
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), "toporealm-mh-uikinds-"));
+    await fsp.cp(fixturePath("example"), dir, { recursive: true });
+    await fsp.writeFile(
+      path.join(dir, "module.yaml"),
+      [
+        "format: toporealm.module/v2",
+        "id: example",
+        "namespace: example",
+        'version: "1.0.0"',
+        "kinds:",
+        "  objects: [card, note, ghost]",
+        "ui:",
+        '  color: "#f59e0b"',
+        '  icon: "card"',
+        "  titleKey: title",
+        "  kinds:",
+        "    example.card:",
+        "      represent: container",
+        "    example.note:",
+        "      represent: annotation",
+        "    example.ghost:",
+        "      represent: sidebar", // 非枚举值 → 静默忽略
+        "    example.bad: container", // 异形条目（标量）→ 静默忽略
+        "entry: ./index.js",
+      ].join("\n"),
+      "utf8",
+    );
+    const root = await tmpWorkspace({ example: dir });
+    const { core, host } = await openWithModules(root);
+    const kinds = Object.fromEntries(host.catalog().kinds.map((k) => [k.kind, k]));
+    // 合法声明逐 kind 投影（per-kind，非模块级 ui 抄送）
+    expect(kinds["example.card"]).toEqual({
+      kind: "example.card",
+      owner: "example",
+      color: "#f59e0b",
+      icon: "card",
+      represent: "container",
+    });
+    expect(kinds["example.note"]).toMatchObject({
+      owner: "example",
+      represent: "annotation",
+    });
+    // 非法 represent：kind 条目仍在（声明词汇为真），represent 字段缺省
+    expect(kinds["example.ghost"]).toEqual({
+      kind: "example.ghost",
+      owner: "example",
+      color: "#f59e0b",
+      icon: "card",
+    });
+    // 异形条目（标量值）：不产生投影，也不影响其余声明
+    expect(kinds["example.bad"]).toBeUndefined();
+    core.dispose();
+  });
+
+  it("D46：不声明 ui.kinds 时 catalog kinds[] 不携带 represent（向后兼容缺省）", async () => {
+    const root = await tmpWorkspace({ example: fixturePath("example") });
+    const { core, host } = await openWithModules(root);
+    const kinds = Object.fromEntries(host.catalog().kinds.map((k) => [k.kind, k]));
+    expect(kinds["example.card"]).toEqual({
+      kind: "example.card",
+      owner: "example",
+      color: "#f59e0b",
+      icon: "card",
+    });
+    core.dispose();
+  });
+
   it("activate 恰好一次：每轮 load 计数恰好 +1", async () => {
     const before = (exampleFixture as { activations: number }).activations;
     const root = await tmpWorkspace({ example: fixturePath("example") });

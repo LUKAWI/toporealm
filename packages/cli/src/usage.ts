@@ -60,6 +60,8 @@ export function helpText(commands?: readonly CatalogEntry[]): string {
   set <id> [k=v]... [--payload '<json>'] [--replace]
                                 改状态 = daemon 端浅合并；k=null 删键
   link <src> <tgt> [--kind ns.rel] [--id X]     建关系；仅一种关系类型时可省 --kind
+                                归属关系 member_of（公共类型）：方向恒为 成员 → 类，
+                                例：link task-42 d-auth --kind member_of
   rm <id>                       删除（悬空边拦截时点名 + fix）
   undo [N] / redo [N]           撤销/重做 N 步（超出可撤/可重做步数时钳位并报实际步数）
   log [-n N]                    提交日志尾读（显示 undo 游标之前的已生效提交；

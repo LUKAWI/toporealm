@@ -1,5 +1,57 @@
 # Changelog
 
+## 1.4.0 - 2026-09-29
+
+主题：**拓扑的语义分层**（blueprint §1.13 D46，ADR-0009）。前置裁决：「类」停在约定
+层——对象/关系/类三原语中「类」是约定层概念，不进协议事实面：`represent` 声明投影 +
+`member_of` 归属约定，协议事实面（put/rel/merge/del、read、commit/undo/redo）与
+core 执法（所有权法 + 悬空边检查）零改动；边级附着是已知缺口（未来 reification
+解决，本决策不预留机制）。模块仓 `@lukawi/toporealm-workflow` 同发 1.1.0（独立仓
+提交），首发兑现容器语义。
+
+- **feat(protocol)**：`member_of` 立为核心归属约定（与 `payload.title` 显示名约定同
+  级）——关系 kind 无命名空间前缀 = 公共类型，跨模块共用，所有权法放行（core 现行
+  为，非新执法）；方向恒为**成员 → 类**（方向纯靠约定，写反不报错、WebUI 分组错
+  位）。目录投影只增不改：module.yaml `ui` 段新增 per-kind 映射
+  `ui.kinds: { <kind>: { represent: "container" | "annotation" } }`，catalog() 的
+  `kinds[]` 相应增可选 `represent` 字段；不声明 = 普通节点渲染，既有模块清单与既有
+  图向后兼容。
+- **feat(module-host)**：清单解析 `ui.kinds` 规范化——只认 represent ∈
+  {"container","annotation"}，非法值/异形条目静默忽略（声明层只协调不执法，不做执
+  法报错）；catalog 投影透传 represent（声明层投影优先，活图 kind 兜底）。
+- **feat(workflow)**：模块仓 `@lukawi/toporealm-workflow` 同发 1.1.0（独立仓提交）——
+  报告挂靠改**同提交双写**（`wf.execution_report` 对象与 `wf.report_of` 挂靠边同一
+  提交原子落地；dev 图实测 57 个零挂靠漂浮对象的直接教训）；checkpoint 由独立对象
+  改为内嵌任务 `payload.checkpoints`（旧 `wf.checkpoint` 独立对象退役）；新增
+  `wf.domain` 容器类与 `assign-domain` 命令（容器约定的领域落点；主仓 workflow 模块
+  e2e 版本断言随升 1.1.0，`wf.*` 命令 12 → 13）。
+- **feat(web-ui)**：画布语义分层——声明 `represent: "container"` 的 kind 不画星体，
+  渲染为玻璃容器分区（默认折叠容器条 + 成员计数徽章；成员 = `member_of` source 指向
+  它的对象，member_of 关系不画线但保留在布局中聚拢成员）；`"annotation"` 按宿主分
+  流：恰一宿主挂宿主角标（浮层列附属对象、进详情抽屉），零/多条边走右缘附属侧栏兜
+  底；represent 是呈现声明——模块降级时仍生效，目录未加载（catalog 为 null）时全
+  部按普通星体渲染。
+- **feat(cli)**：`link` 帮助补归属关系示例（member_of 公共类型、方向恒为 成员 →
+  类：`link task-42 d-auth --kind member_of`）。
+- **feat(toporealm)**：基座技能容器语义教学——入口技能增「容器类」小节（建容器 →
+  member_of 挂成员 → 按归属过滤 → 先拆边再删容器的完整命令链，含 DANGLING_RELATION
+  拦截）；design 技能收录「容器/备注都是普通对象」建模原则；ops 技能收录 WebUI 渲
+  染语义；module-creator 增 `ui.kinds.represent` 教学（含 member_of 方向约定）；模
+  块模板 module.yaml 注释与模板技能同步。
+- **feat(scripts)**：新增 `scripts/migrate-report-of.mjs` 一次性迁移脚本——给历史
+  `wf.execution_report` 补建 `wf.report_of` 挂靠（单属主红线：绝不直写图文件，一切
+  读写经 DaemonClient；幂等可重跑，`--dry-run` 预览；分批 commit（每批 ≤20 条）+
+  ifRevision 护航 + IF_REVISION_MISMATCH 重读重试；旧 `wf.checkpoint` 独立对象只警
+  告不迁移）；留仓归档，跑完可删。
+- **chore(release)**：整仓版本 1.4.0（10 包 + web-ui 依赖 + 根 lockfile + 跨包精确
+  依赖同步 + claude 插件 plugin.json/marketplace.json）。
+
+升级说明：① workflow 模块需 **≥1.1.0**——换版本 = 先 `module rm` 再 `module add`
+更新模块绑定；② 存量图一次性执行迁移脚本 `node --import tsx
+scripts/migrate-report-of.mjs`（幂等，可先 `--dry-run` 预览）补历史报告挂靠；③
+≥1.1.0 起新报告同提交双写、checkpoint 内嵌任务——不迁移的旧图报告仍无挂靠边（漂
+浮）、旧 checkpoint 独立对象仅告警。
+
 ## 1.3.1 - 2026-09-29
 
 - **fix(skills)**：1.3.0 两轮独立核验遗留 8 条 low 清扫——入口技能 find/add 示例去

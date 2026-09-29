@@ -640,6 +640,31 @@ module.yaml schema、graph v3 格式（全部只增不改；不新增用户可�
   一处），人类模式紧凑分节。四技能随聚合包与 claude 插件 skills/ 同源分发
   （pi 扩展枚举 skills/ 子目录自动可见）。
 
+### 1.13 规划期补遗（1.4.0：D46）
+
+**D46（容器类与附属对象）：「类」停在约定层——`represent` 声明投影 + `member_of` 归属约定，协议事实面零改动。**
+动机：1.4.0「webUI 语义分层」主题的前置裁决。dev 图 dogfood 实测（2026-09-29）暴露
+模型缺口：93 个对象中 57 个无任何关系挂靠（46 wf.task + 47 wf.execution_report，全图
+仅 52 条 wf.depends_on 边）——报告挂靠与任务组织全靠约定硬扛，容器类/备注类没有可
+投影的呈现语义。先裁决「类」的地位，再动 WebUI 与模块（ADR-0009）。
+
+1. **三原语结论**：图概念上是 对象/关系/类 三原语，但「类」的实现停在约定层——
+   类 = 普通对象 + 中立归属边 `member_of` + module.yaml 声明，协议事实面
+   （put/rel/merge/del、read、commit/undo/redo）零改动，core 执法仍仅两条。
+   **不设第四原语**：备注（annotation）= 对象 + 边 + `represent: "annotation"`；
+   依赖（dependency）= 关系本身——皆无需新原语。
+2. **边级附着是已知缺口**：给一条边挂内容（在关系本体之外附着结构化数据）现有模型
+   表达不了；未来走 reification（边升格为对象）解决，本决策不解决、不预留机制。
+3. **`member_of` 立为核心归属约定**（与 `payload.title` 显示名约定同级）：关系 kind
+   无命名空间前缀 = 公共类型，跨模块共用，所有权法放行——core 现行为（checkOwnership
+   对 `ns === null` 直接放行，公共/无主类型对一切 module 来源开放），非新执法，
+   core 零改动。
+4. **声明落点**：module.yaml `ui` 段新增 per-kind 映射
+   `ui.kinds: { <kind>: { represent?: "container" | "annotation" } }`；catalog() 的
+   `kinds[]` 投影相应新增可选 `represent` 字段（协议加法，只增不改义）。不声明 =
+   普通节点渲染，向后兼容。core 不解释 represent（声明层只协调不执法，D8）；清单
+   解析器对 `ui` 段本就是整体透传（仅判「是对象」即收，无字段级校验），加键零解析改动。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）
@@ -756,6 +781,8 @@ packages/
 | 依赖门禁（depends_on） | 钩子读 after 快照（≈20 行，现状测试用例可直接改造） |
 
 预估移植量：runtime ~150 行 + module.yaml ~20 行 + 钩子 ~60 行（fixture 89 行运行时的量级，语义零损失）。移植落点裁决见 §1.7 D24（undo/redo 钩子豁免、forms 目录投影、图级档位落 `wf.settings` 单例）。
+
+workflow 模块 1.1.0 语义变化（随基座 1.4.0，D46 首发兑现）：`wf.report_of` 报告挂靠改**同提交双写**（报告对象与挂靠边同一提交原子落地——dev 图实测 57 个零挂靠漂浮对象的直接教训）；checkpoint 由独立对象改为内嵌任务 `payload.checkpoints`；新增 `wf.domain` 容器类与 `assign-domain` 命令（容器约定的领域落点）。
 
 ## 8. 测试策略（replace, don't layer）
 

@@ -59,6 +59,27 @@ toporealm skills index  # 全池模块技能索引（任务匹配某技能描述
 - `toporealm rm <id>` — 删除；仍有关系引用时被拦（DANGLING_RELATION 点名关系 id 并给 fix）：
   先 `toporealm rm <关系id>` 再删本实体。
 
+## 容器类（represent 声明 + member_of）
+
+模块在 module.yaml 声明 `represent: "container"` 的对象种类是**容器**（组织性类目，
+如 workflow 模块的 `wf.domain`）：容器就是普通对象，靠公共归属关系 `member_of` 聚合成员。
+**方向恒为 成员 → 类**（`link <成员id> <容器id> --kind member_of`）——**方向纯靠约定：
+member_of 是公共类型（无命名空间前缀，跨模块共用），core 只查端点存在，两端不做任何领域校验**，
+写反了不会报错，WebUI 的容器分组却会错位。
+
+完整命令链（把任务 task-42 归入「认证域」容器）：
+
+```bash
+toporealm add wf.domain --id auth --payload '{"title":"认证域"}'   # 建容器（本质是普通对象）
+toporealm link task-42 auth --kind member_of                       # 成员在前，类在后
+toporealm read --kind member_of                                    # 按归属关系过滤
+toporealm set auth title="认证域（后端）"                           # 容器照常 set
+toporealm rm auth                                                  # 删容器：仍有成员关系引用时被拦（DANGLING_RELATION）——core 无级联删除，先逐条 rm 成员关系再删容器
+```
+
+附属对象（备注类）同理：`represent: "annotation"` 的 kind 渲染为宿主角标或附属侧栏，
+仍是普通对象 + 需要的边；不声明 `represent` = 普通节点。
+
 ## 撤销与历史
 
 - `toporealm undo [N]` / `toporealm redo [N]` — 撤销/重做 N 步。undo 是用户的手，

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { kindColorOf, projectModuleKind } from "./moduleProjection";
+import { kindColorOf, projectModuleKind, representOf } from "./moduleProjection";
 import type { Catalog } from "./protocol";
 
 const catalog: Catalog = {
@@ -9,6 +9,17 @@ const catalog: Catalog = {
     { id: "research.expand", module: "research", title: "展开问题", target: "research.question", input: { type: "object" } },
     { id: "research.globalScan", module: "research", title: "全局扫描" },
   ],
+};
+
+// D46 语义分层：容器/标注呈现声明来自 catalog kinds（测试 mock，实现并行开发中）
+const layeredCatalog: Catalog = {
+  modules: [{ id: "wf", namespace: "wf", version: "1.0.0" }],
+  kinds: [
+    { kind: "wf.group", owner: "wf", represent: "container" },
+    { kind: "wf.report", owner: "wf", represent: "annotation" },
+    { kind: "wf.task", owner: "wf" },
+  ],
+  commands: [],
 };
 
 describe("目录投影（blueprint §1 Catalog）", () => {
@@ -33,5 +44,25 @@ describe("目录投影（blueprint §1 Catalog）", () => {
     expect(kindColorOf("research.question", catalog)).toBe("#6d28d9");
     expect(kindColorOf("plain.thing", catalog)).toBe(kindColorOf("plain.thing", null));
     expect(kindColorOf("plain.thing", null)).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it("represent 透传：catalog kinds 声明 container/annotation 进投影，未声明 = undefined", () => {
+    expect(projectModuleKind("wf.group", layeredCatalog).represent).toBe("container");
+    expect(projectModuleKind("wf.report", layeredCatalog).represent).toBe("annotation");
+    expect(projectModuleKind("wf.task", layeredCatalog).represent).toBeUndefined();
+    expect(representOf("wf.group", layeredCatalog)).toBe("container");
+    expect(representOf("wf.group", null)).toBeUndefined(); // 目录未加载 = 普通星体
+    expect(projectModuleKind("wf.task", layeredCatalog).available).toBe(true);
+  });
+
+  it("represent 是呈现声明：模块降级（无属主）时仍透传，渲染分层不随可用性失效", () => {
+    expect(projectModuleKind("ghost.group", { ...layeredCatalog, modules: [] }).represent).toBeUndefined();
+    const catalogWithGhostKind: Catalog = {
+      ...layeredCatalog,
+      kinds: [...layeredCatalog.kinds, { kind: "ghost.group", represent: "container" }],
+    };
+    const degraded = projectModuleKind("ghost.group", catalogWithGhostKind);
+    expect(degraded.available).toBe(false);
+    expect(degraded.represent).toBe("container");
   });
 });

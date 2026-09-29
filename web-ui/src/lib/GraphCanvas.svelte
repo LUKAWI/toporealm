@@ -6,12 +6,90 @@
   import * as d3 from "d3";
   import { store } from "./store.svelte";
   import { computeFitTransform, isUserViewportInput, seedGridLayout } from "./layout";
-  import { kindColorOf } from "./moduleProjection";
+  import { kindColorOf, projectModuleKind, type KindRepresent } from "./moduleProjection";
   import { displayOf, titleOf, type Entity, type RelationEntity } from "./protocol";
 
   type SimNode = Entity & d3.SimulationNodeDatum;
   // Omit 避免与 RelationEntity 的 string 端点交叉成 never
   type SimEdge = Omit<RelationEntity, "source" | "target"> & { source: SimNode | string; target: SimNode | string };
+
+  // ── 语义分层（D46 represent，目录 kinds 声明）──
+  // container = 玻璃容器分区（标题 + 成员计数徽章，默认折叠）；annotation = 附属标注
+  // （不画星体：恰一宿主 → 宿主角标；零/多宿主 → 右缘附属侧栏；容器成员 → 分区已表达）。
+  function representOfKind(kind: string): KindRepresent | undefined {
+    return projectModuleKind(kind, store.catalog).represent;
+  }
+
+  interface LayeredSemantics {
+    containerIds: Set<string>;
+    /** 容器 id → 成员对象集合（member_of source；任意 kind，含标注成员） */
+    membersOf: Map<string, Entity[]>;
+    /** 标注渲染模式：badge=恰一宿主星体；fallback=零/多宿主进侧栏；member=容器成员 */
+    annotationModes: Map<string, "badge" | "fallback" | "member">;
+    /** 宿主星体 id → 挂靠的标注对象（角标） */
+    hostBadges: Map<string, Entity[]>;
+    /** 附属侧栏兜底列表（零/多宿主标注） */
+    fallbackAnnotations: Entity[];
+  }
+
+  /**
+   * 宿主判定通用规则：represent=annotation 的对象看它参与的边（member_of → 声明容器的
+   * 成员边除外——归属已由容器分区表达）——恰好一条边且另一端是普通星体 → 另一端即宿主；
+   * 零条/多条/宿主非星体（容器或标注）→ 附属侧栏兜底。
+   */
+  function computeLayeredSemantics(objects: readonly Entity[], relations: readonly RelationEntity[]): LayeredSemantics {
+    const containerIds = new Set(
+      objects.filter((object) => representOfKind(object.kind) === "container").map((object) => object.id),
+    );
+    const byId = new Map(objects.map((object) => [object.id, object]));
+    const membersOf = new Map<string, Entity[]>();
+    for (const relation of relations) {
+      if (relation.kind !== "member_of" || !containerIds.has(relation.target)) continue;
+      const member = byId.get(relation.source);
+      if (!member) continue;
+      const list = membersOf.get(relation.target);
+      if (list) list.push(member);
+      else membersOf.set(relation.target, [member]);
+    }
+    const annotationModes = new Map<string, "badge" | "fallback" | "member">();
+    const hostBadges = new Map<string, Entity[]>();
+    const fallbackAnnotations: Entity[] = [];
+    for (const object of objects) {
+      if (representOfKind(object.kind) !== "annotation") continue;
+      if (relations.some((relation) => relation.kind === "member_of" && relation.source === object.id && containerIds.has(relation.target))) {
+        annotationModes.set(object.id, "member");
+        continue;
+      }
+      const hostEdges = relations.filter(
+        (relation) =>
+          (relation.source === object.id || relation.target === object.id) &&
+          !(relation.kind === "member_of" && containerIds.has(relation.target)),
+      );
+      const host =
+        hostEdges.length === 1
+          ? byId.get(hostEdges[0]!.source === object.id ? hostEdges[0]!.target : hostEdges[0]!.source)
+          : undefined;
+      if (host && representOfKind(host.kind) === undefined) {
+        annotationModes.set(object.id, "badge");
+        const list = hostBadges.get(host.id);
+        if (list) list.push(object);
+        else hostBadges.set(host.id, [object]);
+      } else {
+        annotationModes.set(object.id, "fallback");
+        fallbackAnnotations.push(object);
+      }
+    }
+    return { containerIds, membersOf, annotationModes, hostBadges, fallbackAnnotations };
+  }
+
+  /** 当前生效的分层语义（画布 d3 渲染与 Svelte 浮层/侧栏共用同一真相） */
+  let layered: LayeredSemantics = {
+    containerIds: new Set(),
+    membersOf: new Map(),
+    annotationModes: new Map(),
+    hostBadges: new Map(),
+    fallbackAnnotations: [],
+  };
 
   const NODE_R = 20;
 
@@ -141,6 +219,11 @@
     return `${node.id} ${node.kind} ${displayOf(node)}`.toLowerCase().includes(query);
   }
 
+  /** 容器成员的当前可见计数（成员被过滤时容器计数同步——同一 nodeMatchesFilters 语义） */
+  function memberCountOf(containerId: string): number {
+    return (layered.membersOf.get(containerId) ?? []).filter((member) => nodeMatchesFilters(member)).length;
+  }
+
   function relationMatchesFilters(relation: SimEdge): boolean {
     const source = currentNodes.find((node) => node.id === (typeof relation.source === "object" ? relation.source.id : relation.source));
     const target = currentNodes.find((node) => node.id === (typeof relation.target === "object" ? relation.target.id : relation.target));
@@ -159,7 +242,55 @@
     zoomGroup.selectAll<SVGGElement, SimEdge>(".edges .edge-group")
       .classed("dimmed", (edge) => !relationMatchesFilters(edge))
       .classed("is-selected", (edge) => store.selection?.type === "relation" && store.selection.id === edge.id);
+    // 容器计数徽章随过滤同步；容器本体不淡化（结构层），计数即过滤真相
+    zoomGroup.selectAll<SVGGElement, SimNode>(".containers > g.container-group")
+      .each(function (this: SVGGElement, node: SimNode) {
+        applyContainerGeometry(d3.select(this));
+      });
   }
+
+  // ── 附属标注角标浮层（视图状态，浏览器本地）──
+  // 模板侧的响应式语义：从 store 直接派生（d3 渲染用的可变 layered 不进响应式图）
+  const reactiveSemantics = $derived(
+    store.snapshot ? computeLayeredSemantics(store.snapshot.objects, store.snapshot.relations) : null,
+  );
+  let badgePopup = $state<{ hostId: string; x: number; y: number } | null>(null);
+  const badgePopupItems = $derived(badgePopup ? (reactiveSemantics?.hostBadges.get(badgePopup.hostId) ?? []) : []);
+  const fallbackVisible = $derived(
+    (reactiveSemantics?.fallbackAnnotations ?? []).filter((annotation) => nodeMatchesFilters(annotation)),
+  );
+  const affiliatedGroups = $derived.by(() => {
+    const byKind = new Map<string, Entity[]>();
+    for (const annotation of fallbackVisible) {
+      const list = byKind.get(annotation.kind);
+      if (list) list.push(annotation);
+      else byKind.set(annotation.kind, [annotation]);
+    }
+    return [...byKind.entries()].sort(([a], [b]) => a.localeCompare(b));
+  });
+
+  $effect(() => {
+    // 快照/关系变化后宿主不再有挂靠标注 → 浮层自动收起
+    if (badgePopup && badgePopupItems.length === 0) badgePopup = null;
+  });
+
+  function openBadgePopup(host: SimNode): void {
+    if (!svgEl) return;
+    const transform = d3.zoomTransform(svgEl);
+    const width = getContainerSize().w;
+    // 浮层锚在宿主星体的屏幕坐标上（svg 单位 = wrapper CSS 像素），右缘内收防溢出
+    const x = Math.min((host.x ?? 0) * transform.k + transform.x, Math.max(16, width - 250));
+    const y = Math.max(16, (host.y ?? 0) * transform.k + transform.y);
+    badgePopup = { hostId: host.id, x, y };
+  }
+
+  function selectAffiliated(id: string): void {
+    badgePopup = null;
+    store.select({ type: "object", id }); // 复用 ObjectDetail 详情抽屉
+  }
+
+  // 容器展开/收起（视图状态：默认折叠；浏览器本地，不写 Core）
+  const expandedContainers = new Map<string, boolean>();
 
   // ── 星体视觉（V4 棱星正本）：halo 贴芒 + 八向星芒 + 红蓝残像 + 白炽核 ──
   const STAR_SPEC: Record<string, { spike: number; glow: number; core: number }> = {
@@ -397,6 +528,144 @@
       });
   }
 
+  /** 星体/容器条共用的拖拽行为（位置写入缓存；视图状态，不触发 Core 写入） */
+  function nodeDragBehavior(): d3.DragBehavior<SVGGElement, SimNode, SimNode | d3.SubjectPosition> {
+    return d3.drag<SVGGElement, SimNode>()
+      .on("start", function (this: SVGGElement, event, node) {
+        if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
+        node.fx = node.x;
+        node.fy = node.y;
+        currentPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
+        d3.select(this).classed("is-dragging", true);
+      })
+      .on("drag", (_event, node) => {
+        node.fx = _event.x;
+        node.fy = _event.y;
+        currentPositions.set(node.id, { x: _event.x, y: _event.y });
+      })
+      .on("end", function (this: SVGGElement, event, node) {
+        if (!event.active && simulation) simulation.alphaTarget(0);
+        node.fx = null;
+        node.fy = null;
+        currentPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
+        d3.select(this).classed("is-dragging", false);
+      });
+  }
+
+  // ── 容器层（D46 container）：玻璃分区 + 标题 + 成员计数徽章；默认折叠 ──
+  function applyContainerGeometry(group: d3.Selection<SVGGElement, SimNode, any, any>): void {
+    const node = group.datum();
+    const expanded = expandedContainers.get(node.id) ?? false;
+    group.classed("expanded", expanded).classed("collapsed", !expanded).attr("aria-expanded", expanded);
+    const title = displayOf(node);
+    const count = memberCountOf(node.id);
+    group.select<SVGTextElement>(".container-title").text(title);
+    group.select<SVGTextElement>(".container-count").text(String(count));
+    group.select<SVGGElement>(".container-badge").classed("empty", count === 0);
+    const barWidth = Math.max(132, title.length * 7 + 66);
+    if (!expanded) {
+      group.select<SVGRectElement>(".container-body")
+        .attr("x", -barWidth / 2).attr("y", -18).attr("width", barWidth).attr("height", 36).attr("rx", 12);
+      group.select("circle.container-dot").attr("cx", -barWidth / 2 + 16).attr("cy", 0).attr("r", 4);
+      group.select<SVGTextElement>(".container-title").attr("x", -barWidth / 2 + 26).attr("y", 0);
+      group.select<SVGGElement>(".container-badge").attr("transform", `translate(${barWidth / 2 - 16},0)`);
+      return;
+    }
+    // 展开分区：包围成员星体当前位置（标注成员不入模拟，仅由计数徽章表达）
+    const padX = 20;
+    const padTop = 46;
+    const padBottom = 20;
+    let minX = node.x ?? 0;
+    let minY = node.y ?? 0;
+    let maxX = node.x ?? 0;
+    let maxY = node.y ?? 0;
+    for (const member of layered.membersOf.get(node.id) ?? []) {
+      const m = currentNodes.find((candidate) => candidate.id === member.id);
+      if (!m || !Number.isFinite(m.x) || !Number.isFinite(m.y)) continue;
+      minX = Math.min(minX, m.x!);
+      minY = Math.min(minY, m.y!);
+      maxX = Math.max(maxX, m.x!);
+      maxY = Math.max(maxY, m.y!);
+    }
+    const x = minX - padX;
+    const y = minY - padTop;
+    const w = Math.max(barWidth, maxX - minX + padX * 2);
+    const h = Math.max(36, maxY - minY + padTop + padBottom);
+    group.select<SVGRectElement>(".container-body")
+      .attr("x", x).attr("y", y).attr("width", w).attr("height", h).attr("rx", 14);
+    group.select("circle.container-dot").attr("cx", x + 16).attr("cy", y + 19).attr("r", 4);
+    group.select<SVGTextElement>(".container-title").attr("x", x + 26).attr("y", y + 19);
+    group.select<SVGGElement>(".container-badge").attr("transform", `translate(${x + w - 18},${y + 19})`);
+  }
+
+  function toggleContainer(node: SimNode, group: SVGGElement): void {
+    expandedContainers.set(node.id, !(expandedContainers.get(node.id) ?? false));
+    applyContainerGeometry(d3.select(group));
+  }
+
+  function renderContainerLayer(
+    parent: d3.Selection<SVGGElement, unknown, null, undefined>,
+    containers: SimNode[],
+  ): void {
+    // 分区在边层/星体层之下（先插入，玻璃底板语义）
+    let group = parent.select<SVGGElement>(".containers");
+    if (group.empty()) group = parent.insert("g", ":first-child").attr("class", "containers");
+
+    const container = group
+      .selectAll<SVGGElement, SimNode>("g.container-group")
+      .data(containers, (item) => item.id);
+
+    container.exit().remove();
+
+    const enter = container.enter().append("g")
+      .attr("class", "container-group")
+      .style("cursor", "pointer")
+      .attr("tabindex", 0)
+      .attr("role", "button");
+    enter.append("rect").attr("class", "container-body");
+    enter.append("circle").attr("class", "container-dot");
+    enter.append("text").attr("class", "container-title");
+    const badge = enter.append("g").attr("class", "container-badge");
+    badge.append("rect").attr("class", "container-badge-bg").attr("rx", 8);
+    badge.append("text").attr("class", "container-count")
+      .attr("text-anchor", "middle").attr("dominant-baseline", "central");
+
+    const all = enter.merge(container);
+    all
+      .attr("aria-label", (node) => `${displayOf(node)}（${node.kind}）容器，${memberCountOf(node.id)} 个成员`)
+      .each(function (this: SVGGElement, node: SimNode) {
+        applyContainerGeometry(d3.select(this));
+      });
+    all.select("circle.container-dot").attr("fill", (node) => kindColorFor(node.kind));
+    all.select<SVGRectElement>(".container-badge-bg").attr("x", -13).attr("y", -9).attr("width", 26).attr("height", 18);
+    all.select<SVGTextElement>(".container-title")
+      .attr("dominant-baseline", "central")
+      .style("font-family", "var(--font-sans)")
+      .attr("font-size", "12px")
+      .attr("font-weight", "600")
+      .style("pointer-events", "none")
+      .style("user-select", "none");
+
+    all
+      .on("keydown", function (this: SVGGElement, event: KeyboardEvent, node: SimNode) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggleContainer(node, this);
+        }
+      })
+      .on("focus", function (this: SVGGElement) {
+        d3.select(this).classed("is-focused", true);
+      })
+      .on("blur", function (this: SVGGElement) {
+        d3.select(this).classed("is-focused", false);
+      })
+      .on("click", (event: MouseEvent, node: SimNode) => {
+        event.stopPropagation();
+        toggleContainer(node, event.currentTarget as SVGGElement);
+      })
+      .call(nodeDragBehavior());
+  }
+
   // ── 节点层 ──
   function renderNodeLayer(
     parent: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -476,6 +745,41 @@
 
     applyStarVisual(all);
 
+    // 附属标注角标（D46 annotation 恰一宿主）：宿主星体右上角小徽章，显示附属计数
+    all.each(function (this: SVGGElement, node: SimNode) {
+      const group = d3.select(this);
+      const attached = layered.hostBadges.get(node.id) ?? [];
+      const existing = group.select<SVGGElement>("g.affiliated-badge");
+      if (attached.length === 0) {
+        existing.remove();
+        return;
+      }
+      const badge = existing.empty()
+        ? group.append("g").attr("class", "affiliated-badge").attr("role", "button").attr("tabindex", 0)
+        : existing;
+      badge
+        .attr("transform", `translate(${NODE_R + 7},${-(NODE_R + 7)})`)
+        .attr("aria-label", `${attached.length} 个附属对象`);
+      if (badge.select("circle.affiliated-badge-bg").empty()) {
+        badge.append("circle").attr("class", "affiliated-badge-bg").attr("r", 9);
+        badge.append("text").attr("class", "affiliated-badge-count")
+          .attr("text-anchor", "middle").attr("dominant-baseline", "central");
+      }
+      badge.select("text.affiliated-badge-count").text(String(attached.length));
+      badge
+        .on("click", (event: MouseEvent) => {
+          event.stopPropagation();
+          event.preventDefault();
+          openBadgePopup(node);
+        })
+        .on("keydown", (event: KeyboardEvent) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openBadgePopup(node);
+          }
+        });
+    });
+
     all
       .attr("aria-label", (node) => `${displayOf(node)}（${node.kind}）`)
       .on("keydown", function (event: KeyboardEvent, node: SimNode) {
@@ -508,28 +812,8 @@
         store.select({ type: "object", id: node.id });
       });
 
-    // 拖拽（位置写入缓存；视图状态，不触发 Core 写入）
-    const drag = d3.drag<SVGGElement, SimNode>()
-      .on("start", function (this: SVGGElement, event, node) {
-        if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
-        node.fx = node.x;
-        node.fy = node.y;
-        currentPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
-        d3.select(this).classed("is-dragging", true);
-      })
-      .on("drag", (_event, node) => {
-        node.fx = _event.x;
-        node.fy = _event.y;
-        currentPositions.set(node.id, { x: _event.x, y: _event.y });
-      })
-      .on("end", function (this: SVGGElement, event, node) {
-        if (!event.active && simulation) simulation.alphaTarget(0);
-        node.fx = null;
-        node.fy = null;
-        currentPositions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
-        d3.select(this).classed("is-dragging", false);
-      });
-    all.call(drag as never);
+    // 拖拽（位置写入缓存；视图状态，不触发 Core 写入）——行为与容器条共用
+    all.call(nodeDragBehavior());
   }
 
   // ── 微尘氛围层（屏幕固定，不随缩放平移）──
@@ -590,6 +874,10 @@
 
     const svg = d3.select(svgEl);
     const previousTransform = (svgEl as SVGSVGElement & { __zoom?: d3.ZoomTransform }).__zoom;
+    if (isGraphSwitch) {
+      expandedContainers.clear();
+      badgePopup = null;
+    }
     svg.selectAll("*").remove();
     svg.attr("viewBox", `0 0 ${w} ${h}`).attr("preserveAspectRatio", "xMidYMid meet");
 
@@ -659,32 +947,43 @@
       zoomGroup.attr("transform", previousTransform as unknown as string);
     }
 
-    // 节点（位置缓存种子；确定性网格兜底）
-    const seed = seedGridLayout(snapshot.objects.length);
-    const bySeed = new Map(snapshot.objects.map((object, index) => [object.id, seed[index]]));
-    const nodes: SimNode[] = snapshot.objects.map((object) => {
+    // 语义分层（D46）：容器分区 / 附属标注 / 普通星体
+    layered = computeLayeredSemantics(snapshot.objects, snapshot.relations);
+
+    // 节点（位置缓存种子；确定性网格兜底）。布局层 = 除标注外全部对象：
+    // 容器参与布局（星体成员经 member_of 链力聚拢）；标注不画星体、不入模拟。
+    const layoutObjects = snapshot.objects.filter((object) => representOfKind(object.kind) !== "annotation");
+    const seed = seedGridLayout(layoutObjects.length);
+    const bySeed = new Map(layoutObjects.map((object, index) => [object.id, seed[index]]));
+    const nodes: SimNode[] = layoutObjects.map((object) => {
       const cached = positions.get(object.id);
       const base = cached ?? bySeed.get(object.id) ?? { x: 0, y: 0 };
       return { ...object, x: base.x, y: base.y };
     });
-    const presentIds = new Set(nodes.map((node) => node.id));
-    const edges: SimEdge[] = snapshot.relations
-      .filter((relation) => presentIds.has(relation.source) && presentIds.has(relation.target))
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    // 布局边 = 两端都在布局层的关系（member_of→容器 保留以聚拢成员；标注边两端不全在 → 自然剔除）
+    const layoutEdges = snapshot.relations
+      .filter((relation) => nodeIds.has(relation.source) && nodeIds.has(relation.target))
       .map((relation) => ({ ...relation })) as SimEdge[];
+    // 可见边 = 布局边去掉 member_of→声明容器（容器分区已表达成员归属，不画线）
+    const visibleEdges = layoutEdges.filter(
+      (edge) => !(edge.kind === "member_of" && layered.containerIds.has(edgeEndId(edge.target))),
+    );
 
     currentNodes = nodes;
-    currentEdges = edges;
+    currentEdges = visibleEdges;
 
     simulation?.stop();
     simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink<SimNode, SimEdge>(edges).id((node) => node.id).distance(160))
+      .force("link", d3.forceLink<SimNode, SimEdge>(layoutEdges).id((node) => node.id).distance(160))
       .force("charge", d3.forceManyBody().strength(-Math.min(800, 300 + nodes.length * 25)))
       .force("center", d3.forceCenter(w / 2, h / 2))
       .force("collision", d3.forceCollide<SimNode>().radius(NODE_R + 8))
       .alphaDecay(0.02);
 
-    renderEdgeLayer(zoomGroup, edges);
-    renderNodeLayer(zoomGroup, nodes);
+    renderContainerLayer(zoomGroup, nodes.filter((node) => layered.containerIds.has(node.id)));
+    renderEdgeLayer(zoomGroup, visibleEdges);
+    renderNodeLayer(zoomGroup, nodes.filter((node) => !layered.containerIds.has(node.id)));
     applyFiltersAndSelection();
     syncEdgeZoomWidth((svgEl as SVGSVGElement & { __zoom?: d3.ZoomTransform }).__zoom?.k ?? 1);
 
@@ -699,6 +998,7 @@
     // tick：位置/渐变/折角逐帧同步；fit 挂接模拟收敛
     const edgeSel = zoomGroup.selectAll<SVGGElement, SimEdge>(".edges .edge-group");
     const nodeSel = zoomGroup.selectAll<SVGGElement, SimNode>(".nodes > g.node");
+    const containerSel = zoomGroup.selectAll<SVGGElement, SimNode>(".containers > g.container-group");
     const updateRender = () => {
       edgeSel.each(function (this: SVGGElement, edge: SimEdge) {
         const group = d3.select(this);
@@ -721,6 +1021,12 @@
         }
       });
       nodeSel.attr("transform", (node) => `translate(${node.x ?? 0},${node.y ?? 0})`);
+      containerSel
+        .attr("transform", (node) => `translate(${node.x ?? 0},${node.y ?? 0})`)
+        .each(function (this: SVGGElement, node: SimNode) {
+          // 展开分区逐帧包围成员当前位置；折叠条几何固定（仅位移）
+          if (expandedContainers.get(node.id)) applyContainerGeometry(d3.select(this));
+        });
 
       if (!fitDone && simulation && simulation.alpha() <= 0.3) {
         fitDone = true;
@@ -755,21 +1061,27 @@
     }
     const snapshot = store.snapshot;
     if (!snapshot) return;
-    const newNodeIds = new Set(snapshot.objects.map((object) => object.id));
-    const sameNodes = currentNodes.length === snapshot.objects.length
+    layered = computeLayeredSemantics(snapshot.objects, snapshot.relations);
+    // 与全量渲染同口径：布局层排除标注对象
+    const layoutObjects = snapshot.objects.filter((object) => representOfKind(object.kind) !== "annotation");
+    const newNodeIds = new Set(layoutObjects.map((object) => object.id));
+    const sameNodes = currentNodes.length === layoutObjects.length
       && currentNodes.every((node) => newNodeIds.has(node.id))
-      && nodeContentKey(currentNodes) === nodeContentKey(snapshot.objects);
+      && nodeContentKey(currentNodes) === nodeContentKey(layoutObjects);
     if (!sameNodes) {
       renderGraph();
       return;
     }
-    const presentIds = new Set(snapshot.objects.map((object) => object.id));
-    const edges: SimEdge[] = snapshot.relations
-      .filter((relation) => presentIds.has(relation.source) && presentIds.has(relation.target))
+    const nodeIds = new Set(currentNodes.map((node) => node.id));
+    const layoutEdges = snapshot.relations
+      .filter((relation) => nodeIds.has(relation.source) && nodeIds.has(relation.target))
       .map((relation) => ({ ...relation })) as SimEdge[];
-    currentEdges = edges;
-    renderEdgeLayer(zoomGroup, edges);
-    simulation.force("link", d3.forceLink<SimNode, SimEdge>(edges).id((node) => node.id).distance(160));
+    const visibleEdges = layoutEdges.filter(
+      (edge) => !(edge.kind === "member_of" && layered.containerIds.has(edgeEndId(edge.target))),
+    );
+    currentEdges = visibleEdges;
+    renderEdgeLayer(zoomGroup, visibleEdges);
+    simulation.force("link", d3.forceLink<SimNode, SimEdge>(layoutEdges).id((node) => node.id).distance(160));
     simulation.alpha(0.3).restart();
     applyFiltersAndSelection();
   }
@@ -777,18 +1089,30 @@
   // ── 数据流：内容变化决定全量重建 or 增量同步 ──
   let lastNodeKey: string | null = null;
   let lastEdgeKey: string | null = null;
+  let lastBadgeKey: string | null = null;
   $effect(() => {
     const snapshot = store.snapshot;
+    const catalog = store.catalog; // represent 声明随目录 reset 变化 → 分层结构重建
     if (!snapshot || !svgEl) return;
-    const nodeKey = nodeContentKey(snapshot.objects);
+    const representKey = stableKey(snapshot.objects.map((object) => ({ id: object.id, r: representOfKind(object.kind) })));
+    const nodeKey = `${nodeContentKey(snapshot.objects)}|${representKey}`;
     const edgeKey = edgeContentKey(snapshot.relations);
+    const badgeKey = stableKey({
+      badges: [...computeLayeredSemantics(snapshot.objects, snapshot.relations).hostBadges]
+        .map(([hostId, annotations]) => ({ hostId, annotations: annotations.map((a) => a.id) })),
+      fallback: snapshot.objects
+        .filter((object) => representOfKind(object.kind) === "annotation")
+        .map((object) => object.id),
+    });
     const identityChanged = snapshot.graphId !== currentGraphId;
     const nodeChanged = lastNodeKey !== null && nodeKey !== lastNodeKey;
     const edgeChanged = lastEdgeKey !== null && edgeKey !== lastEdgeKey;
+    const badgeChanged = lastBadgeKey !== null && badgeKey !== lastBadgeKey;
     const isFirst = lastNodeKey === null;
     lastNodeKey = nodeKey;
     lastEdgeKey = edgeKey;
-    if (isFirst || identityChanged || nodeChanged) renderGraph();
+    lastBadgeKey = badgeKey;
+    if (isFirst || identityChanged || nodeChanged || badgeChanged) renderGraph();
     else if (edgeChanged) syncEdges();
   });
 
@@ -846,13 +1170,15 @@
       .call(zoomBehavior.transform, d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-node.x, -node.y));
   });
 
-  // Tab 分组循环：焦点只在可见星体间循环
+  // Tab 分组循环：焦点只在可见星体与容器条之间循环
   function canvasKeydown(event: KeyboardEvent): void {
     if (event.key !== "Tab") return;
     const active = document.activeElement as HTMLElement | null;
-    if (!active?.classList.contains("node")) return;
+    if (!active?.classList.contains("node") && !active?.classList.contains("container-group")) return;
     event.preventDefault();
-    const group = Array.from(wrapperEl?.querySelectorAll<HTMLElement>("g.node:not(.dimmed)") ?? []);
+    const group = Array.from(
+      wrapperEl?.querySelectorAll<HTMLElement>("g.node:not(.dimmed), g.container-group") ?? [],
+    );
     if (group.length === 0) return;
     const index = group.indexOf(active);
     const next = group[(index + (event.shiftKey ? -1 : 1) + group.length) % group.length];
@@ -880,10 +1206,11 @@
     }
     buildDust();
 
-    // 画布空白处点击 = 清除选中（焦点残留一并交还）
+    // 画布空白处点击 = 清除选中（焦点残留一并交还）；附属浮层一并收起
     d3.select(svgEl).on("click.bg", (event: MouseEvent) => {
       const target = event.target as Element;
       if (target === svgEl || target.classList?.contains("grid-bg")) {
+        badgePopup = null;
         if (document.activeElement instanceof Element && document.activeElement.closest("g.node")) {
           (document.activeElement as HTMLElement).blur?.();
         }
@@ -902,6 +1229,8 @@
       } else if (event.key === "0") {
         event.preventDefault();
         autoFit();
+      } else if (event.key === "Escape") {
+        badgePopup = null; // 附属浮层属画布层；选中/过滤的退出层级由外壳处理
       }
     };
     window.addEventListener("keydown", handleKeydown);
@@ -934,6 +1263,38 @@
   </div>
   <svg bind:this={svgEl} class="graph-canvas"></svg>
   <div bind:this={tooltipEl} class="node-tooltip"></div>
+
+  <!-- 附属标注浮层（角标点击弹出）：列表项点击 = store.select → ObjectDetail 抽屉 -->
+  {#if badgePopup && badgePopupItems.length > 0}
+    <div class="affiliated-pop" style="left: {badgePopup.x}px; top: {badgePopup.y}px" role="menu" aria-label="附属对象浮层">
+      <span class="affiliated-pop-title">附属 · {badgePopupItems.length}</span>
+      {#each badgePopupItems as annotation (annotation.id)}
+        <button class="affiliated-item" onclick={() => selectAffiliated(annotation.id)} title={annotation.kind}>
+          <code class="affiliated-id">{annotation.id}</code>
+          {#if titleOf(annotation)}<span class="affiliated-label">{titleOf(annotation)}</span>{/if}
+        </button>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- 附属侧栏（零/多宿主标注兜底；风格对齐 App.svelte 静态预览列表） -->
+  {#if affiliatedGroups.length > 0}
+    <aside class="affiliated-aside" aria-label="附属对象列表">
+      {#each affiliatedGroups as [kind, items] (kind)}
+        <section class="affiliated-kind-group">
+          <h4 class="affiliated-kind-title">{kind} <span class="affiliated-kind-n">{items.length}</span></h4>
+          <div class="affiliated-list">
+            {#each items as annotation (annotation.id)}
+              <button class="affiliated-item" onclick={() => selectAffiliated(annotation.id)}>
+                <code class="affiliated-id">{annotation.id}</code>
+                {#if titleOf(annotation)}<span class="affiliated-label">{titleOf(annotation)}</span>{/if}
+              </button>
+            {/each}
+          </div>
+        </section>
+      {/each}
+    </aside>
+  {/if}
 
   <div class="zoom-hint">
     <span class="hint-key">scroll</span> 缩放
@@ -1132,8 +1493,84 @@
   }
 
   /* 键盘焦点：SVG g 不支持 outline，视觉由 JS 焦点环承担 */
-  .graph-canvas :global(g.node:focus) {
+  .graph-canvas :global(g.node:focus),
+  .graph-canvas :global(g.container-group:focus) {
     outline: none;
+  }
+
+  /* ── 容器分区（D46 container）：玻璃底板 + 标题 + 成员计数徽章（d3 生成 DOM → :global）── */
+  :global {
+    .containers g.container-group .container-body {
+      fill: var(--glass);
+      stroke: var(--glass-line);
+      stroke-width: 1;
+      transition: stroke 0.13s var(--ease-out-quart), fill 0.13s var(--ease-out-quart);
+    }
+    .containers g.container-group:hover .container-body,
+    .containers g.container-group.is-focused .container-body {
+      stroke: var(--line-strong);
+      fill: rgba(13, 15, 20, 0.82);
+    }
+    .containers g.container-group.expanded .container-body {
+      fill: rgba(13, 15, 20, 0.55);
+    }
+    .containers g.container-group .container-title {
+      fill: var(--ink);
+      letter-spacing: 0.02em;
+      paint-order: stroke;
+      stroke: #000000;
+      stroke-width: 3px;
+      stroke-linejoin: round;
+      pointer-events: none;
+      user-select: none;
+    }
+    .containers g.container-group .container-badge-bg {
+      fill: var(--wash-2);
+      stroke: var(--glass-line);
+    }
+    .containers g.container-group .container-badge.empty {
+      opacity: 0.45;
+    }
+    .containers g.container-group .container-count {
+      fill: var(--ink-muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+    .containers g.container-group.is-dragging {
+      cursor: grabbing;
+    }
+
+    /* ── 附属角标（D46 annotation 恰一宿主）：宿主星体右上角小徽章 ── */
+    .nodes g.node g.affiliated-badge {
+      cursor: pointer;
+    }
+    .nodes g.node g.affiliated-badge .affiliated-badge-bg {
+      fill: var(--wash-3);
+      stroke: rgba(255, 255, 255, 0.4);
+      stroke-width: 1;
+      transition: fill 0.13s var(--ease-out-quart);
+    }
+    .nodes g.node g.affiliated-badge:hover .affiliated-badge-bg,
+    .nodes g.node g.affiliated-badge:focus .affiliated-badge-bg {
+      fill: rgba(255, 255, 255, 0.22);
+    }
+    .nodes g.node g.affiliated-badge .affiliated-badge-count {
+      fill: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .containers g.container-group .container-body,
+      .nodes g.node g.affiliated-badge .affiliated-badge-bg {
+        transition: none;
+      }
+    }
   }
 
   /* 微尘由 d3 生成 → 样式走 :global */
@@ -1192,5 +1629,123 @@
 
   @media (prefers-reduced-motion: reduce) {
     .zoom-hint { transition: none; }
+  }
+
+  /* ── 附属标注浮层（角标点击弹出；锚定宿主屏幕坐标的玻璃小卡）── */
+  .affiliated-pop {
+    position: absolute;
+    min-width: 180px;
+    max-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-2);
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: var(--blur-panel);
+    backdrop-filter: var(--blur-panel);
+    border: 1px solid var(--glass-line, var(--line));
+    border-radius: var(--r);
+    box-shadow: var(--shadow-float), inset 0 1px 0 var(--hi-line);
+    z-index: var(--z-panel);
+  }
+
+  .affiliated-pop-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    font-weight: 650;
+    color: var(--ink-faint);
+    padding: 0 var(--sp-1) var(--sp-1);
+  }
+
+  /* ── 附属侧栏（零/多宿主标注兜底；风格对齐 App.svelte 静态预览列表）── */
+  .affiliated-aside {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    bottom: 64px;
+    width: 232px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--blur-panel);
+    backdrop-filter: var(--blur-panel);
+    border: 1px solid var(--glass-line, var(--line));
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-float), inset 0 1px 0 var(--hi-line);
+    z-index: var(--z-overlay);
+  }
+
+  .affiliated-kind-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .affiliated-kind-title {
+    margin: 0 0 var(--sp-1);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: 650;
+    color: var(--ink-muted);
+  }
+
+  .affiliated-kind-n {
+    opacity: 0.5;
+    font-weight: 400;
+  }
+
+  .affiliated-list {
+    display: grid;
+    gap: 4px;
+  }
+
+  .affiliated-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    min-width: 0;
+    padding: var(--sp-1) var(--sp-2);
+    background: var(--wash-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    font-size: var(--text-xs);
+    transition: background 0.13s var(--ease-out-quart), border-color 0.13s var(--ease-out-quart);
+  }
+
+  .affiliated-item:hover {
+    background: var(--wash-2);
+    border-color: var(--line-strong);
+  }
+
+  .affiliated-item:focus-visible {
+    outline: 2px solid var(--interactive);
+    outline-offset: 1px;
+  }
+
+  .affiliated-id {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--ink-faint);
+    flex-shrink: 0;
+    max-width: 92px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .affiliated-label {
+    color: var(--ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .affiliated-item { transition: none; }
   }
 </style>

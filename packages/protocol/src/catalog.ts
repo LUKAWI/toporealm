@@ -17,7 +17,14 @@ export interface CatalogEntry {
 
 export interface Catalog {
   modules: readonly { id: string; version: string; namespace: string }[];
-  kinds: readonly { kind: Kind; owner?: string; color?: string; icon?: string }[];
+  kinds: readonly {
+    kind: Kind;
+    owner?: string;
+    color?: string;
+    icon?: string;
+    /** D46 呈现声明：容器/备注分层渲染；仅模块 ui.kinds 声明了才携带，core 不解释（声明层只协调不执法） */
+    represent?: "container" | "annotation";
+  }[];
   commands: readonly CatalogEntry[];
   /** D24②：api.form 注册面的目录投影（仅非空时携带）；WebUI inspector 表单从目录读取 */
   forms?: readonly { kind: Kind; form: FormSpec }[];

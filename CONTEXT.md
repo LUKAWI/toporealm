@@ -30,6 +30,12 @@
 
 对象的领域身份。一个对象只有一个主类型；主类型使用模块命名空间避免歧义，无命名空间前缀即公共/无主类型。
 
+## 容器类（Container）
+
+以普通对象承载、经公共归属边 `member_of` 聚合成员、并在 module.yaml `ui.kinds` 声明 `represent: "container"` 的组织性类目。它是约定层的呈现语义而非协议事实面的第四原语：core 不为容器执法，分组与标注经目录投影（catalog 的 `represent` 字段）与邻域查询到达 WebUI；不声明即按普通节点渲染。`member_of` 无命名空间前缀，属公共类型，跨模块共用，所有权法放行；`represent: "annotation"` 同理标注备注类对象。
+
+消歧：workflow 模块既有的「任务档位（class）」（quick/standard/program，落 `wf.settings` 单例的图级档位，D24③）与容器类无关——两个「class」互不相干，档位是 workflow 领域的执行档位约定，容器类是基座声明层的组织语义。
+
 ## 模块命名空间（Module Namespace）
 
 模块在图中用于标识其主类型与归属的稳定前缀。一张图不能同时装载两个使用相同命名空间的模块。

@@ -21,6 +21,9 @@ description: my-module 模块的使用方法：my.add-card 建卡（title 必填
 - 本模块只触碰 `my.card` / `my.links`（module.yaml 词汇表 + 所有权法执法）。
 - 钩子对一切来源生效（含人类直接 `toporealm add`）——绕过命令手写数据同样被门禁拦。
 - 撤销是用户的手：`toporealm undo` 豁免领域门禁（D24①），钩子不得拦 undo/redo。
+- 呈现声明：module.yaml `ui.kinds` 可给 kind 标 `represent: "container"`（WebUI 容器分区，
+  成员经公共关系 `member_of` 挂靠，方向恒为 成员 → 类）或 `"annotation"`（宿主角标/附属侧栏）；
+  不声明即普通节点。
 
 ## 输入纪律
 

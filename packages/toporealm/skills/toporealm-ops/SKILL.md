@@ -59,6 +59,10 @@ module/migrate 是工作区文件层冷路径（不触 daemon），改动由 dae
   `TOPOREALM_WEB_STATIC=<web-ui dist 目录>` 指向静态产物。纯 `/api/*` 与 `/ws`
   不受影响，机器客户端可继续用。
 - daemon 拉起超时 → `DAEMON_UNREACHABLE`，处理见「五、daemon 排障」。
+- **画布语义分层来自模块声明**：module.yaml `ui.kinds` 里 `represent: "container"`
+  的 kind 渲染为容器分区（成员 = 指向它的 `member_of` 边，方向恒为 成员 → 类），
+  `represent: "annotation"` 渲染为宿主角标/附属侧栏，不声明 = 普通节点。core 不解释
+  represent——错标只影响渲染，不影响图事实。
 
 ## 四、多图策略与专注图（use）
 

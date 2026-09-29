@@ -9,7 +9,7 @@ import {
   type TopoEvent,
 } from "@lukawi/toporealm-protocol";
 import {
-  PendingEntry,
+  type PendingEntry,
   SessionTransport,
   type SessionOp,
   type TypedRequest,

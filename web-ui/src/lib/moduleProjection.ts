@@ -16,6 +16,9 @@ export interface KindCommandProjection {
   input?: object;
 }
 
+/** D46 呈现声明：container = 玻璃容器分区；annotation = 附属标注（角标/侧栏）。 */
+export type KindRepresent = "container" | "annotation";
+
 export interface ModuleProjection {
   kind: string;
   /** 拥有该命名空间的模块 id（目录 modules 匹配） */
@@ -24,6 +27,8 @@ export interface ModuleProjection {
   available: boolean;
   /** 目录 kinds 声明的样式（kinds.color/icon） */
   presentation?: ModulePresentation;
+  /** 目录 kinds 声明的分层渲染（kinds.represent）；未声明 = 普通星体 */
+  represent?: KindRepresent;
   commands: KindCommandProjection[];
 }
 
@@ -45,9 +50,19 @@ export function kindColorOf(kind: string, catalog: Catalog | null): string {
   return projectModuleKind(kind, catalog).presentation?.color ?? fallbackKindColor(kind);
 }
 
+/** kind 的呈现声明（D46 represent）：undefined = 普通星体。画布渲染分流入口。 */
+export function representOf(kind: string, catalog: Catalog | null): KindRepresent | undefined {
+  return projectModuleKind(kind, catalog).represent;
+}
+
 /** 目录 → 固定 Web 插槽投影（样式 + appliesTo 命令）；无目录也能降级呈现。 */
 export function projectModuleKind(kind: string, catalog: Catalog | null): ModuleProjection {
   const base: ModuleProjection = { kind, available: true, commands: [] };
+  // represent 是呈现声明（D46）：与模块装载无关，目录声明了就透传——
+  // 模块降级（不可用）时对象仍需按容器/标注正确分层渲染。
+  const kindEntry = (catalog?.kinds ?? []).find((k) => k.kind === kind);
+  if (kindEntry?.represent !== undefined) base.represent = kindEntry.represent;
+
   const ns = namespaceOf(kind);
   if (ns === undefined) return base;
 
@@ -59,7 +74,6 @@ export function projectModuleKind(kind: string, catalog: Catalog | null): Module
   }
   base.moduleId = owner.id;
 
-  const kindEntry = (catalog?.kinds ?? []).find((k) => k.kind === kind);
   const presentation: ModulePresentation = {};
   if (typeof kindEntry?.color === "string") presentation.color = kindEntry.color;
   if (typeof kindEntry?.icon === "string") presentation.icon = kindEntry.icon;

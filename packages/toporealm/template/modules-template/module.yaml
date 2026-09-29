@@ -37,6 +37,12 @@ ui:
   color: "#8b5cf6" # 任意 CSS 颜色
   icon: "tag" # 图标名（WebUI 投影）
   # titleKey: title
+  # 呈现声明 ui.kinds（per-kind 映射；core 不解释，只影响 WebUI 渲染；不声明 = 普通节点）：
+  #   represent: "container"  → 渲染为容器分区（成员 = 指向它的公共归属边 member_of，方向恒为 成员 → 类）
+  #   represent: "annotation" → 渲染为宿主角标或附属侧栏（备注类对象）
+  # kinds:
+  #   card:
+  #     represent: "container"
 
 # 代码层入口：daemon 直接 import 的构建产物（相对本文件）。
 # 模块 dist 必须自包含——对平台/其它包零运行时依赖（模块 SDK 只做类型导入，emit 后擦除）。

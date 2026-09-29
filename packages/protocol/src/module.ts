@@ -110,7 +110,16 @@ export interface ModuleManifestV2 {
   version: string;
   requires?: { modules?: readonly string[] };
   kinds?: { objects?: readonly string[]; relations?: readonly string[] };
-  ui?: { color?: string; icon?: string; titleKey?: string };
+  /**
+   * ui 段整体宽松透传（color/icon/titleKey 原样收），仅 kinds 子映射规范化
+   * （D46）：只保留 represent ∈ {"container","annotation"} 的条目，其余静默忽略。
+   */
+  ui?: {
+    color?: string;
+    icon?: string;
+    titleKey?: string;
+    kinds?: Readonly<Record<string, { represent: "container" | "annotation" }>>;
+  };
   entry: string;
 }
 

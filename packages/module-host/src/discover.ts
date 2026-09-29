@@ -110,7 +110,7 @@ export async function parseModuleManifest(
     ...(raw.requires !== undefined ? { requires: normRequires(raw.requires, boundId) } : {}),
     ...(raw.kinds !== undefined ? { kinds: normKinds(raw.kinds, boundId) } : {}),
     ...(raw.ui !== undefined && typeof raw.ui === "object" && raw.ui !== null
-      ? { ui: raw.ui as ModuleManifestV2["ui"] }
+      ? { ui: normUi(raw.ui) }
       : {}),
   };
 }
@@ -147,6 +147,35 @@ function normKinds(
     return v.map(String);
   };
   return { objects: norm(k.objects, "objects"), relations: norm(k.relations, "relations") };
+}
+
+/**
+ * ui.kinds per-kind 呈现声明规范化（D46）：只认 represent ∈ {"container","annotation"}
+ * 两个字符串值，其余值/异形条目（非映射、标量、非对象 ui.kinds 本体）静默忽略——
+ * 声明层只协调不执法（D8），不做执法报错。返回 undefined = 无任何有效声明。
+ */
+function normUiKinds(
+  raw: unknown,
+): Record<string, { represent: "container" | "annotation" }> | undefined {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, { represent: "container" | "annotation" }> = {};
+  for (const [kind, entry] of Object.entries(raw as Record<string, unknown>)) {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const represent = (entry as { represent?: unknown }).represent;
+    if (represent !== "container" && represent !== "annotation") continue;
+    out[kind] = { represent };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** ui 段：color/icon/titleKey 等保持宽松透传，kinds 子映射走规范化（剥原键防未校验值漏入）。 */
+function normUi(raw: object): ModuleManifestV2["ui"] {
+  const { kinds: rawKinds, ...rest } = raw as Record<string, unknown>;
+  const kinds = normUiKinds(rawKinds);
+  return {
+    ...(rest as ModuleManifestV2["ui"]),
+    ...(kinds !== undefined ? { kinds } : {}),
+  };
 }
 
 function isModuleDirName(name: string): boolean {

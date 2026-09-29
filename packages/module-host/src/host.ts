@@ -383,16 +383,18 @@ export class ModuleHost {
           )
         : undefined;
     const kinds = new Map<Kind, Catalog["kinds"][number]>();
-    // 声明层投影优先（带 ui color/icon），活图 kind 兜底（core 聚合，owner 取命名空间前缀）
+    // 声明层投影优先（带 ui color/icon + D46 per-kind represent），活图 kind 兜底（core 聚合，owner 取命名空间前缀）
     for (const m of this.loaded.values()) {
       if (scope && !scope.has(m.id)) continue;
       const ui = m.manifest.ui;
       for (const kind of m.declaredKinds) {
+        const represent = ui?.kinds?.[kind]?.represent;
         kinds.set(kind, {
           kind,
           owner: m.namespace,
           ...(ui?.color !== undefined ? { color: ui.color } : {}),
           ...(ui?.icon !== undefined ? { icon: ui.icon } : {}),
+          ...(represent !== undefined ? { represent } : {}),
         });
       }
     }
