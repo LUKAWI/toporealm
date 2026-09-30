@@ -103,6 +103,15 @@ export class DaemonCore {
   private reconciling = false;
   /** 正在落盘时抑制监视回调（内容比对本身也是安全网） */
   private persistDepth = 0;
+  /**
+   * 转换管线忙碌计数（外部吸收栅栏）：convert 同步入队即 ++、run 结束 finally --；
+   * runExclusive 段同计（入队未执行的提交也算忙）。reconcileExternal 读盘横跨多个
+   * 事件循环 tick，期间入队/落地的提交会让目录快照早于该提交的落盘，把「快照里没有、
+   * 内存里有」误判为外部删除，且 external 转换排在该提交之后执行——内存与磁盘一起被
+   * 真删（dev 图 rev 433 误删 domain-beta 的根因）。仅比对 revision 拦不住
+   * 「已入队未落地」的排序，必须以入队即计数为准。
+   */
+  private pipelinePending = 0;
   private disposed = false;
   /**
    * 提交管线串行尾链（A1）：异步 convert 把整段 stage→persist→land 串进此链。
@@ -779,7 +788,10 @@ export class DaemonCore {
    * fn 的返回值/异常原样透传（尾链吞错只保证链不断，见 tail 字段注释）。
    */
   runExclusive<T>(fn: () => Promise<T>): Promise<T> {
-    const p = this.tail.then(fn, fn);
+    this.pipelinePending++;
+    const p = this.tail.then(fn, fn).finally(() => {
+      this.pipelinePending--;
+    });
     this.tail = p.catch(() => {});
     return p;
   }
@@ -797,9 +809,13 @@ export class DaemonCore {
     // 前提是调用方处于 runExclusive 段内（host.run 已把模块命令 handler 整体包进
     // 独占段）：裸调（别人的让渡窗口里）仍会与在途 convert 双写同一 revision。
     const run = async (): Promise<CommitResult> => {
-      const st = this.stage(plan);
-      await this.persistAsync(plan, st);
-      return this.land(plan, st);
+      try {
+        const st = this.stage(plan);
+        await this.persistAsync(plan, st);
+        return this.land(plan, st);
+      } finally {
+        this.pipelinePending--;
+      }
     };
     const p = this.tail.then(run, run);
     this.tail = p.catch(() => {});
@@ -1157,7 +1173,21 @@ export class DaemonCore {
     if (this.disposed || this.persistDepth > 0 || this.reconciling) return false;
     this.reconciling = true;
     try {
+      const revBefore = this.revision_;
       const disk = await loadEntities(this.p);
+      // 快照新鲜度栅栏：读盘横跨了入队/落地的提交 → 目录快照早于其落盘，差集会把
+      // 刚提交的实体误判为「外部删除」（或用旧 payload 回滚刚提交的更新），且 external
+      // 排在该提交之后执行，误判会真改内存与磁盘。丢弃本轮并重调：在途提交落盘自会
+      // 触发新的 watch 事件，此处兜底保证不漏。检查与下方 convert 入队之间全同步、
+      // 无让渡点，不存在新的穿插窗口。
+      if (
+        this.revision_ !== revBefore ||
+        this.pipelinePending > 0 ||
+        this.persistDepth > 0
+      ) {
+        this.scheduleReconcile();
+        return false;
+      }
       const changes: Change[] = [];
       for (const [id, d] of disk.objects) {
         const m = this.objects.get(id);
