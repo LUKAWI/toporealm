@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased
+## 1.5.1 - 2026-09-30
+
+主题：**daemon 外部吸收竞态根修**。`reconcileExternal` 读盘横跨提交管线时刚落盘
+实体会被误判为外部删除（1.4.0 起，dev 图 rev 433 实证）；随版带上 main 上未发布
+的 serve 常驻 feat。协议事实面、core 执法两条、图文件格式零改动，升级无迁移步骤。
+
+- **fix(daemon-core)**：外部吸收快照新鲜度栅栏——`reconcileExternal` 的入口
+  `persistDepth` 守卫只查一次，随后 `loadEntities` 是跨多 tick 的串行读盘；提交
+  在读盘窗口内入队并落地时，持提交前目录快照的差集把「快照无、内存有」判为外部
+  删除，且 external 转换在 FIFO 尾链上排在该提交之后执行，刚落盘的实体从内存+
+  磁盘真删（dev 图 rev 433 误删 domain-beta 根因，93ms 窗口偶发）；update 变体
+  会用旧快照 payload 回滚刚提交的更新。修法：`pipelinePending` 忙碌计数（convert
+  同步入队即计、run 结束递减，`runExclusive` 段同包裹）+ 读盘后栅栏（revision
+  变化或管线忙碌→丢弃本轮 diff 并重调）。回归测试 `reconcile-fence.test.ts` 三
+  场景（落地/入队/update 回滚），还原修复可复现。
 
 - **feat(cli)**：`serve` 拉起的 daemon 常驻——spawn 透传 `--idle-ms 0`（蓝图 §5
   「detached 常驻」语义对齐；此前实现漏传空闲参数，serve 场景 daemon 30 秒空闲
