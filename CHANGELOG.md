@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.5.2 - 2026-09-30
+
+主题：**WebUI 审阅转向（preview）**。1.6.0「编辑系统」经产品重定义后落地为审阅界面：
+WebUI 移除全部图编辑能力，写面收敛为**批注**与 **checkpoint 人工确认**（蓝图 §1.14
+决策记录 D47–D49）。协议事实面、core 执法、wire 契约、CLI 语法零改动。
+
+- **feat(web-ui)**：D47 审阅定位——EditorPanel（对象/关系新建与编辑表单）、删除流、
+  undo/redo（工具轨按钮 + Ctrl+Z/Ctrl+Y）与只读开关全部退场；对象详情的通用模块命令
+  按钮区删除。WebUI 物理上只剩两个写入口：写批注、checkpoint 打 √/×——界面自律，
+  不做服务端拦截（与所有权法「防手滑不防恶意」同哲学）。
+- **feat(web-ui)**：D48 批注 = 公共 kind `annotation` 基座约定（web 侧直接认识，
+  `member_of` 同款先例）——批注撰写面板（整图/类/对象三目标；意图 chip 评论/提问/
+  评审意见；无 ID、无 JSON 字段；id 客户端生成 `anno-` 前缀，同提交 put+rel 原子锚定）。
+  对象批注经 `annotation_of` 恰一宿主边落既有角标路径，类/整图批注落附属侧栏；批注
+  对象专属呈现（内容/意图/作者时间/目标跳转）+ 标记已解决/重开（merge 顶层 `resolved`
+  布尔）；agent 读回 `toporealm find resolved=false --kind annotation`，处理后
+  `set resolved=true` 收口。
+- **feat(web-ui)**：D49 checkpoint 人工确认——任务详情渲染内嵌检查点清单；**仅对尚无
+  终态决策的条目**（pending/running）出 √/×，已决策条目只读展示决策值+决策人+时间；
+  提交走 `wf.record-checkpoint`（`actor/by = user`，human 终态钩子执法 HUMAN_CONFIRMATION_
+  REQUIRED 不变）；workflow 未装载时降级只读展示。
+- **docs**：蓝图 §1.14（D47–D49）、CONTEXT.md（新增「批注」「审阅」词条，「专注图」
+  改称 WebUI 的实时审阅对象）、GraphCanvas 交互契约（D48 基座约定例外）、基座技能新增
+  「批注与人工确认」节、ops 技能措辞对齐、README 中/英。
+- **chore(release)**：整仓版本 1.5.2（10 包 + web-ui 依赖 + 根 lockfile + 跨包精确
+  依赖同步 + 插件 plugin.json/marketplace.json）。
+
+升级说明：无迁移步骤；WebUI 行为变化为有意收缩——图编辑（增删改、undo/redo）自本版起
+只在 CLI。本版为审阅系统 preview，1.6.0 依据使用反馈做优化迭代。
+
 ## 1.5.1 - 2026-09-30
 
 主题：**daemon 外部吸收竞态根修**。`reconcileExternal` 读盘横跨提交管线时刚落盘
