@@ -74,11 +74,16 @@ function applyChanges(state: FakeSessionState, changes: readonly Change[]): Comm
       if (change.direction !== undefined) relation.direction = change.direction;
       state.relations = [...state.relations, relation];
     } else if (change.op === "merge") {
-      state.objects = state.objects.map((o) =>
-        o.id === change.id
-          ? { ...o, payload: { ...o.payload, ...Object.fromEntries(Object.entries(change.payload).filter(([, v]) => v !== null)) } }
-          : o,
-      );
+      state.objects = state.objects.map((o) => {
+        if (o.id !== change.id) return o;
+        // merge 浅合并 + null 删键（blueprint §1；与 core normalize 同语义）
+        const payload = { ...o.payload };
+        for (const [k, v] of Object.entries(change.payload)) {
+          if (v === null) delete payload[k];
+          else payload[k] = v;
+        }
+        return { ...o, payload };
+      });
     } else if (change.op === "del") {
       state.objects = state.objects.filter((o) => o.id !== change.id);
       state.relations = state.relations.filter((r) => r.id !== change.id);
@@ -109,6 +114,7 @@ export function makeFakeSession(state: FakeSessionState, options: FakeSessionOpt
   state: FakeSessionState;
   catalogData: Catalog;
   commitResult: CommitResult | null;
+  lastRun: { commandId: string; opts?: { target?: string; input?: unknown } } | null;
 } {
   const calls: Record<string, number> = {};
   const listeners = new Set<(e: TopoEvent) => void>();
@@ -130,6 +136,7 @@ export function makeFakeSession(state: FakeSessionState, options: FakeSessionOpt
     get commitResult() {
       return lastCommitResult;
     },
+    lastRun: null as { commandId: string; opts?: { target?: string; input?: unknown } } | null,
     emit(e: TopoEvent): void {
       for (const l of [...listeners]) l(e);
     },
@@ -190,8 +197,7 @@ export function makeFakeSession(state: FakeSessionState, options: FakeSessionOpt
     },
     async run(commandId: string, opts?: { target?: string; input?: unknown }) {
       calls.run = (calls.run ?? 0) + 1;
-      void commandId;
-      void opts;
+      session.lastRun = { commandId, ...(opts !== undefined ? { opts } : {}) };
       return { message: "ok", commits: [] };
     },
     async events(listener: (e: TopoEvent) => void) {

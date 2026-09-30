@@ -52,6 +52,9 @@ export function kindColorOf(kind: string, catalog: Catalog | null): string {
 
 /** kind 的呈现声明（D46 represent）：undefined = 普通星体。画布渲染分流入口。 */
 export function representOf(kind: string, catalog: Catalog | null): KindRepresent | undefined {
+  // 基座约定（D48）：公共 kind `annotation` 恒按附属标注渲染——represent 目录声明按
+  // 模块命名空间绑定，公共 kind 拿不到，故在 web 侧直接认识（member_of 同款先例）。
+  if (kind === "annotation") return "annotation";
   return projectModuleKind(kind, catalog).represent;
 }
 

@@ -1,11 +1,12 @@
 <script lang="ts">
-  // TopoRealm Web 编辑器外壳 — 与 Super Plumber 参考实现同构的深空玻璃仪器舱。
-  // 数据流统一走 lib/store.svelte.ts（1.0 Session 契约 + 冲突自愈，D22）。
+  // TopoRealm Web 审阅界面外壳 — 与 Super Plumber 参考实现同构的深空玻璃仪器舱。
+  // 数据流统一走 lib/store.svelte.ts（1.0 Session 契约 + 冲突自愈，D22）；
+  // 写面 = 批注 + checkpoint 人工确认（D47 审阅转向），无通用编辑能力。
   import { onMount } from "svelte";
   import GraphCanvas from "./lib/GraphCanvas.svelte";
   import ObjectDetail from "./lib/components/ObjectDetail.svelte";
   import RelationDetail from "./lib/components/RelationDetail.svelte";
-  import EditorPanel from "./lib/components/EditorPanel.svelte";
+  import AnnotationComposer from "./lib/components/AnnotationComposer.svelte";
   import { store, displayOf } from "./lib/store.svelte";
   import { filterGraphSnapshot } from "./lib/filter";
   import { kindColorOf } from "./lib/moduleProjection";
@@ -61,23 +62,15 @@
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
-      // 外壳梯（Esc 事件序的第二相）：编辑器 → 选中类 → 选中 → 浮层 → 过滤。
+      // 外壳梯（Esc 事件序的第二相）：批注面板 → 选中类 → 选中 → 浮层 → 过滤。
       // 第一相在 GraphCanvas 的 capture 监听：附属浮层 → 聚焦容器（收起/失焦），吃到即拦截本梯。
       // 选中类与 selection 互斥（store.select 中枢清写），同一时刻至多一层非空。
-      if (store.editor) store.closeEditor();
+      if (store.composer) store.closeComposer();
       else if (store.selectedContainerId) store.selectedContainerId = null;
       else if (store.selection) store.select(null);
       else if (openFlyout) openFlyout = null;
       else if (store.searchQuery || store.kindFilter) store.clearFilters();
       return;
-    }
-    if (!(event.ctrlKey || event.metaKey) || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
-    if (event.key.toLowerCase() === "z") {
-      event.preventDefault();
-      void store.undo();
-    } else if (event.key.toLowerCase() === "y") {
-      event.preventDefault();
-      void store.redo();
     }
   }
 
@@ -110,7 +103,7 @@
           title="切换 / 预览工作区图"
         >
           {#each store.graphsList as g (g.id)}
-            <option value={g.id}>{g.id}{g.current ? "（编辑中）" : ""}</option>
+            <option value={g.id}>{g.id}{g.current ? "（审阅中）" : ""}</option>
           {/each}
         </select>
       {/if}
@@ -160,9 +153,6 @@
         <span class="stat">{store.relations.length}<span class="stat-unit">rel</span></span>
         <span class="stat-divider">·</span>
         <span class="stat">r{store.revision}</span>
-        {#if store.readOnly}
-          <span class="conn-off" title="只读模式：所有写操作入口已禁用">只读</span>
-        {/if}
       </div>
     </div>
   </header>
@@ -177,8 +167,8 @@
         <div class="preview-banner">
           <span class="preview-tag">只读预览</span>
           <span class="preview-title">{store.previewData.graphId} · r{store.previewData.revision} · {store.previewData.entities.length} 实体</span>
-          <span class="preview-hint">当前编辑图是 {currentGraphId} · 切换执行 <code>toporealm use {store.previewData.graphId}</code></span>
-          <button class="preview-close" onclick={() => store.closePreview()} aria-label="关闭预览">返回编辑</button>
+          <span class="preview-hint">当前审阅图是 {currentGraphId} · 切换执行 <code>toporealm use {store.previewData.graphId}</code></span>
+          <button class="preview-close" onclick={() => store.closePreview()} aria-label="关闭预览">返回审阅</button>
         </div>
         <div class="preview-body">
           {#each previewKinds as [kind, list] (kind)}
@@ -242,7 +232,7 @@
             <path d="M26 20h14M26 60h14M46 40H34" stroke-dasharray="4 3"/>
           </svg>
           <h3 class="empty-title">空拓扑</h3>
-          <p class="empty-hint">通过编辑器或 CLI 添加第一个对象与关系</p>
+          <p class="empty-hint">通过 CLI 添加第一个对象与关系</p>
         </div>
       {:else}
         <!-- 星空画布（交互契约见 web-ui/src/lib/GraphCanvas.interaction.md） -->
@@ -288,32 +278,9 @@
 
         <span class="rail-sep" aria-hidden="true"></span>
 
-        <button class="rail-btn" onclick={() => store.openEditor("create-object")} disabled={store.readOnly} title="新增对象" aria-label="新增对象">
+        <button class="rail-btn" onclick={() => store.openComposer({ scope: "graph" })} title="对整张图写批注" aria-label="对整张图写批注">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <circle cx="8" cy="8" r="5.5"/>
-            <path d="M8 5.5v5M5.5 8h5" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="rail-btn" onclick={() => store.openEditor("create-relation")} disabled={store.readOnly} title="新增关系" aria-label="新增关系">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <circle cx="3.5" cy="12" r="2"/>
-            <circle cx="12.5" cy="4" r="2"/>
-            <path d="M5.2 10.3 10.8 5.7" stroke-linecap="round"/>
-          </svg>
-        </button>
-
-        <span class="rail-sep" aria-hidden="true"></span>
-
-        <button class="rail-btn" onclick={() => store.undo()} disabled={store.readOnly || !store.history.canUndo} title="撤销（Ctrl+Z）" aria-label="撤销">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M6 3.5 3 6.5l3 3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 6.5h6a4 4 0 0 1 0 8H7" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="rail-btn" onclick={() => store.redo()} disabled={store.readOnly || !store.history.canRedo} title="重做（Ctrl+Y）" aria-label="重做">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M10 3.5l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M13 6.5H7a4 4 0 0 0 0 8h2" stroke-linecap="round"/>
+            <path d="M13.5 8A5.5 5.5 0 1 0 8 13.5c.9 0 1.8-.2 2.5-.6l3.2.8-.8-3.2c.4-.7.6-1.6.6-2.5Z" stroke-linejoin="round"/>
           </svg>
         </button>
 
@@ -341,19 +308,6 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" stroke-linecap="round"/>
             <path d="M13.5 1.5v3h-3" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <button
-          class="rail-btn"
-          class:active={store.readOnly}
-          onclick={() => (store.readOnly = !store.readOnly)}
-          title="只读模式（禁用所有写入口）"
-          aria-label="只读模式"
-          aria-pressed={store.readOnly}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <rect x="3" y="7.5" width="10" height="6" rx="1.5"/>
-            <path d="M5.5 7.5V5a2.5 2.5 0 0 1 5 0v2.5"/>
           </svg>
         </button>
       </nav>
@@ -402,10 +356,10 @@
     {/if}
   </main>
 
-  <!-- 详情抽屉（右缘玻璃舱，画布点击 → 选择 → 内容渲染） -->
+  <!-- 详情抽屉（右缘玻璃舱，画布点击 → 选择 → 内容渲染）+ 批注撰写面板（D47 审阅写面） -->
   <ObjectDetail />
   <RelationDetail />
-  <EditorPanel />
+  <AnnotationComposer />
 </div>
 
 <style>
@@ -606,14 +560,6 @@
 
   .stat-divider {
     color: var(--ink-faint);
-  }
-
-  .conn-off {
-    color: var(--status-running);
-    font-size: var(--text-2xs);
-    border: 1px solid rgba(240, 167, 58, 0.5);
-    border-radius: 999px;
-    padding: 1px var(--sp-2);
   }
 
   /* 搜索：图标内嵌的胶囊输入 */

@@ -665,6 +665,12 @@ module.yaml schema、graph v3 格式（全部只增不改；不新增用户可�
    普通节点渲染，向后兼容。core 不解释 represent（声明层只协调不执法，D8）；清单
    解析器对 `ui` 段本就是整体透传（仅判「是对象」即收，无字段级校验），加键零解析改动。
 
+### 1.14 规划期补遗（1.5.2：WebUI 审阅转向）
+
+- **D47（WebUI 定位收缩为审阅界面）**：WebUI 移除全部图编辑能力——对象/关系的新建与编辑表单、删除流、undo/redo（按钮与快捷键）、只读开关一并退场；写面收敛为批注（D48）与流程进度人工确认（D49）。落地力度为**界面自律**：web 界面物理上只暴露这两个写入口，不在 web 服务层新增提交拦截——审阅是产品边界而非安全边界，与所有权法「防手滑不防恶意」同哲学（core 两条执法、wire 契约、错误码集零改动）。编辑权归 CLI 与模块；词汇表新增「批注」「审阅」，「专注图」改称 WebUI 的实时审阅对象。
+- **D48（批注 = 公共 kind 基座约定）**：批注对象用无命名空间公共 kind（`annotation`），web-ui 直接认识并按附属标注渲染（`member_of` 同款先例；不走目录 represent 声明——该声明按模块命名空间绑定（D46），公共 kind 无法获得）。锚定三级：单对象经公共挂靠边 `annotation_of`（source=批注，target=宿主；恰一宿主 → 宿主角标，复用 D46 附属渲染路径）；类与整图无宿主边（`payload.target = {scope: "kind"|"graph", ref}`）→ 零宿主自动落附属侧栏。payload 约定：`title`（body 首行截断，供列表/角标浮层与 agent 读面显示）/ `body` / `motivation: "comment"|"question"|"assessing"`（缺省 comment）/ `resolved: boolean`（顶层，供 `read --where resolved=false` 过滤）/ `author`（1.5.2 固定 "user"）/ `created` / `resolvedAt?`。批注 id 由客户端生成（`anno-` 前缀），同一提交内 put + rel 才能原子锚定。agent 读回走既有读面：`toporealm find resolved=false --kind annotation`，基座技能同步教法；处理后经 `merge resolved=true` 收口。目标删除不级联删批注（悬空降级显示），undo 恢复目标即自动复原；线程化（reply_to/thread）留 1.6.0。
+- **D49（checkpoint 人工确认 UI）**：WebUI 直接认识任务 `payload.checkpoints` 内嵌约定（§7 dogfood；目录声明式升级留待出现第二个带 checkpoint 的模块时再做）。任务详情渲染检查点清单；**仅对尚无终态决策的条目**（status ∈ pending/running）提供 √/×，已决策条目只读展示决策值与决策人/时间。提交走模块命令 `wf.record-checkpoint`（input 带 `actor: "user"` + `by: "user"`，满足钩子 HUMAN_CONFIRMATION_REQUIRED 执法），WebUI 不复制状态机；命令缺席（workflow 未装载）时降级为只读展示。
+
 ---
 
 ## 2. 包结构（monorepo，npm workspaces）

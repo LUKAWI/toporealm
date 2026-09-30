@@ -1,4 +1,5 @@
-<!-- RelationDetail — 关系详情抽屉：kind / 方向 / 标题（payload.title）/ 端点跳转 / payload。 -->
+<!-- RelationDetail — 关系详情抽屉：kind / 方向 / 标题（payload.title）/ 端点跳转 / payload。
+     D47 审阅转向：只读呈现，无编辑入口。 -->
 <script lang="ts">
   import { store, titleOf } from "../store.svelte";
   import { kindColorOf, projectModuleKind } from "../moduleProjection";
@@ -40,11 +41,6 @@
       <span class="meta-tag">{relation.direction === "undirected" ? "无向" : "有向"}{relation.direction === "directed" ? " →" : ""}</span>
     </div>
 
-    <div class="relation-actions">
-      <button class="action-btn" onclick={() => store.openEditor("edit-relation", { targetId: relation.id })} disabled={store.readOnly}>编辑</button>
-      <button class="action-btn" onclick={() => store.openEditor("edit-object", { targetId: relation.source })} disabled={store.readOnly}>编辑 source 对象</button>
-    </div>
-
     {#if projection && !projection.available}
       <div class="degraded" role="note">
         <span class="degraded-tag">降级</span>
@@ -84,39 +80,6 @@
     height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
-  }
-
-  .relation-actions {
-    display: flex;
-    gap: var(--sp-2);
-    margin-bottom: var(--sp-4);
-  }
-
-  .action-btn {
-    background: var(--wash-2);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    color: var(--ink);
-    font-family: var(--font-sans);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    padding: var(--sp-2) var(--sp-3);
-    cursor: pointer;
-    transition: background 0.13s var(--ease-out-quart);
-  }
-
-  .action-btn:hover:not(:disabled) {
-    background: var(--wash-3);
-  }
-
-  .action-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .action-btn:focus-visible {
-    outline: 2px solid var(--interactive);
-    outline-offset: 1px;
   }
 
   .degraded {

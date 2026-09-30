@@ -2,7 +2,7 @@
 
 **以拓扑关系为核心的 agent 效率与流程管理工具：极简核心（单属主 daemon + CLI + 实时 WebUI）+ 高度自定义的双层模块系统。**
 
-一张本地图，人与 agent 共同读写：人在终端与浏览器，agent 经 CLI/skills——全部打到同一个常驻 daemon，每笔变更实时互见、可撤销、可审计。
+一张本地图，人与 agent 协作：人在终端编辑、在浏览器审阅（批注与进度确认），agent 经 CLI/skills——全部打到同一个常驻 daemon，每笔变更实时互见、可撤销、可审计。
 
 设计灵感是 [pi](https://github.com/badlogic/pi-mono)：最小的核心、体系化的扩展、一份人与 agent 共享的本地图数据。
 

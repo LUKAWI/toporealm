@@ -28,10 +28,9 @@ async function loadedStore(overrides: {
 }
 
 describe("WebGraphStore（1.0 Session 契约）", () => {
-  it("load：read 拆桶为快照、status 供 undo/redo 可用性、catalog 进目录", async () => {
+  it("load：read 拆桶为快照、catalog 进目录", async () => {
     const { store, session } = await loadedStore();
     expect(store.snapshot).toMatchObject({ graphId: "demo", revision: 5, objects: [{ id: "q-1" }], relations: [] });
-    expect(store.history).toEqual({ canUndo: true, canRedo: false });
     expect(store.catalog?.commands).toHaveLength(1);
     expect(store.error).toBe("");
     expect(session.calls.catalog).toBe(1);
@@ -46,7 +45,6 @@ describe("WebGraphStore（1.0 Session 契约）", () => {
     expect(result.revision).toBe(6);
     expect(store.revision).toBe(6);
     expect(store.objects.map((o) => o.id)).toContain("n-1");
-    expect(store.history.canUndo).toBe(true);
     expect(session.calls.commit).toBe(1);
     // 读回假件状态：payload 整体替换 + title 约定键
     expect(session.state.objects.find((o) => o.id === "n-1")?.payload).toMatchObject({ title: "新对象" });
@@ -123,21 +121,53 @@ describe("WebGraphStore（1.0 Session 契约）", () => {
     expect(store.recovery).toBeNull();
   });
 
-  it("undo 冲突进 recovery；只读模式不发请求", async () => {
-    const { store, session } = await loadedStore({
-      failUndoWith: new TopoError({ code: "IF_REVISION_MISMATCH", message: "版本已变化" }),
+  it("annotate（D48）：node 锚定 = put annotation + annotation_of 边同提交；kind/graph 无挂靠边", async () => {
+    const { store, session } = await loadedStore();
+    // 对象批注：两变更原子提交
+    await store.annotate({ scope: "node", ref: "q-1", body: "这个问题表述不清", motivation: "question" });
+    expect(session.calls.commit).toBe(1);
+    const anno = session.state.objects.find((o) => o.kind === "annotation");
+    expect(anno).toBeTruthy();
+    expect(anno?.id).toMatch(/^anno-/);
+    expect(anno?.payload).toMatchObject({
+      body: "这个问题表述不清",
+      target: { scope: "node", ref: "q-1" },
+      resolved: false,
+      author: "user",
+      motivation: "question",
     });
-    await store.undo();
-    expect(store.recovery).toMatchObject({ code: "IF_REVISION_MISMATCH" });
-    expect(store.snapshot).toMatchObject({ revision: 5 });
+    expect(typeof anno?.payload["created"]).toBe("string");
+    // title = body 首行截断（列表/角标浮层显示名）
+    expect(anno?.payload["title"]).toBe("这个问题表述不清");
+    // 挂靠边：source=批注 target=宿主，kind annotation_of
+    const anchor = session.state.relations.find((r) => r.kind === "annotation_of");
+    expect(anchor).toMatchObject({ source: anno?.id, target: "q-1" });
 
-    const roSession = makeFakeSession(initialState());
-    const roStore = new WebGraphStore(async () => roSession);
-    await roStore.load();
-    roStore.readOnly = true;
-    await roStore.undo();
-    expect(roStore.actionMessage).toContain("只读");
-    expect(roSession.calls.undo).toBeUndefined();
+    // 整图批注：单变更，无挂靠边
+    await store.annotate({ scope: "graph", ref: "graph", body: "整体结构再收敛一点" });
+    const graphAnno = session.state.objects.filter((o) => o.kind === "annotation").at(-1);
+    expect(graphAnno?.payload).toMatchObject({ target: { scope: "graph", ref: "graph" } });
+    expect(session.state.relations.filter((r) => r.kind === "annotation_of")).toHaveLength(1);
+    // 缺省 motivation（comment）不落键
+    expect(graphAnno?.payload["motivation"]).toBeUndefined();
+
+    // store.annotations 投影
+    expect(store.annotations).toHaveLength(2);
+  });
+
+  it("annotate 空内容拒绝；setAnnotationResolved 走 merge（重开以 null 删 resolvedAt）", async () => {
+    const { store, session } = await loadedStore();
+    await expect(store.annotate({ scope: "graph", ref: "graph", body: "   " })).rejects.toMatchObject({ code: "EMPTY_BODY" });
+
+    await store.annotate({ scope: "node", ref: "q-1", body: "待收口" });
+    const anno = session.state.objects.find((o) => o.kind === "annotation")!;
+    await store.setAnnotationResolved(anno.id, true);
+    expect(session.state.objects.find((o) => o.id === anno.id)?.payload).toMatchObject({ resolved: true });
+    expect(typeof session.state.objects.find((o) => o.id === anno.id)?.payload["resolvedAt"]).toBe("string");
+    await store.setAnnotationResolved(anno.id, false);
+    const after = session.state.objects.find((o) => o.id === anno.id)?.payload;
+    expect(after).toMatchObject({ resolved: false });
+    expect(after?.["resolvedAt"]).toBeUndefined();
   });
 
   it("run：目录命令的 commits 按序回灌本地视图", async () => {

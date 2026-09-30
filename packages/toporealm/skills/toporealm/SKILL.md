@@ -80,6 +80,29 @@ toporealm rm auth                                                  # 删容器�
 附属对象（备注类）同理：`represent: "annotation"` 的 kind 渲染为宿主角标或附属侧栏，
 仍是普通对象 + 需要的边；不声明 `represent` = 普通节点。
 
+## 批注与人工确认（审阅回路）
+
+用户在 WebUI 审阅拓扑后写的**批注**是公共 kind `annotation` 的普通对象（基座约定，
+D48）：payload 带目标锚定（`target: {scope, ref}`，scope ∈ node/kind/graph）、内容
+（`body`）、意图（`motivation`：comment/question/assessing）与解决状态（顶层布尔
+`resolved`）。WebUI 1.5.2 起是**纯审阅界面**（批注 + checkpoint 确认），一切图编辑
+在 CLI——用户批注就是审阅意见到达你的主要通道：
+
+- **读未解决批注**：`toporealm find resolved=false --kind annotation`；单条上下文
+  `read <批注id>`（`target.ref` 指向被批注的对象/类/整图）。
+- **按批注行动**：批注是用户的审阅意见，优先级高于自拟计划；动手前先复述你理解的要点。
+- **行动完成后收口**：`toporealm set <批注id> resolved=true resolvedAt=<ISO时间>`；
+  误收口用 `toporealm set <批注id> resolved=false resolvedAt=null` 重开（null 删键）。
+- **替用户写批注**：`toporealm add annotation --payload '{"title":"…","body":"…",
+  "target":{"scope":"node","ref":"<id>"},"resolved":false,"author":"agent"}'`，
+  node 锚定再补 `toporealm link <批注id> <宿主id> --kind annotation_of`（方向恒为
+  批注 → 宿主，恰一条挂靠边时 WebUI 出宿主角标）。
+
+流程类任务的 **checkpoint 人工确认**：用户在 WebUI 打 √/×，走模块命令（如 workflow
+的 `wf.record-checkpoint`，input 带 `actor: "user"` + `by: "user"`）。`human` 档位
+checkpoint 的终态**只能由 user 身份确认**——agent 冒充会被领域钩子拦下
+（HUMAN_CONFIRMATION_REQUIRED），这是设计使然不是故障；已决策的检查点在 WebUI 只读展示。
+
 ## 撤销与历史
 
 - `toporealm undo [N]` / `toporealm redo [N]` — 撤销/重做 N 步。undo 是用户的手，

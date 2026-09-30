@@ -732,9 +732,9 @@
   // 窄屏（≤768px）收纳为可展开（boardOpen）；宽屏 CSS 强制显示行区。
   let boardOpen = $state(false);
 
-  // 右缘详情抽屉（对象/关系/编辑器共用 DetailDrawer 壳）打开时整栈左移让位，
+  // 右缘详情抽屉（对象/关系/批注面板共用 DetailDrawer 壳）打开时整栈左移让位，
   // 看板行不再被抽屉盖住（1.4.2 实测缺陷①）；抽屉关闭时回位。
-  const drawerOpen = $derived(store.selection !== null || store.editor !== null);
+  const drawerOpen = $derived(store.selection !== null || store.composer !== null);
 
   /** 看板行数据投影：与画布共用 reactiveSemantics/过滤语义/展开态/选中态的同一真相。 */
   const containerRows = $derived.by(() => {

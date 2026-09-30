@@ -2,7 +2,7 @@
 
 **An agent-first, local-first graph workspace: a minimal core (single-owner daemon + CLI + realtime WebUI) with a highly customizable two-layer module system.**
 
-One local graph, written and read by humans and agents together: people work in the terminal and the browser, agents work through the CLI and skills — everything lands on the same resident daemon, where every change is seen live by everyone, undoable, and auditable.
+One local graph where humans and agents collaborate: people edit in the terminal and review in the browser (annotations and progress sign-off), agents work through the CLI and skills — everything lands on the same resident daemon, where every change is seen live by everyone, undoable, and auditable.
 
 Design inspired by [pi](https://github.com/badlogic/pi-mono): the smallest possible core, systematic extensions, and one local graph shared by humans and agents.
 

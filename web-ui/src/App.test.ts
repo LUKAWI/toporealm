@@ -2,7 +2,6 @@ import { mount, tick, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App.svelte";
 import { store } from "./lib/store.svelte";
-import { TopoError } from "./lib/protocol";
 import { makeFakeSession, obj, rel, type FakeSessionState } from "./lib/test-support";
 
 function freshState(): FakeSessionState {
@@ -43,7 +42,6 @@ describe("App 外壳（1.0 Session 缝接入）", () => {
     store.catalog = null;
     store.loading = true;
     store.error = "";
-    store.readOnly = false;
   });
 
   it("经 Session 契约加载快照并渲染统计（graphId · revision · 计数）", async () => {
@@ -59,36 +57,36 @@ describe("App 外壳（1.0 Session 缝接入）", () => {
     target.remove();
   });
 
-  it("撤销遇 IF_REVISION_MISMATCH：保留本地快照并出现可点击的重载入口，重载后恢复", async () => {
+  it("整图批注流（D47/D48）：工具轨按钮 → 批注面板 → 提交 = put annotation（无挂靠边）", async () => {
     const session = makeFakeSession(freshState());
-    session.undo = async () => {
-      throw new TopoError({ code: "IF_REVISION_MISMATCH", message: "版本已变化" });
-    };
     const { component, target } = await mountLoadedApp(session);
-    const revisionBefore = store.revision;
-    const objectsBefore = store.objects.length;
-
-    const undoButton = [...target.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.getAttribute("aria-label") === "撤销")!;
-    expect(undoButton.disabled).toBe(false);
-    undoButton.click();
-    await vi.waitFor(() => {
-      if (!store.recovery) throw new Error("recovery 未出现");
-    }, { timeout: 2000 });
+    const annotateBtn = [...target.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.getAttribute("aria-label") === "对整张图写批注")!;
+    annotateBtn.click();
     await tick();
-
-    // 本地快照保留
-    expect(store.revision).toBe(revisionBefore);
-    expect(store.objects.length).toBe(objectsBefore);
-    // recovery chip + 重载入口
-    const chip = target.querySelector(".action-chip.recovery");
-    expect(chip?.textContent).toContain("IF_REVISION_MISMATCH");
-    const reloadBtn = [...target.querySelectorAll<HTMLButtonElement>(".action-chip button")].find((b) => b.textContent?.includes("重新读取"))!;
-    reloadBtn.click();
-    await vi.waitFor(() => {
-      if (store.recovery !== null) throw new Error("recovery 未清除");
-    }, { timeout: 2000 });
+    // 面板出现，目标显示整张图
+    expect(store.composer).toEqual({ scope: "graph" });
+    const drawer = target.querySelector(".drawer.visible");
+    expect(drawer?.textContent).toContain("整张图");
+    // 空内容拒绝
+    const submitBtn = [...target.querySelectorAll<HTMLButtonElement>(".composer-form button")].find((b) => b.textContent?.includes("提交批注"))!;
+    submitBtn.click();
     await tick();
-    expect(store.snapshot).toMatchObject({ revision: 5 });
+    expect(target.querySelector(".form-error")?.textContent).toContain("EMPTY_BODY");
+    // 填写并提交
+    const textarea = target.querySelector<HTMLTextAreaElement>(".composer-form textarea")!;
+    textarea.value = "整体结构再收敛一点";
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    submitBtn.click();
+    await vi.waitFor(() => {
+      if (!store.objects.some((o) => o.kind === "annotation")) throw new Error("批注未落图");
+    }, { timeout: 2000 });
+    const anno = store.annotations[0];
+    expect(anno.payload).toMatchObject({ target: { scope: "graph", ref: "graph" }, author: "user", resolved: false });
+    // 无挂靠边（graph 锚定）
+    expect(session.state.relations.filter((r) => r.kind === "annotation_of")).toHaveLength(0);
+    // 面板关闭
+    await tick();
+    expect(store.composer).toBeNull();
     unmount(component);
     target.remove();
   }, 20000);
@@ -182,7 +180,6 @@ describe("App 静态预览整链（1.2.0 G1 mount 级 DOM 断言）", () => {
     store.catalog = null;
     store.loading = true;
     store.error = "";
-    store.readOnly = false;
     vi.unstubAllGlobals();
   });
 
@@ -190,7 +187,7 @@ describe("App 静态预览整链（1.2.0 G1 mount 级 DOM 断言）", () => {
     const { component, target } = await mountWithGraphs(stubGraphsApi());
     const options = [...target.querySelectorAll<HTMLOptionElement>(".graph-select option")];
     expect(options.map((o) => o.value)).toEqual(["demo", "other"]);
-    expect(options.map((o) => o.textContent?.trim())).toEqual(["demo（编辑中）", "other"]);
+    expect(options.map((o) => o.textContent?.trim())).toEqual(["demo（审阅中）", "other"]);
     unmount(component);
     target.remove();
   });
@@ -215,7 +212,7 @@ describe("App 静态预览整链（1.2.0 G1 mount 级 DOM 断言）", () => {
     target.remove();
   });
 
-  it("③ 返回编辑按钮关闭预览，回到编辑态画布", async () => {
+  it("③ 返回审阅按钮关闭预览，回到审阅态画布", async () => {
     const { component, target } = await mountWithGraphs(stubGraphsApi());
     selectOther(target);
     await vi.waitFor(() => {
@@ -287,7 +284,6 @@ describe("App Esc 逐层梯（1.4.2 选中类层）", () => {
     store.catalog = null;
     store.loading = true;
     store.error = "";
-    store.readOnly = false;
     store.selectedContainerId = null;
     store.selection = null;
   });
@@ -331,7 +327,6 @@ describe("App 详情抽屉与容器看板让位（1.4.2 回归）", () => {
     store.catalog = null;
     store.loading = true;
     store.error = "";
-    store.readOnly = false;
     store.selectedContainerId = null;
     store.selection = null;
   });

@@ -65,4 +65,11 @@ describe("目录投影（blueprint §1 Catalog）", () => {
     expect(degraded.available).toBe(false);
     expect(degraded.represent).toBe("container");
   });
+
+  it("基座批注约定（D48）：公共 kind annotation 无需目录声明即按附属标注渲染", () => {
+    // 无目录、目录未加载、目录缺失该 kind 三种形态下恒为 annotation
+    expect(representOf("annotation", null)).toBe("annotation");
+    expect(representOf("annotation", layeredCatalog)).toBe("annotation");
+    expect(projectModuleKind("annotation", null).represent).toBeUndefined(); // 投影层不受影响：基座约定只在渲染分流入口
+  });
 });
